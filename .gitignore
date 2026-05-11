@@ -1,0 +1,29 @@
+# Environment
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# RAG database (ChromaDB - generated, không cần commit)
+rag/db/
+
+# Output files (CV đã render - generated)
+*_filled.docx
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
