@@ -129,11 +129,24 @@ FIELD_BUILDERS = {
     "summary": build_summary,
 }
 
+def build_leadership_lines(state: CVAgentState) -> list[tuple]:
+    """
+    Build leadership/activities section.
+    Hiện tại CV draft không có field riêng cho leadership,
+    nhưng có thể dùng projects làm leadership nếu có.
+    """
+    # Tận dụng projects nếu có
+    if state.cv_draft and state.cv_draft.projects:
+        return build_projects_lines(state)
+    return []
+
+
 SECTION_BUILDERS = {
     "experience_section": build_experience_lines,
     "skills_section": build_skills_lines,
     "education_section": build_education_lines,
     "projects_section": build_projects_lines,
+    "leadership_section": build_leadership_lines,
 }
 
 SECTION_HEADERS = {
@@ -584,21 +597,27 @@ def _delete_section_with_heading(doc: Document, section: SectionDetection):
 
 def template_renderer_node(state: CVAgentState) -> dict:
     if not state.user_profile or not state.user_profile.template_path:
-        return {"messages": ["[Template Renderer] Bỏ qua - không có template"]}
+        return {"messages": ["[Template Renderer] Bỏ qua - không có template_path"]}
 
     template_path = state.user_profile.template_path
 
-    if not os.path.exists(template_path):
-        return {"messages": [f"[Template Renderer] LỖI: không tìm thấy {template_path}"]}
+    # Resolve absolute path để debug rõ ràng
+    abs_template_path = os.path.abspath(template_path)
+
+    if not os.path.exists(abs_template_path):
+        return {"messages": [
+            f"[Template Renderer] LỖI: không tìm thấy template tại {abs_template_path}. "
+            f"Đảm bảo file tồn tại tại đường dẫn này."
+        ]}
 
     if not state.cv_draft:
-        return {"messages": ["[Template Renderer] Không có CV draft"]}
+        return {"messages": ["[Template Renderer] Không có CV draft để render"]}
 
     try:
-        doc = Document(template_path)
+        doc = Document(abs_template_path)
         template_type = detect_template_type(doc)
 
-        # Cheap cho placeholder, strong cho exemplar (cần phân tích structure phức tạp)
+        # Cheap cho placeholder, strong cho exemplar
         llm = LLMFactory.get_llm(
             tier="strong" if template_type == "exemplar" else "cheap"
         )
@@ -608,18 +627,27 @@ def template_renderer_node(state: CVAgentState) -> dict:
         else:
             result = render_exemplar_template(doc, state, llm)
 
-        # Save
-        output_dir = os.path.dirname(template_path) or "."
-        base_name = os.path.splitext(os.path.basename(template_path))[0]
-        output_path = os.path.join(output_dir, f"{base_name}_filled.docx")
+        # Save - output luôn có tên cố định template_output.docx
+        output_dir = os.path.dirname(abs_template_path) or "."
+        output_path = os.path.join(output_dir, "template_output.docx")
+
         doc.save(output_path)
 
+        # Verify file thực sự đã được tạo
+        if not os.path.exists(output_path):
+            return {"messages": [
+                f"[Template Renderer] LỖI: doc.save() không báo lỗi nhưng file "
+                f"{output_path} không tồn tại sau khi save"
+            ]}
+
+        file_size = os.path.getsize(output_path)
         added_msg = f", thêm: {result['added']}" if result["added"] else ""
+
         return {
             "output_path": output_path,
             "messages": [
-                f"[Template Renderer] ({template_type}) → {output_path}. "
-                f"Fill {result['filled']}, xóa {result['deleted']}{added_msg}"
+                f"[Template Renderer] ({template_type}) ĐÃ LƯU FILE: {output_path} "
+                f"({file_size} bytes). Fill {result['filled']}, xóa {result['deleted']}{added_msg}"
             ],
         }
 

@@ -7,25 +7,24 @@ from state import CVAgentState, CVDraft
 from llm import LLMFactory, call_with_structured_output
 
 
-class SkillCategory(BaseModel):
-    name: str = Field(description="Tên category, e.g. 'Programming Languages'")
-    skills: list[str] = Field(description="List skills trong category này")
-
-
 class SkillsCategorized(BaseModel):
-    categories: list[SkillCategory] = Field(
-        description="List các category, mỗi category có name và list skills"
+    """Skills phân theo nhóm."""
+    categories: dict[str, list[str]] = Field(
+        description="Dict với key là tên category, value là list skills",
     )
 
 
-SYSTEM_PROMPT = """Bạn là CV writer chuyên phân loại và sắp xếp skills.
+SYSTEM_PROMPT = """You are a CV writer specializing in categorizing and organizing skills.
 
-Nhiệm vụ:
-1. Phân loại skills thành các category phù hợp với ngành nghề
-2. Sắp xếp các skill trong mỗi category theo độ ưu tiên (skill match với JD lên đầu)
-3. Bỏ qua skills quá generic ("Microsoft Office", "Internet") trừ khi JD yêu cầu
+LANGUAGE REQUIREMENT — CRITICAL:
+All output (category names AND skill names) MUST be in English. International CV standard.
 
-Categories phổ biến cho tech:
+Task:
+1. Categorize skills into appropriate categories for the industry
+2. Sort skills within each category by priority (JD-matching skills first)
+3. Skip overly generic skills ("Microsoft Office", "Internet") unless JD requires
+
+Common categories for tech:
 - "Programming Languages"
 - "Frameworks & Libraries"  
 - "Databases"
@@ -33,17 +32,17 @@ Categories phổ biến cho tech:
 - "Tools & Platforms"
 - "Soft Skills"
 
-Categories phổ biến cho non-tech:
+Common categories for non-tech:
 - "Technical Skills"
 - "Tools"
 - "Languages"
 - "Soft Skills"
 
-Quy tắc:
-1. Gộp các skill tương đương: "ReactJS" và "React.js" -> giữ cách viết của JD nếu match
-2. Skills có trong JD required -> đưa lên đầu category
-3. Mỗi category có 3-8 skills, không quá nhiều
-4. Tên category dùng tiếng Anh (CV chuẩn quốc tế)"""
+Rules:
+1. Merge equivalent skills: "ReactJS" and "React.js" → keep the JD's spelling if matched
+2. Skills in JD's required list → move to top of category
+3. Each category has 3-8 skills, not too many
+4. Category names in English (international CV standard)"""
 
 
 def skills_agent_node(state: CVAgentState) -> dict:
@@ -79,7 +78,7 @@ def skills_agent_node(state: CVAgentState) -> dict:
         )
 
         current_draft = state.cv_draft or CVDraft()
-        current_draft.skills_categorized = {cat.name: cat.skills for cat in result.categories}
+        current_draft.skills_categorized = result.categories
         # Cập nhật cả education và projects nguyên xi từ profile
         current_draft.educations = state.user_profile.educations
         current_draft.projects = state.user_profile.projects

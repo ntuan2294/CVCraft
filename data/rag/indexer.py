@@ -7,8 +7,8 @@ Usage:
     python -m rag.indexer --reset   # xóa và ingest lại
 """
 import sys
-from rag.vector_store import CVVectorStore
-from rag.data.cv_samples import CV_SAMPLES
+from data.rag.vector_store import CVVectorStore
+from data.cv_samples import CV_SAMPLES
 
 
 def index_samples(reset: bool = False) -> dict:

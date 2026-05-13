@@ -18,10 +18,10 @@ Usage:
 """
 import argparse
 import sys
-from rag.vector_store import CVVectorStore
-from rag.data.hf_loader import load_huggingface_resumes, parse_all_resumes
-from rag.data.quality_filter import filter_quality
-from rag.data.cv_samples import CV_SAMPLES
+from data.rag.vector_store import CVVectorStore
+from data.hf_loader import load_huggingface_resumes, parse_all_resumes
+from data.quality_filter import filter_quality
+from data.cv_samples import CV_SAMPLES
 
 
 def index_seed_samples(store: CVVectorStore) -> tuple[int, int]:

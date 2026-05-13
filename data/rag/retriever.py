@@ -8,7 +8,7 @@ Logic:
 3. Trả về formatted examples sẵn sàng cho prompt
 """
 from typing import Optional
-from rag.vector_store import CVVectorStore
+from data.rag.vector_store import CVVectorStore
 
 
 class RAGRetriever:

@@ -15,7 +15,7 @@ from .vector_store import CVVectorStore
 from .retriever import RAGRetriever
 
 # Re-export từ data subpackage để code khác chỉ cần `from rag import CV_SAMPLES`
-from .data import CV_SAMPLES, filter_samples
+from data.cv_samples import CV_SAMPLES, filter_samples
 
 __all__ = [
     # Core infrastructure

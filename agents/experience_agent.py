@@ -1,17 +1,12 @@
 """
 Experience Agent - Layer 2.
 Quan trọng nhất - viết bullet points STAR cho từng kinh nghiệm.
-Dùng strong model.
+Dùng strong model + RAG bullets làm few-shot.
 """
 from pydantic import BaseModel, Field
 from state import CVAgentState, CVDraft, WorkExperience
 from llm import LLMFactory, call_with_structured_output
-
-try:
-    from rag import RAGRetriever
-    _RAG_AVAILABLE = True
-except ImportError:
-    _RAG_AVAILABLE = False
+from data.rag import RAGRetriever
 
 
 class BulletPointsOutput(BaseModel):
@@ -19,33 +14,37 @@ class BulletPointsOutput(BaseModel):
     bullets: list[str] = Field(description="3-5 bullet points theo phương pháp STAR")
 
 
-SYSTEM_PROMPT = """Bạn là CV writer chuyên nghiệp, chuyên viết bullet points cho phần Experience.
+SYSTEM_PROMPT = """You are a professional CV writer specializing in Experience section bullet points.
 
-Phương pháp STAR (bắt buộc áp dụng cho MỖI bullet):
-- S/T (Situation/Task): bối cảnh ngắn gọn (ngầm trong câu)
-- A (Action): hành động cụ thể với động từ mạnh ở đầu câu
-- R (Result): kết quả LƯỢNG HÓA (số liệu, %, thời gian, quy mô)
+LANGUAGE REQUIREMENT — CRITICAL:
+Output MUST be in English ONLY. Even if user's raw description is in Vietnamese or other languages,
+TRANSLATE and write all bullets in fluent professional English. International CVs are in English.
 
-Công thức bullet point: [Động từ mạnh] + [Object cụ thể] + [Method/Tool] + [Result lượng hóa]
+STAR Method (mandatory for EVERY bullet):
+- S/T (Situation/Task): brief context (implicit in the sentence)
+- A (Action): specific action with strong verb at the start
+- R (Result): QUANTIFIED result (numbers, %, time, scale)
 
-Ví dụ TỐT:
+Bullet formula: [Strong verb] + [Specific object] + [Method/Tool] + [Quantified result]
+
+GOOD examples:
 ✓ "Architected microservices system using Node.js and Kubernetes, reducing API latency by 40% and supporting 2M+ daily requests"
 ✓ "Led team of 5 engineers to migrate legacy monolith to AWS, completing 3 months ahead of schedule and saving $120K/year in infrastructure cost"
 
-Ví dụ XẤU (tránh):
-✗ "Responsible for backend development" (không có action mạnh, không có result)
-✗ "Worked on improving system performance" (chung chung, không lượng hóa)
-✗ "Helped team with various tasks" (yếu, mơ hồ)
+BAD examples (avoid):
+✗ "Responsible for backend development" (no strong action, no result)
+✗ "Worked on improving system performance" (vague, no quantification)
+✗ "Helped team with various tasks" (weak, ambiguous)
 
-Quy tắc bổ sung:
-1. 3-5 bullets mỗi kinh nghiệm (job càng cũ, bullets càng ít)
-2. Bullet đầu tiên luôn là thành tựu IMPACT nhất
-3. Dùng quá khứ cho job đã nghỉ, hiện tại cho job đang làm
-4. Lồng keywords từ JD một cách tự nhiên
-5. Nếu user không cung cấp số liệu cụ thể, ESTIMATE hợp lý dựa trên scope (ví dụ "team of ~5", "improved performance significantly")
-6. KHÔNG bịa số liệu cụ thể nếu user không nói (không viết "increased revenue by 47%" nếu user không nói)
+Additional rules:
+1. 3-5 bullets per experience (older jobs = fewer bullets)
+2. First bullet is always the most IMPACTFUL achievement
+3. Use past tense for past jobs, present tense for current job
+4. Naturally weave in keywords from the JD
+5. If user doesn't provide specific numbers, ESTIMATE reasonably based on scope (e.g., "team of ~5", "improved performance significantly")
+6. DO NOT fabricate specific numbers if user doesn't mention them (don't write "increased revenue by 47%" if user didn't say so)
 
-Động từ mạnh nên dùng: Architected, Led, Spearheaded, Optimized, Streamlined, Implemented, Delivered, Scaled, Orchestrated, Pioneered, Reduced, Increased, Designed, Built, Migrated, Automated."""
+Strong verbs to use: Architected, Led, Spearheaded, Optimized, Streamlined, Implemented, Delivered, Scaled, Orchestrated, Pioneered, Reduced, Increased, Designed, Built, Migrated, Automated."""
 
 
 def experience_agent_node(state: CVAgentState) -> dict:
@@ -60,44 +59,44 @@ def experience_agent_node(state: CVAgentState) -> dict:
     if state.job_requirement:
         jd_keywords = state.job_requirement.keywords + state.job_requirement.required_skills
 
-    # Khởi tạo RAG retriever một lần cho cả node
-    retriever = None
-    if _RAG_AVAILABLE:
-        try:
-            r = RAGRetriever()
-            if not r.store.is_empty():
-                retriever = r
-        except Exception:
-            pass
+    # === RAG: retrieve bullet examples ===
+    rag_examples_block = ""
+    try:
+        retriever = RAGRetriever()
+        jd_req = state.job_requirement
+        retrieved_bullets = retriever.retrieve_bullet_examples(
+            position=jd_req.job_title if jd_req else state.user_profile.work_experiences[0].position,
+            position_description=state.job_description,
+            industry=jd_req.industry if jd_req else None,
+            seniority=jd_req.seniority_level if jd_req else None,
+        )
+        if retrieved_bullets:
+            rag_examples_block = RAGRetriever.format_examples_for_prompt(
+                retrieved_bullets,
+                example_type="bullet point"
+            )
+    except Exception:
+        retrieved_bullets = []
 
     updated_experiences = []
     for exp in state.user_profile.work_experiences:
-        user_msg_parts = [
+        user_msg_parts = []
+
+        # Chèn RAG examples ở đầu prompt
+        if rag_examples_block:
+            user_msg_parts.append(rag_examples_block)
+            user_msg_parts.append("--- THÔNG TIN JOB CẦN VIẾT ---")
+
+        user_msg_parts.extend([
             f"Vị trí: {exp.position}",
             f"Công ty: {exp.company}",
             f"Thời gian: {exp.start_date} - {exp.end_date or 'Hiện tại'}",
             f"Mô tả thô từ user:",
             exp.raw_description,
-        ]
+        ])
 
         if jd_keywords:
             user_msg_parts.append(f"\nKeywords từ JD cần lồng ghép tự nhiên: {', '.join(jd_keywords[:10])}")
-
-        # RAG: thêm bullet examples tương tự vị trí này
-        if retriever:
-            try:
-                seniority = (state.job_requirement.seniority_level or "").lower() if state.job_requirement else None
-                bullet_examples = retriever.retrieve_bullet_examples(
-                    position=exp.position,
-                    position_description=exp.raw_description[:300],
-                    industry=state.job_requirement.industry if state.job_requirement else None,
-                    seniority=seniority or None,
-                )
-                rag_block = retriever.format_examples_for_prompt(bullet_examples, "bullet")
-                if rag_block:
-                    user_msg_parts.insert(0, rag_block)
-            except Exception:
-                pass
 
         # Nếu đang revision, thêm feedback
         if state.revision_count > 0 and state.quality_score:
@@ -116,7 +115,6 @@ def experience_agent_node(state: CVAgentState) -> dict:
                 user_message=user_msg,
             )
 
-            # Tạo experience mới với bullets
             new_exp = WorkExperience(
                 company=exp.company,
                 position=exp.position,
@@ -127,14 +125,13 @@ def experience_agent_node(state: CVAgentState) -> dict:
             )
             updated_experiences.append(new_exp)
         except Exception as e:
-            # Fallback: giữ nguyên experience không có bullets
             updated_experiences.append(exp)
 
-    # Update cv_draft
     current_draft = state.cv_draft or CVDraft()
     current_draft.experiences = updated_experiences
 
+    rag_msg = f" (dùng {len(retrieved_bullets)} RAG examples)" if retrieved_bullets else ""
     return {
         "cv_draft": current_draft,
-        "messages": [f"[Experience Agent] Đã viết bullets cho {len(updated_experiences)} kinh nghiệm"],
+        "messages": [f"[Experience Agent] Đã viết bullets cho {len(updated_experiences)} kinh nghiệm{rag_msg}"],
     }
