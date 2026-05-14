@@ -200,5 +200,75 @@ def rag_stats():
     typer.echo(f"Is empty:  {stats['is_empty']}")
 
 
+@app.command("build-jd-index")
+def build_jd_index(
+    reset: bool = typer.Option(False, "--reset", help="Xóa và re-index JD collection"),
+    target: int = typer.Option(3000, "--target", "-t", help="Số JD muốn index"),
+    max_scan: int = typer.Option(50000, "--max-scan", help="Số record HF quét qua"),
+):
+    """Build RAG JD index từ HuggingFace dataset tinixai/vietnamese-job-descriptions."""
+    if not os.getenv("OPENAI_API_KEY"):
+        typer.echo("⚠️  Cần set OPENAI_API_KEY", err=True)
+        raise typer.Exit(1)
+
+    from cvcraft.services.jd_search_service import JDSearchService
+
+    service = JDSearchService()
+    result = service.build_hf_index(reset=reset, target=target, max_scan=max_scan)
+
+    if result.get("skipped"):
+        typer.echo("✓ JD index đã có data. Dùng --reset để re-index.")
+    else:
+        typer.echo(f"Indexed {result['indexed']} job descriptions.")
+
+
+@app.command("jd-search")
+def jd_search(
+    query: str = typer.Argument(..., help="Từ khóa hoặc mô tả công việc mong muốn"),
+    top_k: int = typer.Option(5, "--top-k", "-k", help="Số JD trả về"),
+    industry: str = typer.Option(None, "--industry", "-i", help="Lọc theo industry"),
+    seniority: str = typer.Option(None, "--seniority", "-s", help="Lọc theo cấp độ"),
+):
+    """Tìm kiếm Job Description theo ngữ nghĩa và nhận gợi ý CV."""
+    if not os.getenv("OPENAI_API_KEY"):
+        typer.echo("⚠️  Cần set OPENAI_API_KEY", err=True)
+        raise typer.Exit(1)
+
+    from cvcraft.services.jd_search_service import JDSearchService
+
+    typer.echo(f"Searching for: \"{query}\"\n")
+    service = JDSearchService()
+    response = service.search_and_suggest(
+        query=query,
+        top_k=top_k,
+        industry=industry or None,
+        seniority=seniority or None,
+    )
+
+    _section("TOP MATCHING JOB DESCRIPTIONS")
+    for i, result in enumerate(response.top_jds, 1):
+        jd = result.jd
+        typer.echo(f"  {i}. {jd.title} ({jd.seniority or '?'}) | {jd.company or '?'} | score: {result.similarity_score:.3f}")
+        typer.echo(f"     Skills: {', '.join(jd.required_skills[:5])}")
+
+    _section("GỢI Ý TỪ AI")
+    s = response.suggestion
+    typer.echo(f"\n  Skills cần phát triển:")
+    for skill in s.skills_to_develop:
+        typer.echo(f"    - {skill}")
+
+    typer.echo(f"\n  Keywords ATS nên thêm vào CV:")
+    for kw in s.cv_keywords:
+        typer.echo(f"    - {kw}")
+
+    typer.echo(f"\n  Project nên xây dựng / showcase:")
+    for proj in s.recommended_projects:
+        typer.echo(f"    - {proj}")
+
+    typer.echo(f"\n  Gợi ý viết Summary:")
+    typer.echo(f"    {s.summary_tips}")
+    typer.echo()
+
+
 if __name__ == "__main__":
     app()
