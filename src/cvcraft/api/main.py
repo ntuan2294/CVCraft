@@ -8,6 +8,7 @@ Run:
 """
 from fastapi import FastAPI
 from cvcraft.api.v1 import cv as cv_router
+from cvcraft.api.v1 import jd as jd_router
 
 
 def create_app() -> FastAPI:
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(cv_router.router, prefix="/v1/cv", tags=["cv"])
+    app.include_router(jd_router.router, prefix="/v1/jd", tags=["jd-search"])
 
     @app.get("/health")
     def health():

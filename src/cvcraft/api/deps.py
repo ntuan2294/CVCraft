@@ -5,6 +5,7 @@ Dùng lru_cache để reuse service instance (không rebuild graph mỗi request
 from functools import lru_cache
 from cvcraft.services.cv_service import CVService
 from cvcraft.services.rag_service import RAGService
+from cvcraft.services.jd_search_service import JDSearchService
 
 
 @lru_cache
@@ -15,3 +16,8 @@ def get_cv_service() -> CVService:
 @lru_cache
 def get_rag_service() -> RAGService:
     return RAGService()
+
+
+@lru_cache
+def get_jd_search_service() -> JDSearchService:
+    return JDSearchService()

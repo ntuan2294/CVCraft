@@ -1,8 +1,9 @@
 """
 Vector store wrapper using ChromaDB.
-Quản lý 2 collection riêng:
+Quản lý 3 collection riêng:
 - summary_samples: các professional summary mẫu
 - experience_bullets: các bullet point mẫu
+- job_descriptions: JD để semantic search
 
 Lý do tách collection: query khác nhau, embedding optimize riêng được.
 """
@@ -55,11 +56,23 @@ class CVVectorStore:
             metadata={"hnsw:space": "cosine"},
         )
 
+        self.jd_collection = self.client.get_or_create_collection(
+            name="job_descriptions",
+            embedding_function=self.embedding_fn,
+            metadata={"hnsw:space": "cosine"},
+        )
+
         self._initialized = True
 
     def is_empty(self) -> bool:
         return (self.summary_collection.count() == 0
                 or self.bullet_collection.count() == 0)
+
+    def is_jd_empty(self) -> bool:
+        try:
+            return self.jd_collection.count() == 0
+        except Exception:
+            return True
 
     def reset(self):
         try:
@@ -75,6 +88,18 @@ class CVVectorStore:
         )
         self.bullet_collection = self.client.get_or_create_collection(
             name="experience_bullets",
+            embedding_function=self.embedding_fn,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+    def reset_jd(self):
+        try:
+            self.client.delete_collection("job_descriptions")
+        except Exception:
+            pass
+
+        self.jd_collection = self.client.get_or_create_collection(
+            name="job_descriptions",
             embedding_function=self.embedding_fn,
             metadata={"hnsw:space": "cosine"},
         )
@@ -115,6 +140,38 @@ class CVVectorStore:
             kwargs["where"] = filter_metadata
 
         results = self.bullet_collection.query(**kwargs)
+        return self._format_results(results)
+
+    def add_jd(self, doc_id: str, text: str, metadata: dict):
+        self.jd_collection.upsert(
+            ids=[doc_id],
+            documents=[text],
+            metadatas=[metadata],
+        )
+
+    def add_jds_batch(self, doc_ids: list[str], texts: list[str], metadatas: list[dict]):
+        self.jd_collection.upsert(
+            ids=doc_ids,
+            documents=texts,
+            metadatas=metadatas,
+        )
+
+    def query_jds(self, query_text: str, n_results: int = 5,
+                  filter_metadata: dict = None) -> list[dict]:
+        try:
+            count = self.jd_collection.count()
+        except Exception:
+            return []
+        if count == 0:
+            return []
+        effective_n = min(n_results, count)
+        kwargs = {
+            "query_texts": [query_text],
+            "n_results": effective_n,
+        }
+        if filter_metadata:
+            kwargs["where"] = filter_metadata
+        results = self.jd_collection.query(**kwargs)
         return self._format_results(results)
 
     @staticmethod
