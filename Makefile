@@ -16,13 +16,13 @@ api:
 
 # === RAG INDEX ===
 build-index:
-	python -m cvcraft.rag.indexer
+	python -m cvcraft.rag.indexing.indexer
 
 build-index-reset:
-	python -m cvcraft.rag.indexer --reset
+	python -m cvcraft.rag.indexing.indexer --reset
 
 build-index-hf:
-	python -m cvcraft.rag.hf_indexer
+	python -m cvcraft.rag.indexing.hf_indexer
 
 # === TEST ===
 test:

@@ -5,15 +5,15 @@ Source: tinixai/vietnamese-job-descriptions (607K bản ghi JD tiếng Việt)
 Strategy: streaming + stratified sampling để lấy đại diện đa ngành.
 
 Usage:
-    python -m cvcraft.rag.jd_indexer
-    python -m cvcraft.rag.jd_indexer --target 5000 --max-scan 80000
-    python -m cvcraft.rag.jd_indexer --reset
-    python -m cvcraft.rag.jd_indexer --dry-run
+    python -m cvcraft.rag.indexing.jd_indexer
+    python -m cvcraft.rag.indexing.jd_indexer --target 5000 --max-scan 80000
+    python -m cvcraft.rag.indexing.jd_indexer --reset
+    python -m cvcraft.rag.indexing.jd_indexer --dry-run
 """
 import argparse
 import sys
 from cvcraft.rag.vector_store import CVVectorStore
-from cvcraft.rag.hf_jd_loader import load_hf_jd_samples
+from cvcraft.rag.loaders.hf_jd_loader import load_hf_jd_samples
 
 
 def index_jd_samples(

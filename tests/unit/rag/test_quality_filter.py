@@ -1,5 +1,5 @@
 """Unit tests cho quality filter - không cần LLM hay DB."""
-from cvcraft.rag.quality_filter import (
+from cvcraft.rag.indexing.quality_filter import (
     has_quantification, starts_with_strong_verb,
     has_placeholder, score_resume, filter_quality,
 )

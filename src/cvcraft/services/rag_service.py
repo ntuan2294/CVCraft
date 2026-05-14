@@ -2,7 +2,7 @@
 RAG Service - quản lý vector index.
 """
 from cvcraft.rag.vector_store import CVVectorStore
-from cvcraft.rag.indexer import index_samples
+from cvcraft.rag.indexing.indexer import index_samples
 
 
 class RAGService:

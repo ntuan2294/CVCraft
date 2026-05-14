@@ -9,7 +9,7 @@ from cvcraft.core.jd_search_models import (
     JDSearchResponse,
 )
 from cvcraft.rag.vector_store import CVVectorStore
-from cvcraft.rag.jd_indexer import index_jd_samples
+from cvcraft.rag.indexing.jd_indexer import index_jd_samples
 from cvcraft.agents.jd_suggestion_agent import generate_jd_suggestions
 
 
