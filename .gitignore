@@ -1,29 +1,52 @@
-# Environment
-.env
-.env.*
-
-# Python
+# === Python ===
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
 
-# Virtual environment
-venv/
+# === Virtual environments ===
 .venv/
+venv/
 env/
 
-# RAG database (ChromaDB - generated, không cần commit)
-rag/db/
+# === Secrets ===
+.env
+.env.*
 
-# Output files (CV đã render - generated)
+# === Runtime data (không commit) ===
+data/raw/
+data/processed/
+data/vectordb/
+outputs/
+
+# === Legacy RAG DB path ===
+data/rag/db/
+
+# === Template output ===
+template_output.docx
+cv_output.docx
 *_filled.docx
 
-# IDE
+# === IDE ===
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# === OS ===
 .DS_Store
 Thumbs.db
+
+# === Test & coverage ===
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# === Logs ===
+*.log

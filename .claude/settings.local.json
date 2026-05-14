@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\src\" -Recurse -File | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\\", \"\"\\) } | Sort-Object)"
+    ]
+  }
+}
