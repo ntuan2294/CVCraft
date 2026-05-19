@@ -22,6 +22,7 @@ env/
 data/raw/
 data/processed/
 data/vectordb/
+**/data/vectordb/
 outputs/
 
 # === Legacy RAG DB path ===

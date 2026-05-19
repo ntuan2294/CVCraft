@@ -1,49 +1,47 @@
-.PHONY: install dev-install run test test-unit lint build-index build-index-hf api docker-build
-
-# === SETUP ===
 install:
-	pip install -e .
+	pip install -e ".[api,dev]"
 
-dev-install:
-	pip install -e ".[dev,api]"
+frontend-install:
+	cd frontend && npm install
 
-# === RUN ===
-run:
-	python -m cvcraft.cli.commands generate
+frontend:
+	cd frontend && npm run dev
 
-api:
-	uvicorn cvcraft.api.main:app --reload --port 8000
+api-generate:
+	uvicorn generate_cv.api.main:app --reload --port 8000
 
-# === RAG INDEX ===
-build-index:
-	python -m cvcraft.rag.indexing.indexer
+api-jd:
+	uvicorn jd_search.api.main:app --reload --port 8001
 
-build-index-reset:
-	python -m cvcraft.rag.indexing.indexer --reset
+generate:
+	generate-cv generate
 
-build-index-hf:
-	python -m cvcraft.rag.indexing.hf_indexer
+generate-build-index:
+	generate-cv build-index
 
-# === TEST ===
+generate-rag-stats:
+	generate-cv rag-stats
+
+jd-build-seed-index:
+	jd-search build-seed-index
+
+jd-build-index:
+	jd-search build-jd-index
+
+jd-search:
+	jd-search jd-search "$(QUERY)"
+
 test:
-	pytest tests/ -v
+	pytest
 
-test-unit:
-	pytest tests/unit/ -v
+test-generate:
+	pytest generate-cv/tests -v
 
-test-e2e:
-	pytest tests/e2e/ -v -m e2e
+test-jd:
+	pytest jd-search/tests -v
 
-# === LINT ===
 lint:
-	ruff check src/ tests/
+	ruff check generate-cv/src jd-search/src shared/src
 
-lint-fix:
-	ruff check --fix src/ tests/
+.PHONY: install frontend-install frontend api-generate api-jd generate generate-build-index generate-rag-stats jd-build-seed-index jd-build-index jd-search test test-generate test-jd lint
 
-# === DOCKER ===
-docker-build:
-	docker build -t cvcraft:latest .
-
-docker-run:
-	docker run --env-file .env cvcraft:latest

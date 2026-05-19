@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cvcraft"
 version = "0.1.0"
-description = "AI-powered CV generation system with multi-agent pipeline and RAG"
+description = "AI-powered CV generator with FE, backend services, RAG, and multi-agent pipeline"
 requires-python = ">=3.11"
 dependencies = [
     "langgraph>=0.2.0",
@@ -34,15 +34,24 @@ dev = [
 ]
 
 [project.scripts]
-cvcraft = "cvcraft.cli.commands:app"
+generate-cv = "generate_cv.cli.commands:app"
+jd-search = "jd_search.cli.commands:app"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+    "generate-cv/src",
+    "jd-search/src",
+    "shared/src",
+]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = [
+    "generate-cv/tests",
+    "jd-search/tests",
+]
 asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+

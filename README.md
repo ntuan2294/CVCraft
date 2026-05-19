@@ -1,346 +1,187 @@
-# CVCraft — AI-powered CV Generator
+# CVCraft
 
-Multi-agent system sinh CV tự động từ Job Description + thông tin user, sử dụng LangGraph, RAG (ChromaDB), và OpenAI GPT-4o.
+CVCraft là hệ thống tạo CV bằng AI, gồm frontend Next.js, backend FastAPI, RAG search cho Job Description và pipeline multi-agent để sinh nội dung CV.
 
----
+## Cấu Trúc Chính
 
-## Yêu cầu
+```text
+CVCraft/
+├── frontend/              # FE - Next.js UI và API proxy routes
+├── generate-cv/           # BE - FastAPI service sinh CV bằng LangGraph agents
+├── jd-search/             # BE - FastAPI service tìm JD bằng RAG + LLM formatting
+├── shared/                # Python package dùng chung cho backend services
+├── docs/                  # Tài liệu kiến trúc và luồng xử lý AI
+├── pyproject.toml         # Python package config dùng chung cho BE
+├── requirements.txt       # Python dependencies dùng chung cho BE
+├── Makefile               # Lệnh chạy chung
+└── .env                   # Environment chung cho BE
+```
 
-| Thứ | Version |
+## FE
+
+`frontend/` chứa giao diện người dùng và các route proxy để gọi backend:
+
+| Phần | Vai trò |
 |---|---|
-| Python | 3.11+ |
-| OpenAI API Key | GPT-4o access |
+| `src/app/page.tsx` | Màn tìm kiếm JD |
+| `src/app/generate/page.tsx` | Màn nhập thông tin và tạo CV |
+| `src/app/api/jd/search/route.ts` | Proxy tới `jd-search` service |
+| `src/app/api/cv/generate/route.ts` | Proxy tới `generate-cv` service |
+| `src/lib/api.ts` | Client API wrapper cho UI |
+| `src/lib/types.ts` | TypeScript contracts dùng ở FE |
+| `src/components/` | UI components |
 
----
-
-## Cài đặt
+Chạy FE:
 
 ```bash
-# 1. Clone / mở project
+cd frontend
+npm install
+npm run dev
+```
+
+Mặc định FE gọi:
+
+```text
+JD_SEARCH_URL=http://localhost:8001
+GENERATE_CV_URL=http://localhost:8000
+```
+
+## BE
+
+Backend hiện được tách thành hai service độc lập.
+
+### Generate CV Service
+
+`generate-cv/` phụ trách luồng tạo CV:
+
+| Phần | Vai trò |
+|---|---|
+| `src/generate_cv/api/` | FastAPI endpoints |
+| `src/generate_cv/services/` | Use-case layer cho API/CLI |
+| `src/generate_cv/pipeline/` | LangGraph orchestration |
+| `src/generate_cv/agents/` | AI agents tạo và kiểm tra nội dung CV |
+| `src/generate_cv/rag/` | RAG examples cho CV writing |
+| `templates/` | Template `.docx` |
+
+Chạy service:
+
+```bash
 cd CVCraft
-
-# 2. Cài package (quan trọng - bật được import từ cvcraft.xxx)
-pip install -e .
-
-# Nếu muốn phát triển thêm (test tools, linter, API)
-pip install -e ".[dev,api]"
+pip install -e ".[api,dev]"
+uvicorn generate_cv.api.main:app --reload --port 8000
 ```
 
-> **Lưu ý Windows:** Nếu không có `make`, chạy trực tiếp lệnh Python bên dưới.
+API chính:
 
----
+```text
+POST /v1/cv/generate
+GET  /v1/cv/download
+GET  /v1/cv/rag/stats
+```
 
-## Cấu hình
+### JD Search Service
+
+`jd-search/` phụ trách tìm kiếm JD và chuẩn hóa nội dung JD:
+
+| Phần | Vai trò |
+|---|---|
+| `src/jd_search/api/` | FastAPI endpoints |
+| `src/jd_search/services/` | Semantic search + AI formatting |
+| `src/jd_search/rag/` | Vector store, loaders, indexing |
+| `src/jd_search/agents/` | Package agent mở rộng nếu cần thêm logic AI cho JD search |
+| `docs/` | Tài liệu riêng cho JD search |
+
+Chạy service:
 
 ```bash
-# Tạo file .env từ template
-copy .env.example .env
+cd CVCraft
+pip install -e ".[api,dev]"
+uvicorn jd_search.api.main:app --reload --port 8001
 ```
 
-Mở `.env` và điền API key:
+API chính:
 
+```text
+POST /v1/jd/search
+POST /v1/jd/index
+GET  /v1/jd/stats
 ```
+
+## Luồng Xử Lý AI
+
+Tài liệu chi tiết nằm ở [docs/ai-flow.md](docs/ai-flow.md).
+
+Tóm tắt:
+
+```text
+User
+  |
+  v
+Frontend
+  |
+  +--> /api/jd/search -----> jd-search service
+  |                            |
+  |                            +--> Embed query
+  |                            +--> Query ChromaDB
+  |                            +--> Format JD sections bằng LLM
+  |
+  +--> /api/cv/generate ---> generate-cv service
+                               |
+                               +--> jd_analyzer
+                               +--> user_profile
+                               +--> summary_agent
+                               +--> experience_agent
+                               +--> skills_agent
+                               +--> qc_agent
+                               +--> template_renderer
+```
+
+## Cấu Hình
+
+Tạo một `.env` chung ở root project:
+
+```text
+CVCraft/.env
+```
+
+Biến bắt buộc:
+
+```env
 OPENAI_API_KEY=sk-...
 ```
 
----
+Biến FE nếu muốn đổi endpoint:
 
-## Chạy thử (3 bước)
+```env
+JD_SEARCH_URL=http://localhost:8001
+GENERATE_CV_URL=http://localhost:8000
+```
 
-### Bước 1 — Build RAG Index
-
-Lần đầu chạy **bắt buộc** phải build index trước. Index lưu vào `data/vectordb/`.
+## Lệnh Thường Dùng
 
 ```bash
-# Seed samples (9 mẫu curated, chạy nhanh ~30 giây)
-python -m cvcraft.rag.indexer
+# Cài backend packages dùng chung
+pip install -e ".[api,dev]"
 
-# Hoặc full dataset từ HuggingFace (1000 raw → filter top 300, chạy 5-10 phút)
-python -m cvcraft.rag.hf_indexer
+# FE
+cd frontend
+npm run dev
+
+# Generate CV API
+cd CVCraft
+uvicorn generate_cv.api.main:app --reload --port 8000
+
+# JD Search API
+cd CVCraft
+uvicorn jd_search.api.main:app --reload --port 8001
+
+# Tests backend
+pytest
 ```
 
-Tùy chọn cho hf_indexer:
+## Ghi Chú Kiến Trúc
 
-```bash
-python -m cvcraft.rag.hf_indexer --max-samples 500 --target 100   # lấy ít hơn
-python -m cvcraft.rag.hf_indexer --reset                          # xóa DB cũ rồi index lại
-python -m cvcraft.rag.hf_indexer --dry-run                        # test không ghi DB
-python -m cvcraft.rag.hf_indexer --min-score 6.0                  # filter chặt hơn
-```
-
-### Bước 2 — Chạy Pipeline
-
-```bash
-python -m cvcraft.cli.commands generate
-```
-
-Pipeline sẽ:
-1. Phân tích JD mẫu (Senior Backend Engineer - Fintech)
-2. Parse thông tin user mẫu (Nguyen Van A)
-3. Dùng RAG + GPT-4o để viết Summary, Experience bullets, Skills
-4. QC Agent chấm điểm (ATS / JD Match / Linguistic)
-5. Render vào `outputs/cv_output.docx` (nếu có template)
-
-Output terminal:
-
-```
-====================================================================
-  LOG CỦA CÁC AGENT
-====================================================================
-  [JD Analyzer] Đã phân tích JD: Senior Backend Engineer (Senior)
-  [User Profile] Đã parse profile: Nguyen Van A, 2 kinh nghiệm
-  [Summary Agent] Đã viết summary (68 từ) (dùng 3 RAG examples)
-  [Experience Agent] Đã viết bullets cho 2 kinh nghiệm (dùng 5 RAG examples)
-  [Skills Agent] Đã phân loại thành 5 nhóm
-  [QC Agent] Overall: 8.3/10 (ATS: 8.5, JD: 8.1, Ling: 8.2). Revision: No
-
-====================================================================
-  FILE OUTPUT
-====================================================================
-  CV đã được render vào: outputs/cv_output.docx
-```
-
-### Bước 3 — Xem file output
-
-Mở `outputs/cv_output.docx` bằng Microsoft Word hoặc LibreOffice.
-
----
-
-## Dùng với input của bạn
-
-Mở [src/cvcraft/cli/commands.py](src/cvcraft/cli/commands.py), tìm `SAMPLE_JD` và `SAMPLE_USER_INPUT`, thay bằng JD và thông tin thực của bạn.
-
-Hoặc gọi trực tiếp qua Python:
-
-```python
-from dotenv import load_dotenv
-load_dotenv()
-
-from cvcraft.services.cv_service import CVService
-
-service = CVService()
-result = service.generate_cv(
-    jd_text="""
-    Senior Backend Engineer - Fintech
-    Required: Python, PostgreSQL, AWS (5+ years)
-    ...
-    """,
-    user_input={
-        "full_name": "Nguyen Van A",
-        "email": "nguyenvana@gmail.com",
-        "phone": "+84 901 234 567",
-        "location": "Hanoi, Vietnam",
-        "template_path": "templates/cv_template.docx",  # bỏ nếu không có
-        "work_experiences": [
-            {
-                "company": "TechCorp",
-                "position": "Senior Backend Engineer",
-                "start_date": "2022-03",
-                "end_date": None,
-                "description": "Lead backend team 4 người, xây dựng hệ thống phục vụ 1 triệu user...",
-            }
-        ],
-        "educations": [
-            {
-                "school": "HUST",
-                "degree": "Bachelor",
-                "major": "Computer Science",
-                "start_date": "2015-09",
-                "end_date": "2019-05",
-                "gpa": 3.6,
-            }
-        ],
-        "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "AWS", "Docker"],
-        "projects": [],
-    },
-    max_revisions=2,
-)
-
-print("Overall score:", result["quality_score"].overall_score)
-print("Output file:", result.get("output_path"))
-```
-
----
-
-## Chạy Tests
-
-```bash
-# Unit tests (không cần OpenAI API key, chạy nhanh)
-pytest tests/unit/ -v
-
-# E2E test (cần API key, chạy pipeline thực)
-pytest tests/e2e/ -v -m e2e
-```
-
----
-
-## Cấu trúc dự án
-
-```
-CVCraft/
-├── pyproject.toml              # Package config + dependencies
-├── Makefile                    # Shortcut commands
-├── .env.example                # Template env vars
-├── Dockerfile
-│
-├── src/
-│   └── cvcraft/
-│       ├── core/               # Domain models (không phụ thuộc gì)
-│       │   ├── state.py        # CVAgentState, JobRequirement, UserProfile, CVDraft, QualityScore
-│       │   └── exceptions.py
-│       │
-│       ├── agents/             # LangGraph agent nodes
-│       │   ├── jd_analyzer.py      # Layer 1: phân tích JD
-│       │   ├── user_profile.py     # Layer 1: parse user input
-│       │   ├── summary_agent.py    # Layer 2: viết Professional Summary (RAG)
-│       │   ├── experience_agent.py # Layer 2: viết bullet points STAR (RAG)
-│       │   ├── skills_agent.py     # Layer 2: phân loại skills
-│       │   ├── qc_agent.py         # Layer 3: chấm điểm ATS/JD/Linguistic
-│       │   └── template_renderer.py # Layer 4: render .docx
-│       │
-│       ├── pipeline/           # LangGraph graph definition
-│       │   ├── graph.py        # build_graph() - định nghĩa luồng agent
-│       │   └── runner.py       # run_pipeline() - wrapper tiện dụng
-│       │
-│       ├── services/           # Use-case layer (CLI & API đều gọi vào đây)
-│       │   ├── cv_service.py   # CVService.generate_cv()
-│       │   └── rag_service.py  # RAGService.build_seed_index()
-│       │
-│       ├── rag/                # RAG system
-│       │   ├── seeds.py        # 20 CV mẫu curated (nhiều ngành/level)
-│       │   ├── vector_store.py # ChromaDB wrapper (singleton)
-│       │   ├── retriever.py    # Query interface cho agents
-│       │   ├── indexer.py      # Index seed samples
-│       │   ├── hf_loader.py    # Load + parse HuggingFace dataset
-│       │   ├── hf_indexer.py   # Index HF samples vào ChromaDB
-│       │   └── quality_filter.py # Heuristic filter (không cần LLM)
-│       │
-│       ├── infrastructure/     # External adapters (đổi provider không ảnh hưởng logic)
-│       │   └── llm/
-│       │       └── factory.py  # LLMFactory: cheap (gpt-4o-mini) / strong (gpt-4o)
-│       │
-│       ├── api/                # FastAPI scaffold (chưa implement đầy đủ)
-│       │   ├── main.py         # FastAPI app factory
-│       │   ├── deps.py         # Dependency injection
-│       │   └── v1/cv.py        # POST /v1/cv/generate
-│       │
-│       ├── cli/
-│       │   └── commands.py     # Typer CLI: generate, build-index, rag-stats
-│       │
-│       └── config/
-│           └── settings.py     # Pydantic Settings (đọc .env)
-│
-├── data/
-│   ├── seeds/                  # (optional) data files bổ sung
-│   ├── raw/                    # HuggingFace downloads (không commit)
-│   ├── processed/              # Filtered data cache (không commit)
-│   └── vectordb/               # ChromaDB storage (không commit, cần build lại)
-│
-├── templates/
-│   └── cv_template.docx        # Template .docx (placeholder hoặc exemplar)
-│
-├── outputs/                    # CV output sau render (không commit)
-│
-└── tests/
-    ├── conftest.py             # Shared fixtures
-    ├── unit/                   # Không cần I/O thật
-    │   ├── core/test_state.py
-    │   ├── agents/test_user_profile.py
-    │   └── rag/test_quality_filter.py
-    ├── integration/
-    └── e2e/test_generate_cv.py # Full pipeline (cần API key)
-```
-
----
-
-## Agent Pipeline
-
-```
-START
-  │
-  ├──> jd_analyzer ──────┐   (song song)
-  ├──> user_profile ─────┤
-  │                       │
-  v                       v
-summary_agent   (RAG: retrieve summary examples)
-  │
-  v
-experience_agent (RAG: retrieve bullet examples)
-  │
-  v
-skills_agent
-  │
-  v
-qc_agent  ──(overall < 7.0 và còn revision)──> summary_agent (loop)
-  │
-  ├──(có template_path)──> template_renderer ──> outputs/cv_output.docx ──> END
-  └──(không có template)──> END
-```
-
----
-
-## RAG Dataset
-
-| Source | Số lượng | Ghi chú |
-|---|---|---|
-| Seed (curated) | 20 mẫu | Viết tay, đa dạng ngành + level |
-| HuggingFace (`datasetmaster/resumes`) | Top 300/1000 | Filter heuristic 5 tiêu chí |
-| **Tổng** | **~320 samples** | ~1500-3000 bullet points |
-
-**Quality filter (không dùng LLM → miễn phí):**
-- Summary 30-200 từ, không có placeholder text
-- Bullets >= 3, đủ dài (avg 8-30 từ/bullet)
-- Có lượng hóa (`%`, `$`, số liệu) ít nhất 1 bullet
-- Bắt đầu bằng strong verbs (Led, Architected, Optimized...)
-- Penalty khi có cliché ("Responsible for", "Helped with"...)
-
----
-
-## Lệnh thường dùng
-
-```bash
-# Cài đặt
-pip install -e ".[dev,api]"
-
-# Chạy demo
-python -m cvcraft.cli.commands generate
-
-# Build RAG index
-python -m cvcraft.rag.indexer
-python -m cvcraft.rag.hf_indexer
-
-# Test
-pytest tests/unit/ -v
-
-# API (cần pip install -e ".[api]")
-uvicorn cvcraft.api.main:app --reload --port 8000
-# → Swagger UI: http://localhost:8000/docs
-```
-
----
-
-## Cho Khóa Luận
-
-**Ablation study đề xuất:**
-
-| Run | RAG Source | Kỳ vọng |
-|---|---|---|
-| Run 1 | Không RAG | Baseline |
-| Run 2 | Seed only (20 mẫu) | + chất lượng viết |
-| Run 3 | HF only (300 mẫu) | + đa dạng ngành |
-| Run 4 | Seed + HF (320 mẫu) | Best |
-
-So sánh điểm QC trung bình (ATS / JD Match / Linguistic) trên 30 JD test cases.
-
-**Citation dataset:**
-
-```
-@misc{datasetmaster2023resumes,
-  author    = {datasetmaster},
-  title     = {Advanced Resume Parser & Job Matcher Resumes},
-  year      = {2023},
-  publisher = {HuggingFace},
-  url       = {https://huggingface.co/datasets/datasetmaster/resumes},
-  license   = {MIT},
-}
-```
+- FE không gọi trực tiếp FastAPI từ browser, mà đi qua Next.js API routes để gom cấu hình endpoint.
+- `generate-cv` và `jd-search` là hai backend service tách biệt để dễ chạy, test và scale riêng.
+- `shared` giữ phần hạ tầng dùng chung cho backend services, nhưng package metadata và dependencies được quản lý ở root.
+- AI flow nằm chủ yếu trong `generate-cv/src/generate_cv/agents` và `generate-cv/src/generate_cv/pipeline`.
