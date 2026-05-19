@@ -160,6 +160,9 @@ GENERATE_CV_URL=http://localhost:8000
 ## Lệnh Thường Dùng
 
 ```bash
+# Chạy toàn bộ app: Generate CV API + JD Search API + Frontend
+python scripts/dev.py
+
 # Cài backend packages dùng chung
 pip install -e ".[api,dev]"
 

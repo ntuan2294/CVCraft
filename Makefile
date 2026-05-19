@@ -7,6 +7,9 @@ frontend-install:
 frontend:
 	cd frontend && npm run dev
 
+dev:
+	python scripts/dev.py
+
 api-generate:
 	uvicorn generate_cv.api.main:app --reload --port 8000
 
@@ -43,5 +46,4 @@ test-jd:
 lint:
 	ruff check generate-cv/src jd-search/src shared/src
 
-.PHONY: install frontend-install frontend api-generate api-jd generate generate-build-index generate-rag-stats jd-build-seed-index jd-build-index jd-search test test-generate test-jd lint
-
+.PHONY: install frontend-install frontend dev api-generate api-jd generate generate-build-index generate-rag-stats jd-build-seed-index jd-build-index jd-search test test-generate test-jd lint
