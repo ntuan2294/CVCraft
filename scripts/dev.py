@@ -19,18 +19,16 @@ def npm_command() -> str:
 
 
 def can_bind_port(port: int) -> bool:
-    # Test wildcard addresses (what uvicorn/Next.js actually bind to).
-    # Do NOT use SO_REUSEADDR — it masks conflicts on Windows.
+    # connect_ex to localhost: if something is listening, connect succeeds (port in use).
+    # Falls back to wildcard-bind check for ports not accepting connections yet.
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind(("0.0.0.0", port))
-        except OSError:
+        s.settimeout(0.1)
+        if s.connect_ex(("127.0.0.1", port)) == 0:
             return False
     if socket.has_ipv6:
         with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(("::", port))
-            except OSError:
+            s.settimeout(0.1)
+            if s.connect_ex(("::1", port)) == 0:
                 return False
     return True
 
@@ -100,6 +98,10 @@ def main() -> int:
     env = os.environ.copy()
     env["GENERATE_CV_URL"] = f"http://localhost:{backend_port}"
     env["JD_SEARCH_URL"] = f"http://localhost:{backend_port}"
+    # Ensure backend/src is on PYTHONPATH so `cvcraft` package is importable
+    backend_src = str(ROOT_DIR / "backend" / "src")
+    existing_path = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"{backend_src}{os.pathsep}{existing_path}" if existing_path else backend_src
 
     processes = [
         start_process(
