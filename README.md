@@ -124,5 +124,6 @@ make lint                 # Kiểm tra code style
 
 ## Tài liệu
 
-- [Hướng dẫn chạy chi tiết](HUONG_DAN_CHAY_DU_AN.md)
+- [Hướng dẫn cài đặt & chạy dự án](docs/GUIDE_VI.md)
 - [AI flow](docs/ai-flow.md)
+- [Testing](docs/TESTING.md)
