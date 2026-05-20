@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { jobApi } from '@/lib/backendApi'
+import { useI18n } from '@/lib/i18n'
 import type { JobPost } from '@/lib/types'
 
 export default function LandingPage() {
+  const { t, locale } = useI18n()
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('')
   const [featuredJobs, setFeaturedJobs] = useState<JobPost[]>([])
@@ -25,6 +27,8 @@ export default function LandingPage() {
     router.push(`/jobs?${params}`)
   }
 
+  const popularTerms = t('home.popularTerms').split(',')
+
   return (
     <div className="bg-white">
       {/* Hero Section */}
@@ -33,16 +37,18 @@ export default function LandingPage() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-blue-800/50 border border-blue-700/50 rounded-full px-4 py-1.5 text-sm text-blue-200 mb-6">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              {stats.openJobs > 0 ? `${stats.openJobs.toLocaleString()}+ open positions available` : 'New jobs added daily'}
+              {stats.openJobs > 0
+                ? t('home.openPositions', { n: stats.openJobs.toLocaleString() })
+                : t('home.newJobsDaily')}
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
-              Find Your Dream Job<br />
+              {t('home.heroTitle1')}<br />
               <span className="bg-gradient-to-r from-blue-300 to-violet-300 bg-clip-text text-transparent">
-                with AI-Powered Matching
+                {t('home.heroTitle2')}
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-blue-200 mb-10 max-w-2xl mx-auto">
-              Discover top opportunities, build a standout CV with AI, and connect with leading companies — all in one platform.
+              {t('home.heroDesc')}
             </p>
 
             {/* Search Bar */}
@@ -53,7 +59,7 @@ export default function LandingPage() {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Job title, skills, or keywords"
+                  placeholder={t('home.searchPlaceholder')}
                   className="w-full text-gray-900 placeholder-gray-400 text-sm focus:outline-none py-2"
                 />
               </div>
@@ -63,20 +69,20 @@ export default function LandingPage() {
                   type="text"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  placeholder="Location or Remote"
+                  placeholder={t('home.locationPlaceholder')}
                   className="w-full text-gray-900 placeholder-gray-400 text-sm focus:outline-none py-2"
                 />
               </div>
               <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap text-sm">
-                Search Jobs
+                {t('home.searchJobs')}
               </button>
             </form>
 
             <div className="flex flex-wrap justify-center gap-2 mt-4 text-sm text-blue-300">
-              <span>Popular:</span>
-              {['Software Engineer', 'Data Analyst', 'Product Manager', 'UX Designer'].map(t => (
-                <button key={t} onClick={() => router.push(`/jobs?keyword=${encodeURIComponent(t)}`)}
-                  className="hover:text-white underline-offset-2 hover:underline transition-colors">{t}</button>
+              <span>{t('home.popular')}</span>
+              {popularTerms.map(term => (
+                <button key={term} onClick={() => router.push(`/jobs?keyword=${encodeURIComponent(term)}`)}
+                  className="hover:text-white underline-offset-2 hover:underline transition-colors">{term}</button>
               ))}
             </div>
           </div>
@@ -92,10 +98,10 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 -mt-2">
           {[
-            { label: 'Open Jobs', value: stats.openJobs > 0 ? `${stats.openJobs.toLocaleString()}+` : '10,000+', icon: '💼' },
-            { label: 'Active Candidates', value: stats.totalCandidates > 0 ? `${stats.totalCandidates.toLocaleString()}+` : '50,000+', icon: '👤' },
-            { label: 'Companies Hiring', value: stats.totalRecruiters > 0 ? `${stats.totalRecruiters.toLocaleString()}+` : '2,000+', icon: '🏢' },
-            { label: 'CVs Generated', value: '25,000+', icon: '📄' },
+            { label: t('home.openJobs'), value: stats.openJobs > 0 ? `${stats.openJobs.toLocaleString()}+` : '10,000+', icon: '💼' },
+            { label: t('home.activeCandidates'), value: stats.totalCandidates > 0 ? `${stats.totalCandidates.toLocaleString()}+` : '50,000+', icon: '👤' },
+            { label: t('home.companiesHiring'), value: stats.totalRecruiters > 0 ? `${stats.totalRecruiters.toLocaleString()}+` : '2,000+', icon: '🏢' },
+            { label: t('home.cvsGenerated'), value: '25,000+', icon: '📄' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
               <div className="text-3xl mb-2">{s.icon}</div>
@@ -110,11 +116,11 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Featured Jobs</h2>
-            <p className="text-gray-500 mt-1">Hot opportunities from top companies</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('home.featuredJobs')}</h2>
+            <p className="text-gray-500 mt-1">{t('home.hotOpportunities')}</p>
           </div>
           <Link href="/jobs" className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
-            View all jobs →
+            {t('home.viewAllJobs')}
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -142,20 +148,22 @@ export default function LandingPage() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How CVCraft Works</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">Get hired faster with our AI-powered platform</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('home.howItWorks')}</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">{t('home.getHiredFaster')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Search & Discover', desc: 'Browse thousands of jobs with powerful filters. Find roles that match your skills and preferences.', icon: '🔍' },
-              { step: '02', title: 'Build Your CV with AI', desc: 'Use our AI CV builder to create a tailored, ATS-optimized resume for each application.', icon: '✨' },
-              { step: '03', title: 'Apply & Get Hired', desc: 'Apply in one click, track your applications and receive updates in real-time.', icon: '🚀' },
+              { step: '01', titleKey: 'home.step1Title', descKey: 'home.step1Desc', icon: '🔍' },
+              { step: '02', titleKey: 'home.step2Title', descKey: 'home.step2Desc', icon: '✨' },
+              { step: '03', titleKey: 'home.step3Title', descKey: 'home.step3Desc', icon: '🚀' },
             ].map(item => (
               <div key={item.step} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
                 <div className="text-4xl mb-4">{item.icon}</div>
-                <div className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Step {item.step}</div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                <div className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
+                  {t('home.step')} {item.step}
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">{t(item.titleKey as Parameters<typeof t>[0])}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{t(item.descKey as Parameters<typeof t>[0])}</p>
               </div>
             ))}
           </div>
@@ -166,16 +174,14 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="bg-gradient-to-br from-blue-600 to-violet-700 rounded-3xl p-12 text-center text-white">
           <div className="text-5xl mb-4">✨</div>
-          <h2 className="text-3xl font-bold mb-4">AI-Powered CV Builder</h2>
-          <p className="text-blue-100 max-w-xl mx-auto mb-8 text-lg">
-            Generate a professional, ATS-optimized CV in minutes. Our multi-agent AI analyzes the job description and tailors your CV to maximize your chances.
-          </p>
+          <h2 className="text-3xl font-bold mb-4">{t('home.aiBannerTitle')}</h2>
+          <p className="text-blue-100 max-w-xl mx-auto mb-8 text-lg">{t('home.aiBannerDesc')}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/cv/generate" className="bg-white text-blue-700 font-semibold px-8 py-3 rounded-xl hover:bg-blue-50 transition-colors">
-              Build My CV Free →
+              {t('home.buildCvFree')}
             </Link>
             <Link href="/jd/search" className="border border-blue-400 text-white font-semibold px-8 py-3 rounded-xl hover:bg-blue-600 transition-colors">
-              Search Job Descriptions
+              {t('home.searchJobDescriptions')}
             </Link>
           </div>
         </div>
@@ -187,37 +193,37 @@ export default function LandingPage() {
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2">
               <div className="text-5xl mb-6">🎯</div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Hiring? Find Top Talent</h2>
-              <p className="text-gray-500 mb-6 text-lg leading-relaxed">
-                Browse thousands of qualified candidates, filter by skills and experience, shortlist the best fits for your roles.
-              </p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('home.hiringTitle')}</h2>
+              <p className="text-gray-500 mb-6 text-lg leading-relaxed">{t('home.hiringDesc')}</p>
               <ul className="space-y-3 mb-8">
-                {['Advanced candidate filtering', 'AI-generated CVs ready to review', 'One-click shortlisting', 'Integrated application tracking'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-gray-700">
+                {(['home.feature1', 'home.feature2', 'home.feature3', 'home.feature4'] as const).map(key => (
+                  <li key={key} className="flex items-center gap-2 text-gray-700">
                     <span className="w-5 h-5 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">✓</span>
-                    {f}
+                    {t(key)}
                   </li>
                 ))}
               </ul>
               <div className="flex gap-3">
                 <Link href="/candidates" className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm">
-                  Browse Candidates
+                  {t('home.browseCandidates')}
                 </Link>
                 <Link href="/auth/register?role=RECRUITER" className="border border-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-100 transition-colors text-sm">
-                  Post a Job
+                  {t('home.postJob')}
                 </Link>
               </div>
             </div>
             <div className="lg:w-1/2 grid grid-cols-2 gap-4">
               {[
-                { label: 'Time to Hire', value: '50% faster', color: 'from-blue-500 to-blue-600' },
-                { label: 'Quality Candidates', value: '3x more', color: 'from-violet-500 to-violet-600' },
-                { label: 'ATS Optimized', value: '100%', color: 'from-green-500 to-green-600' },
-                { label: 'Satisfaction Rate', value: '98%', color: 'from-orange-500 to-orange-600' },
+                { labelKey: 'home.timeToHire', valKey: 'home.timeToHireVal', color: 'from-blue-500 to-blue-600' },
+                { labelKey: 'home.qualityCandidates', valKey: 'home.qualityCandidatesVal', color: 'from-violet-500 to-violet-600' },
+                { labelKey: 'home.atsOptimized', valKey: null, color: 'from-green-500 to-green-600' },
+                { labelKey: 'home.satisfactionRate', valKey: null, color: 'from-orange-500 to-orange-600' },
               ].map(m => (
-                <div key={m.label} className={`bg-gradient-to-br ${m.color} rounded-2xl p-6 text-white`}>
-                  <div className="text-2xl font-bold mb-1">{m.value}</div>
-                  <div className="text-sm opacity-80">{m.label}</div>
+                <div key={m.labelKey} className={`bg-gradient-to-br ${m.color} rounded-2xl p-6 text-white`}>
+                  <div className="text-2xl font-bold mb-1">
+                    {m.valKey ? t(m.valKey as Parameters<typeof t>[0]) : (m.labelKey === 'home.atsOptimized' ? '100%' : '98%')}
+                  </div>
+                  <div className="text-sm opacity-80">{t(m.labelKey as Parameters<typeof t>[0])}</div>
                 </div>
               ))}
             </div>
@@ -229,6 +235,7 @@ export default function LandingPage() {
 }
 
 function FeaturedJobCard({ job }: { job: JobPost }) {
+  const { t, locale } = useI18n()
   const salaryText = job.isSalaryVisible && job.salaryMin
     ? `$${(job.salaryMin / 1000).toFixed(0)}k–$${((job.salaryMax ?? job.salaryMin * 1.5) / 1000).toFixed(0)}k`
     : null
@@ -255,8 +262,8 @@ function FeaturedJobCard({ job }: { job: JobPost }) {
       </div>
       {salaryText && <div className="text-sm font-semibold text-green-600 mb-3">{salaryText}</div>}
       <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>{job.applicationCount} applicants</span>
-        <span>{timeAgo(job.createdAt)}</span>
+        <span>{t('card.applicants', { n: job.applicationCount })}</span>
+        <span>{timeAgo(job.createdAt, t, locale)}</span>
       </div>
     </Link>
   )
@@ -266,14 +273,14 @@ function Badge({ children }: { children: React.ReactNode }) {
   return <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{children}</span>
 }
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, t: (key: Parameters<ReturnType<typeof useI18n>['t']>[0], vars?: Record<string, string | number>) => string, _locale: string) {
   const ms = Date.now() - new Date(dateStr).getTime()
   const days = Math.floor(ms / 86400000)
-  if (days === 0) return 'Today'
-  if (days === 1) return '1 day ago'
-  if (days < 7) return `${days}d ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
-  return `${Math.floor(days / 30)}mo ago`
+  if (days === 0) return t('card.today')
+  if (days === 1) return t('card.dayAgo')
+  if (days < 7) return t('card.daysAgo', { n: days })
+  if (days < 30) return t('card.weeksAgo', { n: Math.floor(days / 7) })
+  return t('card.monthsAgo', { n: Math.floor(days / 30) })
 }
 
 function SearchIcon({ className }: { className?: string }) {

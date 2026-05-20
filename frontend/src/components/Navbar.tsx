@@ -2,10 +2,12 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAuth } from '@/lib/authContext'
+import { useI18n } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
 
 export default function Navbar() {
   const { user, logout, isRecruiter } = useAuth()
+  const { t, locale, setLocale } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropOpen, setDropOpen] = useState(false)
   const router = useRouter()
@@ -14,6 +16,14 @@ export default function Navbar() {
     logout()
     router.push('/')
   }
+
+  const navLinks: [string, string][] = [
+    [t('nav.findJobs'), '/jobs'],
+    [t('nav.browseTalent'), '/candidates'],
+    [t('nav.companies'), '/companies'],
+    [t('nav.aiCvBuilder'), '/cv/generate'],
+    [t('nav.jdSearch'), '/jd/search'],
+  ]
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -29,15 +39,23 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            <NavLink href="/jobs">Find Jobs</NavLink>
-            <NavLink href="/candidates">Browse Talent</NavLink>
-            <NavLink href="/companies">Companies</NavLink>
-            <NavLink href="/cv/generate">AI CV Builder</NavLink>
-            <NavLink href="/jd/search">JD Search</NavLink>
+            {navLinks.map(([label, href]) => (
+              <NavLink key={href} href={href}>{label}</NavLink>
+            ))}
           </div>
 
-          {/* Auth Area */}
+          {/* Auth Area + Lang Toggle */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Language Toggle */}
+            <button
+              onClick={() => setLocale(locale === 'en' ? 'vi' : 'en')}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors"
+              title={locale === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
+            >
+              <span>{locale === 'en' ? '🇻🇳' : '🇬🇧'}</span>
+              <span>{t('lang.toggle')}</span>
+            </button>
+
             {user ? (
               <div className="relative">
                 <button
@@ -62,19 +80,19 @@ export default function Navbar() {
                     <Link href={isRecruiter ? '/dashboard/recruiter' : '/dashboard/candidate'}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setDropOpen(false)}>
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Link>
                     {!isRecruiter && (
                       <Link href="/applications" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
-                        My Applications
+                        {t('nav.myApplications')}
                       </Link>
                     )}
                     <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
-                      Profile Settings
+                      {t('nav.profileSettings')}
                     </Link>
                     <div className="border-t border-gray-100 mt-1">
                       <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                        Sign Out
+                        {t('nav.signOut')}
                       </button>
                     </div>
                   </div>
@@ -83,10 +101,10 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/auth/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-2">
-                  Sign In
+                  {t('nav.signIn')}
                 </Link>
                 <Link href="/auth/register" className="text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-                  Get Started
+                  {t('nav.getStarted')}
                 </Link>
               </>
             )}
@@ -106,23 +124,30 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-          {[
-            ['Find Jobs', '/jobs'],
-            ['Browse Talent', '/candidates'],
-            ['Companies', '/companies'],
-            ['AI CV Builder', '/cv/generate'],
-            ['JD Search', '/jd/search'],
-          ].map(([label, href]) => (
+          {navLinks.map(([label, href]) => (
             <Link key={href} href={href} className="block px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50"
               onClick={() => setMenuOpen(false)}>{label}</Link>
           ))}
-          <div className="pt-2 border-t border-gray-100 flex gap-2">
+          <div className="pt-2 border-t border-gray-100 flex gap-2 items-center">
+            <button
+              onClick={() => setLocale(locale === 'en' ? 'vi' : 'en')}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600"
+            >
+              <span>{locale === 'en' ? '🇻🇳' : '🇬🇧'}</span>
+              <span>{t('lang.toggle')}</span>
+            </button>
             {user ? (
-              <button onClick={handleLogout} className="w-full text-sm text-red-600 py-2 rounded-lg border border-red-200">Sign Out</button>
+              <button onClick={handleLogout} className="flex-1 text-sm text-red-600 py-2 rounded-lg border border-red-200">
+                {t('nav.signOut')}
+              </button>
             ) : (
               <>
-                <Link href="/auth/login" className="flex-1 text-center text-sm border border-gray-200 py-2 rounded-lg text-gray-700">Sign In</Link>
-                <Link href="/auth/register" className="flex-1 text-center text-sm bg-blue-600 text-white py-2 rounded-lg">Get Started</Link>
+                <Link href="/auth/login" className="flex-1 text-center text-sm border border-gray-200 py-2 rounded-lg text-gray-700">
+                  {t('nav.signIn')}
+                </Link>
+                <Link href="/auth/register" className="flex-1 text-center text-sm bg-blue-600 text-white py-2 rounded-lg">
+                  {t('nav.getStarted')}
+                </Link>
               </>
             )}
           </div>
