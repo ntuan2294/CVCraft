@@ -104,11 +104,11 @@ def index_samples(reset: bool = False) -> dict:
     store = CVVectorStore()
 
     if reset:
-        print("⚠️  Reset DB...")
+        print("[RAG] Reset DB...")
         store.reset()
 
     if not reset and not store.is_empty():
-        print("✓ DB đã có data. Skip indexing. Dùng --reset để re-index.")
+        print("[RAG] DB da co data. Skip indexing. Dung --reset de re-index.")
         return {"summaries_indexed": 0, "bullets_indexed": 0, "skipped": True}
 
     counts = _index_sample_batch(store, CV_SAMPLES, source="tier1_seed")
@@ -150,7 +150,7 @@ def index_hf_samples(
     store = CVVectorStore()
 
     if not reset and not store.is_empty():
-        print("✓ DB đã có data. Skip indexing. Dùng --reset để re-index.")
+        print("[RAG] DB da co data. Skip indexing. Dung --reset de re-index.")
         return {"summaries_indexed": 0, "bullets_indexed": 0, "skipped": True}
 
     if reset:
@@ -202,7 +202,7 @@ def index_kaggle_samples(
     store = CVVectorStore()
 
     if not reset and not store.is_empty():
-        print("✓ DB đã có data. Skip indexing. Dùng --reset để re-index.")
+        print("[RAG] DB da co data. Skip indexing. Dung --reset de re-index.")
         return {"summaries_indexed": 0, "bullets_indexed": 0, "skipped": True}
 
     if reset:
@@ -263,11 +263,11 @@ def main():
             result = index_samples(reset=args.reset)
 
         if result["skipped"]:
-            print("\n✓ Không có gì để index")
+            print("\n[RAG] Khong co gi de index")
         elif result.get("dry_run"):
-            print(f"\n✓ DRY RUN hoàn tất. Parsed {result.get('hf_samples', 0)} HF CV samples.")
+            print(f"\n[RAG] DRY RUN hoan tat. Parsed {result.get('hf_samples', 0)} HF CV samples.")
         else:
-            print(f"\n✅ Đã index thành công:")
+            print("\n[RAG] Index thanh cong:")
             print(f"   - {result['summaries_indexed']} summaries")
             print(f"   - {result['bullets_indexed']} experience bullets")
             if "hf_samples" in result:
@@ -280,7 +280,7 @@ def main():
         store = CVVectorStore()
         test_query = "Senior backend engineer fintech Python AWS"
         print(f"\nQuery: '{test_query}'")
-        print(f"\nTop 2 summaries:")
+        print("\n[RAG] Top 2 summaries:")
         results = store.query_summaries(test_query, n_results=2)
         for i, r in enumerate(results, 1):
             print(f"\n{i}. [{r['metadata']['industry']}/{r['metadata']['seniority']}] "
@@ -288,7 +288,7 @@ def main():
             print(f"   {r['text'][:150]}...")
 
     except Exception as e:
-        print(f"\n❌ LỖI: {type(e).__name__}: {e}")
+        print(f"\n[RAG] LOI: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

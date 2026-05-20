@@ -86,7 +86,7 @@ def experience_agent_node(state: CVAgentState) -> dict:
             f"Vị trí: {exp.position}",
             f"Công ty: {exp.company}",
             f"Thời gian: {exp.start_date} - {exp.end_date or 'Hiện tại'}",
-            f"Mô tả thô từ user:",
+            "Mô tả thô từ user:",
             exp.raw_description,
         ])
 
@@ -96,7 +96,7 @@ def experience_agent_node(state: CVAgentState) -> dict:
         if state.revision_count > 0 and state.quality_score:
             relevant_feedback = [f for f in state.quality_score.feedback if 'experience' in f.lower() or 'bullet' in f.lower()]
             if relevant_feedback:
-                user_msg_parts.append(f"\n--- FEEDBACK CẦN XỬ LÝ ---")
+                user_msg_parts.append("\n--- FEEDBACK CẦN XỬ LÝ ---")
                 user_msg_parts.extend(relevant_feedback)
 
         language = state.user_input.get("output_language", "vi")

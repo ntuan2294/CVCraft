@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { jobApi } from '@/lib/backendApi'
@@ -10,6 +10,14 @@ const EXP_LEVELS: ExperienceLevel[] = ['INTERN', 'JUNIOR', 'MID', 'SENIOR', 'LEA
 const WORK_MODES: WorkMode[] = ['ONSITE', 'REMOTE', 'HYBRID']
 
 export default function JobsPage() {
+  return (
+    <Suspense fallback={<JobsPageSkeleton />}>
+      <JobsContent />
+    </Suspense>
+  )
+}
+
+function JobsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -266,6 +274,20 @@ function JobCardSkeleton() {
         <div className="flex gap-2">
           <div className="h-5 bg-gray-100 rounded-full w-16" />
           <div className="h-5 bg-gray-100 rounded-full w-20" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function JobsPageSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white rounded-2xl border border-gray-100 h-16 animate-pulse mb-6" />
+      <div className="flex gap-6">
+        <div className="hidden lg:block w-64 bg-white rounded-2xl border border-gray-100 h-96 animate-pulse shrink-0" />
+        <div className="flex-1 space-y-4">
+          {Array.from({ length: 6 }).map((_, i) => <JobCardSkeleton key={i} />)}
         </div>
       </div>
     </div>

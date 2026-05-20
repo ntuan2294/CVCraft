@@ -106,7 +106,7 @@ def index_jd_samples(
         texts.append(searchable_text)
         metadatas.append(metadata)
 
-    print(f"\n[3/3] Reset collection và upsert vào ChromaDB...")
+    print("\n[3/3] Reset collection và upsert vào ChromaDB...")
     if reset:
         store.reset()
 

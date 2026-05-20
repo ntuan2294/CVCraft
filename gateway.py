@@ -38,9 +38,26 @@ async def _auto_seed_cv_rag():
         print(f"[CVCraft] CV RAG auto-seed failed: {e}")
 
 
+async def _auto_seed_jd_rag():
+    """Build JD seed index if collection is empty (runs in background on startup)."""
+    try:
+        from cvcraft.jd_search.services.jd_search_service import JDSearchService
+
+        service = JDSearchService()
+        stats = service.get_stats()
+        if not stats.get("is_empty"):
+            print(f"[CVCraft] JD index: {stats['job_descriptions']} JDs already indexed, skipping.")
+            return
+        result = service.build_seed_index(reset=False)
+        print(f"[CVCraft] JD auto-seed: {result.get('indexed', 0)} JDs indexed.")
+    except Exception as e:
+        print(f"[CVCraft] JD auto-seed failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     asyncio.create_task(_auto_seed_cv_rag())
+    asyncio.create_task(_auto_seed_jd_rag())
     yield
 
 
@@ -64,7 +81,6 @@ def create_app() -> FastAPI:
 
     # Rate limiting (slowapi) — bỏ qua nếu chưa cài
     try:
-        from slowapi import _rate_limit_exceeded_handler  # type: ignore
         from slowapi.errors import RateLimitExceeded  # type: ignore
         from slowapi.middleware import SlowAPIMiddleware  # type: ignore
 

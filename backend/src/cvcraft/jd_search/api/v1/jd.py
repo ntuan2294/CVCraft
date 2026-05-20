@@ -2,11 +2,13 @@
 API endpoints cho tính năng RAG Job Description Search.
 
 Routes:
-    POST /v1/jd/search  - Semantic search (similarity >= 0.5) + JD section formatting
-    POST /v1/jd/index   - Index 1 JD mới vào vector store
-    GET  /v1/jd/stats   - Thống kê collection
+    POST /v1/jd/search        - Semantic search (similarity >= 0.5) + JD section formatting
+    POST /v1/jd/index         - Index 1 JD mới vào vector store
+    GET  /v1/jd/stats         - Thống kê collection
+    POST /v1/jd/rag/build     - Build JD seed index
+    GET  /v1/jd/rag/build/status
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from cvcraft.jd_search.core.models import JDDocument, JDSearchResponse
@@ -22,6 +24,15 @@ class JDSearchRequest(BaseModel):
 
 class JDIndexRequest(BaseModel):
     jd: JDDocument
+
+
+class JDRagBuildRequest(BaseModel):
+    source: str = Field("seed", description="'seed' | 'hf'")
+    reset: bool = Field(False)
+    max_records: int = Field(3000, ge=1)
+
+
+_build_status: dict = {"running": False, "last_result": None}
 
 
 @router.post("/search", response_model=JDSearchResponse)
@@ -52,3 +63,42 @@ def index_jd(
 def jd_stats(service: JDSearchService = Depends(get_jd_search_service)):
     """Trả về thống kê collection job_descriptions."""
     return service.get_stats()
+
+
+def _run_jd_build(request: JDRagBuildRequest, service: JDSearchService):
+    _build_status["running"] = True
+    try:
+        if request.source == "seed":
+            result = service.build_seed_index(reset=request.reset)
+        elif request.source == "hf":
+            result = service.build_hf_index(reset=request.reset, max_records=request.max_records)
+        else:
+            result = {"error": f"source không hợp lệ: {request.source}"}
+        _build_status["last_result"] = result
+    except Exception as e:
+        _build_status["last_result"] = {"error": str(e)}
+    finally:
+        _build_status["running"] = False
+
+
+@router.post("/rag/build", status_code=202)
+async def build_jd_rag_index(
+    request: JDRagBuildRequest,
+    background_tasks: BackgroundTasks,
+    service: JDSearchService = Depends(get_jd_search_service),
+):
+    """Build JD RAG index ở background. source='seed' (~2s) hoặc 'hf' (~vài phút)."""
+    if _build_status["running"]:
+        raise HTTPException(status_code=409, detail="Đang có build đang chạy")
+    background_tasks.add_task(_run_jd_build, request, service)
+    return {
+        "status": "accepted",
+        "message": f"Đang build JD index từ source='{request.source}'",
+        "check_url": "/v1/jd/rag/build/status",
+    }
+
+
+@router.get("/rag/build/status")
+async def jd_rag_build_status():
+    """Trạng thái build JD RAG index hiện tại."""
+    return {"running": _build_status["running"], "last_result": _build_status["last_result"]}
