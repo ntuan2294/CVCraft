@@ -17,16 +17,13 @@ from cvcraft.generate_cv.agents import (
 
 def should_revise(state: CVAgentState) -> str:
     """Conditional edge: quyết định loop, render template, hay end."""
-    if state.quality_score is None:
-        return "end"
+    has_template = bool(state.user_profile and state.user_profile.template_path)
 
-    if state.quality_score.needs_revision and state.revision_count <= state.max_revisions:
-        return "revise"
+    if state.quality_score is not None:
+        if state.quality_score.needs_revision and state.revision_count <= state.max_revisions:
+            return "revise"
 
-    if state.user_profile and state.user_profile.template_path:
-        return "render"
-
-    return "end"
+    return "render" if has_template else "end"
 
 
 def build_graph():
