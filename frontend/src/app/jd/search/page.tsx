@@ -1,12 +1,15 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import type { JDSearchResponse, JDDocument } from '@/lib/types'
 import JDResultCard from '@/components/JDResultCard'
 
 export default function JDSearchPage() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<JDDocument[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
@@ -102,7 +105,15 @@ export default function JDSearchPage() {
       {!loading && results.length > 0 && (
         <div className="space-y-4">
           <p className="text-sm text-gray-500 mb-2">{results.length} results found</p>
-          {results.map((jd, i) => <JDResultCard key={jd.id ?? i} jd={jd} />)}
+          {results.map((jd, i) => (
+            <JDResultCard
+              key={jd.id ?? i}
+              jd={jd}
+              selected={selectedId === (jd.id ?? String(i))}
+              onSelect={() => setSelectedId(jd.id ?? String(i))}
+              onGenerate={() => router.push('/cv/generate')}
+            />
+          ))}
         </div>
       )}
     </div>

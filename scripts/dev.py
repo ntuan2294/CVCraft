@@ -98,6 +98,7 @@ def main() -> int:
     env = os.environ.copy()
     env["GENERATE_CV_URL"] = f"http://localhost:{backend_port}"
     env["JD_SEARCH_URL"] = f"http://localhost:{backend_port}"
+    env["PYTHONIOENCODING"] = "utf-8"
     # Ensure backend/src is on PYTHONPATH so `cvcraft` package is importable
     backend_src = str(ROOT_DIR / "backend" / "src")
     existing_path = env.get("PYTHONPATH", "")

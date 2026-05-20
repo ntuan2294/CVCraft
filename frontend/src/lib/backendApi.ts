@@ -44,7 +44,7 @@ export const jobApi = {
   getById: (id: number) => request<JobPost>(`/jobs/${id}`),
   getFeatured: (count = 6) => request<JobPost[]>(`/jobs/featured?count=${count}`),
   getCategories: () => request<string[]>('/jobs/categories'),
-  getStats: () => request<Record<string, number>>('/jobs/stats'),
+  getStats: () => request<{ openJobs: number; totalCandidates: number; totalRecruiters: number }>('/jobs/stats'),
   create: (data: unknown) => request<JobPost>('/jobs', { method: 'POST', body: JSON.stringify(data) }),
   updateStatus: (id: number, status: string) =>
     request<JobPost>(`/jobs/${id}/status?status=${status}`, { method: 'PATCH' }),

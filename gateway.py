@@ -15,13 +15,13 @@ from cvcraft.jd_search.api.v1 import jd as jd_router
 
 
 async def _auto_seed_cv_rag():
-    """Build CV RAG seed index nếu store đang rỗng (chạy ở background khi startup)."""
+    """Build CV RAG seed index if store is empty (runs in background on startup)."""
     try:
         from cvcraft.generate_cv.services.rag_service import RAGService
         service = RAGService()
         result = service.ensure_seed_index()
         if result.get("skipped"):
-            print("[CVCraft] CV RAG: đã có data, bỏ qua auto-seed.")
+            print("[CVCraft] CV RAG: data already indexed, skipping auto-seed.")
         else:
             print(
                 f"[CVCraft] CV RAG auto-seed: "
@@ -29,7 +29,7 @@ async def _auto_seed_cv_rag():
                 f"{result['bullets_indexed']} bullets indexed."
             )
     except Exception as e:
-        print(f"[CVCraft] CV RAG auto-seed thất bại: {e}")
+        print(f"[CVCraft] CV RAG auto-seed failed: {e}")
 
 
 @asynccontextmanager
