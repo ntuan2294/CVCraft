@@ -39,7 +39,7 @@ export function GenerateCvResult({
                 onClick={onExportPdf}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
               >
-                Xuất PDF
+                Tải PDF
               </button>
             </div>
           </div>
