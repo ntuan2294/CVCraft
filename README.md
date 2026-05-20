@@ -1,190 +1,128 @@
 # CVCraft
 
-CVCraft là hệ thống tạo CV bằng AI, gồm frontend Next.js, backend FastAPI, RAG search cho Job Description và pipeline multi-agent để sinh nội dung CV.
+CVCraft là hệ thống tạo CV bằng AI, gồm frontend Next.js và backend FastAPI với pipeline multi-agent (LangGraph) và RAG search cho Job Description.
 
-## Cấu Trúc Chính
+## Cấu trúc dự án
 
-```text
+```
 CVCraft/
-├── frontend/              # FE - Next.js UI và API proxy routes
-├── generate-cv/           # BE - FastAPI service sinh CV bằng LangGraph agents
-├── jd-search/             # BE - FastAPI service tìm JD bằng RAG + LLM formatting
-├── shared/                # Python package dùng chung cho backend services
-├── docs/                  # Tài liệu kiến trúc và luồng xử lý AI
-├── pyproject.toml         # Python package config dùng chung cho BE
-├── requirements.txt       # Python dependencies dùng chung cho BE
-├── Makefile               # Lệnh chạy chung
-└── .env                   # Environment chung cho BE
+├── backend/                   # Toàn bộ Python backend
+│   ├── src/cvcraft/
+│   │   ├── config/            # Settings (OpenAI key, paths)
+│   │   ├── infrastructure/    # LLM factory dùng chung
+│   │   ├── generate_cv/       # Luồng tạo CV
+│   │   │   ├── agents/        # AI agents (jd_analyzer, summary, experience, skills, qc, template_renderer)
+│   │   │   ├── pipeline/      # LangGraph orchestration
+│   │   │   ├── rag/           # Vector store + RAG examples
+│   │   │   ├── services/      # Use-case layer
+│   │   │   └── api/           # FastAPI router /v1/cv
+│   │   └── jd_search/         # Luồng tìm kiếm JD
+│   │       ├── rag/           # ChromaDB + HuggingFace loader
+│   │       ├── services/      # Semantic search + AI formatting
+│   │       └── api/           # FastAPI router /v1/jd
+│   ├── data/vectordb/         # ChromaDB local storage
+│   └── outputs/               # CV đã tạo (.docx)
+├── frontend/                  # Next.js UI + API proxy routes
+├── gateway.py                 # FastAPI entry point — mount cả 2 router vào 1 port
+├── pyproject.toml
+├── scripts/dev.py             # Khởi động backend + frontend cùng lúc
+└── .env                       # OPENAI_API_KEY
 ```
 
-## FE
-
-`frontend/` chứa giao diện người dùng và các route proxy để gọi backend:
-
-| Phần | Vai trò |
-|---|---|
-| `src/app/page.tsx` | Màn tìm kiếm JD |
-| `src/app/generate/page.tsx` | Màn nhập thông tin và tạo CV |
-| `src/app/api/jd/search/route.ts` | Proxy tới `jd-search` service |
-| `src/app/api/cv/generate/route.ts` | Proxy tới `generate-cv` service |
-| `src/lib/api.ts` | Client API wrapper cho UI |
-| `src/lib/types.ts` | TypeScript contracts dùng ở FE |
-| `src/components/` | UI components |
-
-Chạy FE:
+## Cài đặt
 
 ```bash
+# 1. Backend
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
+pip install -e ".[api,dev]"
+
+# 2. Frontend
 cd frontend
 npm install
-npm run dev
+cd ..
+
+# 3. Tạo .env
+echo OPENAI_API_KEY=sk-... > .env
 ```
 
-Mặc định FE gọi:
-
-```text
-JD_SEARCH_URL=http://localhost:8001
-GENERATE_CV_URL=http://localhost:8000
-```
-
-## BE
-
-Backend hiện được tách thành hai service độc lập.
-
-### Generate CV Service
-
-`generate-cv/` phụ trách luồng tạo CV:
-
-| Phần | Vai trò |
-|---|---|
-| `src/generate_cv/api/` | FastAPI endpoints |
-| `src/generate_cv/services/` | Use-case layer cho API/CLI |
-| `src/generate_cv/pipeline/` | LangGraph orchestration |
-| `src/generate_cv/agents/` | AI agents tạo và kiểm tra nội dung CV |
-| `src/generate_cv/rag/` | RAG examples cho CV writing |
-| `templates/` | Template `.docx` |
-
-Chạy service:
+## Chạy dự án
 
 ```bash
-cd CVCraft
-pip install -e ".[api,dev]"
-uvicorn generate_cv.api.main:app --reload --port 8000
-```
-
-API chính:
-
-```text
-POST /v1/cv/generate
-GET  /v1/cv/download
-GET  /v1/cv/rag/stats
-```
-
-### JD Search Service
-
-`jd-search/` phụ trách tìm kiếm JD và chuẩn hóa nội dung JD:
-
-| Phần | Vai trò |
-|---|---|
-| `src/jd_search/api/` | FastAPI endpoints |
-| `src/jd_search/services/` | Semantic search + AI formatting |
-| `src/jd_search/rag/` | Vector store, loaders, indexing |
-| `src/jd_search/agents/` | Package agent mở rộng nếu cần thêm logic AI cho JD search |
-| `docs/` | Tài liệu riêng cho JD search |
-
-Chạy service:
-
-```bash
-cd CVCraft
-pip install -e ".[api,dev]"
-uvicorn jd_search.api.main:app --reload --port 8001
-```
-
-API chính:
-
-```text
-POST /v1/jd/search
-POST /v1/jd/index
-GET  /v1/jd/stats
-```
-
-## Luồng Xử Lý AI
-
-Tài liệu chi tiết nằm ở [docs/ai-flow.md](docs/ai-flow.md).
-
-Tóm tắt:
-
-```text
-User
-  |
-  v
-Frontend
-  |
-  +--> /api/jd/search -----> jd-search service
-  |                            |
-  |                            +--> Embed query
-  |                            +--> Query ChromaDB
-  |                            +--> Format JD sections bằng LLM
-  |
-  +--> /api/cv/generate ---> generate-cv service
-                               |
-                               +--> jd_analyzer
-                               +--> user_profile
-                               +--> summary_agent
-                               +--> experience_agent
-                               +--> skills_agent
-                               +--> qc_agent
-                               +--> template_renderer
-```
-
-## Cấu Hình
-
-Tạo một `.env` chung ở root project:
-
-```text
-CVCraft/.env
-```
-
-Biến bắt buộc:
-
-```env
-OPENAI_API_KEY=sk-...
-```
-
-Biến FE nếu muốn đổi endpoint:
-
-```env
-JD_SEARCH_URL=http://localhost:8001
-GENERATE_CV_URL=http://localhost:8000
-```
-
-## Lệnh Thường Dùng
-
-```bash
-# Chạy toàn bộ app: Generate CV API + JD Search API + Frontend
+# Chạy backend + frontend cùng lúc (khuyên dùng)
 python scripts/dev.py
-
-# Cài backend packages dùng chung
-pip install -e ".[api,dev]"
-
-# FE
-cd frontend
-npm run dev
-
-# Generate CV API
-cd CVCraft
-uvicorn generate_cv.api.main:app --reload --port 8000
-
-# JD Search API
-cd CVCraft
-uvicorn jd_search.api.main:app --reload --port 8001
-
-# Tests backend
-pytest
 ```
 
-## Ghi Chú Kiến Trúc
+Hoặc chạy riêng từng service:
 
-- FE không gọi trực tiếp FastAPI từ browser, mà đi qua Next.js API routes để gom cấu hình endpoint.
-- `generate-cv` và `jd-search` là hai backend service tách biệt để dễ chạy, test và scale riêng.
-- `shared` giữ phần hạ tầng dùng chung cho backend services, nhưng package metadata và dependencies được quản lý ở root.
-- AI flow nằm chủ yếu trong `generate-cv/src/generate_cv/agents` và `generate-cv/src/generate_cv/pipeline`.
+```bash
+# Backend (port 8000)
+uvicorn gateway:app --reload --port 8000
+
+# Frontend (port 3000)
+cd frontend && npm run dev
+```
+
+## API
+
+Cả Generate CV và JD Search chạy trên cùng 1 port:
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| `POST` | `/v1/cv/generate` | Tạo CV từ JD + thông tin user |
+| `GET` | `/v1/cv/download` | Tải file CV (.docx) |
+| `GET` | `/v1/cv/rag/stats` | Thống kê RAG vector store |
+| `POST` | `/v1/jd/search` | Tìm kiếm JD theo semantic search |
+| `POST` | `/v1/jd/index` | Index JD mới vào vector store |
+| `GET` | `/v1/jd/stats` | Thống kê JD collection |
+| `GET` | `/health` | Health check |
+| `GET` | `/docs` | Swagger UI |
+
+## Luồng xử lý AI
+
+```
+User
+ │
+ ▼
+Frontend (Next.js)
+ │
+ ├─► /api/jd/search ──► jd_search service
+ │                          ├─ Embed query (OpenAI)
+ │                          ├─ Query ChromaDB
+ │                          └─ Format JD sections (LLM)
+ │
+ └─► /api/cv/generate ──► generate_cv pipeline (LangGraph)
+                              ├─ jd_analyzer
+                              ├─ user_profile
+                              ├─ summary_agent      ◄─ RAG
+                              ├─ experience_agent   ◄─ RAG
+                              ├─ skills_agent
+                              ├─ qc_agent
+                              └─ template_renderer
+```
+
+Frontend không gọi FastAPI trực tiếp từ browser — mọi request đi qua Next.js API routes để gom cấu hình endpoint.
+
+## Cấu hình
+
+| Biến | Mô tả | Mặc định |
+|---|---|---|
+| `OPENAI_API_KEY` | API key OpenAI (bắt buộc) | — |
+| `GENERATE_CV_URL` | URL backend cho FE | `http://localhost:8000` |
+| `JD_SEARCH_URL` | URL backend cho FE | `http://localhost:8000` |
+
+## Lệnh thường dùng
+
+```bash
+make dev                  # Chạy toàn bộ app
+make build-index          # Build RAG index từ seed samples
+make jd-build-seed-index  # Build JD index từ seed samples
+make test                 # Chạy test
+make lint                 # Kiểm tra code style
+```
+
+## Tài liệu
+
+- [Hướng dẫn chạy chi tiết](HUONG_DAN_CHAY_DU_AN.md)
+- [AI flow](docs/ai-flow.md)
