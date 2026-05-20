@@ -79,8 +79,7 @@ def stop_processes(processes: list[subprocess.Popen[str]]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run CVCraft frontend and backend services.")
-    parser.add_argument("--generate-port", type=int, default=8000)
-    parser.add_argument("--jd-port", type=int, default=8001)
+    parser.add_argument("--backend-port", type=int, default=8000)
     parser.add_argument("--frontend-port", type=int, default=3000)
     return parser.parse_args()
 
@@ -88,31 +87,22 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     used_ports: set[int] = set()
-    generate_port = find_available_port(args.generate_port, used_ports)
-    jd_port = find_available_port(args.jd_port, used_ports)
+    backend_port = find_available_port(args.backend_port, used_ports)
     frontend_port = find_available_port(args.frontend_port, used_ports)
 
-    if generate_port != args.generate_port:
-        print(f"[dev] Port {args.generate_port} is unavailable for Generate CV. Using {generate_port}.", flush=True)
-    if jd_port != args.jd_port:
-        print(f"[dev] Port {args.jd_port} is unavailable for JD Search. Using {jd_port}.", flush=True)
+    if backend_port != args.backend_port:
+        print(f"[dev] Port {args.backend_port} is unavailable for backend. Using {backend_port}.", flush=True)
     if frontend_port != args.frontend_port:
         print(f"[dev] Port {args.frontend_port} is unavailable for Frontend. Using {frontend_port}.", flush=True)
 
     env = os.environ.copy()
-    env["GENERATE_CV_URL"] = f"http://localhost:{generate_port}"
-    env["JD_SEARCH_URL"] = f"http://localhost:{jd_port}"
+    env["GENERATE_CV_URL"] = f"http://localhost:{backend_port}"
+    env["JD_SEARCH_URL"] = f"http://localhost:{backend_port}"
 
     processes = [
         start_process(
-            "generate-cv",
-            [sys.executable, "-m", "uvicorn", "generate_cv.api.main:app", "--reload", "--port", str(generate_port)],
-            ROOT_DIR,
-            env,
-        ),
-        start_process(
-            "jd-search",
-            [sys.executable, "-m", "uvicorn", "jd_search.api.main:app", "--reload", "--port", str(jd_port)],
+            "backend",
+            [sys.executable, "-m", "uvicorn", "gateway:app", "--reload", "--port", str(backend_port)],
             ROOT_DIR,
             env,
         ),
@@ -126,9 +116,8 @@ def main() -> int:
 
     print(
         "\n[dev] Services are starting.\n"
-        f"[dev] Frontend:    http://localhost:{frontend_port}\n"
-        f"[dev] Generate CV: http://localhost:{generate_port}/docs\n"
-        f"[dev] JD Search:   http://localhost:{jd_port}/docs\n"
+        f"[dev] Frontend: http://localhost:{frontend_port}\n"
+        f"[dev] Backend:  http://localhost:{backend_port}/docs\n"
         "[dev] Press Ctrl+C to stop all services.\n",
         flush=True,
     )

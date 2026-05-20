@@ -1,4 +1,4 @@
-const JD_SEARCH_URL = process.env.JD_SEARCH_URL ?? 'http://localhost:8001'
+const JD_SEARCH_URL = process.env.JD_SEARCH_URL ?? 'http://localhost:8000'
 
 export async function POST(request: Request) {
   const body = await request.json()

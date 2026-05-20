@@ -34,21 +34,14 @@ dev = [
 ]
 
 [project.scripts]
-generate-cv = "generate_cv.cli.commands:app"
-jd-search = "jd_search.cli.commands:app"
+generate-cv = "cvcraft.generate_cv.cli.commands:app"
+jd-search = "cvcraft.jd_search.cli.commands:app"
 
 [tool.setuptools.packages.find]
-where = [
-    "generate-cv/src",
-    "jd-search/src",
-    "shared/src",
-]
+where = ["backend/src"]
 
 [tool.pytest.ini_options]
-testpaths = [
-    "generate-cv/tests",
-    "jd-search/tests",
-]
+testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]

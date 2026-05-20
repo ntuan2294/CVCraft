@@ -4,25 +4,25 @@ install:
 frontend-install:
 	cd frontend && npm install
 
-frontend:
-	cd frontend && npm run dev
-
 dev:
 	python scripts/dev.py
 
-api-generate:
-	uvicorn generate_cv.api.main:app --reload --port 8000
+frontend:
+	cd frontend && npm run dev
 
-api-jd:
-	uvicorn jd_search.api.main:app --reload --port 8001
+api:
+	uvicorn gateway:app --reload --port 8000
 
 generate:
 	generate-cv generate
 
-generate-build-index:
+build-index:
 	generate-cv build-index
 
-generate-rag-stats:
+build-hf-index:
+	generate-cv build-hf-index
+
+rag-stats:
 	generate-cv rag-stats
 
 jd-build-seed-index:
@@ -34,16 +34,13 @@ jd-build-index:
 jd-search:
 	jd-search jd-search "$(QUERY)"
 
+jd-stats:
+	jd-search jd-stats
+
 test:
 	pytest
 
-test-generate:
-	pytest generate-cv/tests -v
-
-test-jd:
-	pytest jd-search/tests -v
-
 lint:
-	ruff check generate-cv/src jd-search/src shared/src
+	ruff check backend/src
 
-.PHONY: install frontend-install frontend dev api-generate api-jd generate generate-build-index generate-rag-stats jd-build-seed-index jd-build-index jd-search test test-generate test-jd lint
+.PHONY: install frontend-install dev frontend api generate build-index build-hf-index rag-stats jd-build-seed-index jd-build-index jd-search jd-stats test lint
