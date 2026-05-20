@@ -19,15 +19,17 @@ def npm_command() -> str:
 
 
 def can_bind_port(port: int) -> bool:
-    checks: list[tuple[int, tuple]] = [(socket.AF_INET, ("127.0.0.1", port))]
+    # Test wildcard addresses (what uvicorn/Next.js actually bind to).
+    # Do NOT use SO_REUSEADDR — it masks conflicts on Windows.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("0.0.0.0", port))
+        except OSError:
+            return False
     if socket.has_ipv6:
-        checks.append((socket.AF_INET6, ("::", port)))
-
-    for family, address in checks:
-        with socket.socket(family, socket.SOCK_STREAM) as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s:
             try:
-                sock.bind(address)
+                s.bind(("::", port))
             except OSError:
                 return False
     return True
