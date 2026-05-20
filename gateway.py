@@ -6,10 +6,36 @@ Run:
     # or
     python scripts/dev.py
 """
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cvcraft.generate_cv.api.v1 import cv as cv_router
 from cvcraft.jd_search.api.v1 import jd as jd_router
+
+
+async def _auto_seed_cv_rag():
+    """Build CV RAG seed index nếu store đang rỗng (chạy ở background khi startup)."""
+    try:
+        from cvcraft.generate_cv.services.rag_service import RAGService
+        service = RAGService()
+        result = service.ensure_seed_index()
+        if result.get("skipped"):
+            print("[CVCraft] CV RAG: đã có data, bỏ qua auto-seed.")
+        else:
+            print(
+                f"[CVCraft] CV RAG auto-seed: "
+                f"{result['summaries_indexed']} summaries, "
+                f"{result['bullets_indexed']} bullets indexed."
+            )
+    except Exception as e:
+        print(f"[CVCraft] CV RAG auto-seed thất bại: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(_auto_seed_cv_rag())
+    yield
 
 
 def create_app() -> FastAPI:
@@ -19,6 +45,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
