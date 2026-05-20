@@ -71,7 +71,7 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
               alt={selectedTemplate.name}
               width={72}
               height={96}
-              className="h-24 w-[72px] shrink-0 rounded-md border border-gray-200 object-cover object-top"
+              className="h-24 w-18 shrink-0 rounded-md border border-gray-200 object-cover object-top"
             />
           )}
           <div className="min-w-0">

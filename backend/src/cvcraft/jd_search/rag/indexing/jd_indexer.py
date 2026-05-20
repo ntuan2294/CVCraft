@@ -9,8 +9,27 @@ Usage:
 """
 import argparse
 import sys
+import time
 from cvcraft.jd_search.rag.vector_store import JDVectorStore
 from cvcraft.jd_search.rag.loaders.hf_jd_loader import load_hf_jd_samples
+
+
+def _upsert_with_retry(store: JDVectorStore, ids, texts, metadatas, max_retries: int = 5):
+    delay = 10
+    for attempt in range(max_retries):
+        try:
+            store.add_jds_batch(ids, texts, metadatas)
+            return
+        except Exception as e:
+            if "rate_limit" in str(e).lower() or "429" in str(e) or "RateLimit" in type(e).__name__:
+                if attempt < max_retries - 1:
+                    print(f"  Rate limit, chờ {delay}s rồi thử lại...")
+                    time.sleep(delay)
+                    delay = min(delay * 2, 60)
+                else:
+                    raise
+            else:
+                raise
 
 _SKIP_KEYS = {"id", "year"}
 
@@ -94,9 +113,15 @@ def index_jd_samples(
     chunk_size = 100
     total_indexed = 0
     for i in range(0, len(ids), chunk_size):
-        store.add_jds_batch(ids[i:i+chunk_size], texts[i:i+chunk_size], metadatas[i:i+chunk_size])
+        _upsert_with_retry(
+            store,
+            ids[i:i+chunk_size],
+            texts[i:i+chunk_size],
+            metadatas[i:i+chunk_size],
+        )
         total_indexed += len(ids[i:i+chunk_size])
         print(f"  Indexed {total_indexed}/{len(ids)}...")
+        time.sleep(0.5)
 
     return {"skipped": False, "indexed": total_indexed}
 

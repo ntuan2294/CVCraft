@@ -12,10 +12,12 @@ import os
 import re
 import copy
 import tempfile
+import unicodedata
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, Field
 from docx import Document
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
 from cvcraft.generate_cv.core.state import CVAgentState
@@ -79,7 +81,30 @@ def iter_all_paragraphs(doc: Document):
 
 
 def build_full_name(state: CVAgentState) -> str:
-    return state.user_profile.full_name if state.user_profile else ""
+    if not state.user_profile:
+        return ""
+    name = state.user_profile.full_name
+    if state.user_input.get("output_language") == "en":
+        name = strip_accents(name)
+    return compact_text(name)
+
+
+def strip_accents(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value)
+    without_marks = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return without_marks.replace("Đ", "D").replace("đ", "d")
+
+
+def compact_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip()
+
+
+def compact_lines(values: list[str]) -> list[str]:
+    return [text for text in (compact_text(value) for value in values) if text]
+
+
+def compact_tabbed_text(value: str) -> str:
+    return "\t".join(compact_text(part) for part in (value or "").split("\t"))
 
 
 def build_job_title(state: CVAgentState) -> str:
@@ -96,7 +121,7 @@ def build_contact_line(state: CVAgentState) -> str:
     if not state.user_profile:
         return ""
     p = state.user_profile
-    parts = [p.location, p.email, p.phone]
+    parts = [compact_text(p.location or ""), compact_text(p.email), compact_text(p.phone or "")]
     parts = [x for x in parts if x]
     return " • ".join(parts)
 
@@ -108,7 +133,7 @@ def build_simple_field(state: CVAgentState, field: str) -> str:
 
 
 def build_summary(state: CVAgentState) -> str:
-    return state.cv_draft.summary if state.cv_draft and state.cv_draft.summary else ""
+    return compact_text(state.cv_draft.summary) if state.cv_draft and state.cv_draft.summary else ""
 
 
 def build_languages(state: CVAgentState) -> str:
@@ -170,18 +195,17 @@ def build_experience_lines(state: CVAgentState) -> list[tuple]:
     present = "Present" if state.user_input.get("output_language") == "en" else "Hiện tại"
     for exp in state.cv_draft.experiences:
         end = exp.end_date or present
-        lines.append(("header", exp.company))
-        lines.append(("subheader", f"{exp.position}\t{exp.start_date} – {end}"))
-        for bullet in exp.bullets:
+        lines.append(("header_with_date", f"{compact_text(exp.company).upper()}\t{compact_text(exp.start_date)} - {compact_text(end)}"))
+        lines.append(("subheader", compact_text(exp.position)))
+        for bullet in compact_lines(exp.bullets):
             lines.append(("bullet", bullet))
-        lines.append(("blank", ""))
     return lines
 
 
 def build_skills_lines(state: CVAgentState) -> list[tuple]:
     if not state.cv_draft or not state.cv_draft.skills_categorized:
         return []
-    return [("bullet", f"{cat}: {', '.join(skills)}")
+    return [("header", f"{cat}: {', '.join(skills)}")
             for cat, skills in state.cv_draft.skills_categorized.items()]
 
 
@@ -194,13 +218,13 @@ def build_education_lines(state: CVAgentState) -> list[tuple]:
     major_joiner = " in " if state.user_input.get("output_language") == "en" else " - "
     for edu in state.cv_draft.educations:
         end = edu.end_date or present
-        lines.append(("header", edu.school))
-        lines.append(("subheader", f"{edu.degree}{major_joiner}{edu.major}\t{edu.start_date} – {end}"))
+        lines.append(("header_with_date", f"{compact_text(edu.school).upper()}\t{compact_text(edu.start_date)} - {compact_text(end)}"))
+        degree_parts = [compact_text(edu.degree), compact_text(edu.major)]
+        lines.append(("subheader", major_joiner.join(part for part in degree_parts if part)))
         if edu.gpa:
             lines.append(("bullet", f"GPA: {edu.gpa}"))
-        for ach in edu.achievements:
+        for ach in compact_lines(edu.achievements):
             lines.append(("bullet", ach))
-        lines.append(("blank", ""))
     return lines
 
 
@@ -238,7 +262,7 @@ def build_reference_lines(state: CVAgentState) -> list[tuple]:
 
 def _date_range(start: str, end: Optional[str], state: CVAgentState) -> str:
     present = "Present" if state.user_input.get("output_language") == "en" else "Hiện tại"
-    return f"{start} - {end or present}".strip(" -")
+    return f"{compact_text(start)} - {compact_text(end or present)}".strip(" -")
 
 
 def _experience_values(state: CVAgentState) -> list[dict]:
@@ -248,12 +272,16 @@ def _experience_values(state: CVAgentState) -> list[dict]:
     values = []
     for exp in state.cv_draft.experiences:
         bullets = exp.bullets or ([exp.raw_description] if exp.raw_description else [])
+        company = compact_text(exp.company).upper()
+        position = compact_text(exp.position)
+        date = _date_range(exp.start_date, exp.end_date, state)
         values.append({
-            "company": exp.company,
-            "position": exp.position,
-            "date": _date_range(exp.start_date, exp.end_date, state),
-            "bullets": bullets,
-            "combined": f"{exp.position}, {exp.company}\t{_date_range(exp.start_date, exp.end_date, state)}",
+            "company": company,
+            "company_with_date": f"{company}\t{date}",
+            "position": position,
+            "date": date,
+            "bullets": compact_lines(bullets),
+            "combined": f"{company}\t{date}",
         })
     return values
 
@@ -265,16 +293,18 @@ def _education_values(state: CVAgentState) -> list[dict]:
     values = []
     for edu in state.cv_draft.educations:
         degree_parts = [edu.degree, edu.major]
-        degree = " - ".join(part for part in degree_parts if part)
-        details = edu.school
+        degree = " - ".join(compact_text(part) for part in degree_parts if compact_text(part))
+        school_name = compact_text(edu.school).upper()
+        details = school_name
         if edu.gpa:
             details = f"{details}  GPA: {edu.gpa}"
-        combined = " | ".join(part for part in [degree, details] if part)
+        date = _date_range(edu.start_date, edu.end_date, state)
         values.append({
             "degree": degree,
             "school": details,
-            "date": _date_range(edu.start_date, edu.end_date, state),
-            "combined": combined,
+            "school_with_date": f"{school_name}\t{date}",
+            "date": date,
+            "combined": f"{school_name}\t{date}",
         })
     return values
 
@@ -361,11 +391,11 @@ def _fill_experience_blocks(paragraphs, blocks: list[tuple], experiences: list[d
 
         exp = experiences[block_index]
         if company_i is not None:
-            set_xml_text_at(paragraphs, company_i, exp["company"])
+            set_xml_header_at(paragraphs, company_i, exp["company_with_date"])
         if position_i is not None:
             set_xml_text_at(paragraphs, position_i, exp["position"])
         if date_i is not None:
-            set_xml_text_at(paragraphs, date_i, exp["date"])
+            set_xml_text_at(paragraphs, date_i, "")
 
         for i, para_i in enumerate(bullet_indices):
             set_xml_text_at(paragraphs, para_i, exp["bullets"][i] if i < len(exp["bullets"]) else "")
@@ -381,7 +411,7 @@ def _fill_combined_experience_blocks(paragraphs, blocks: list[tuple], experience
             continue
 
         exp = experiences[block_index]
-        set_xml_text_at(paragraphs, header_i, exp["combined"])
+        set_xml_header_at(paragraphs, header_i, exp["combined"])
         for i, para_i in enumerate(bullet_indices):
             set_xml_text_at(paragraphs, para_i, exp["bullets"][i] if i < len(exp["bullets"]) else "")
         filled += 1
@@ -399,9 +429,9 @@ def _fill_education_blocks(paragraphs, blocks: list[tuple], educations: list[dic
         degree_i, school_i, date_i = block
         set_xml_text_at(paragraphs, degree_i, edu["degree"])
         if school_i is not None:
-            set_xml_text_at(paragraphs, school_i, edu["school"])
+            set_xml_header_at(paragraphs, school_i, edu["school_with_date"])
         if date_i is not None:
-            set_xml_text_at(paragraphs, date_i, edu["date"])
+            set_xml_text_at(paragraphs, date_i, "")
         filled += 1
     return filled
 
@@ -414,16 +444,20 @@ def _fill_education_combined_blocks(paragraphs, blocks: list[tuple], educations:
             continue
 
         edu = educations[block_index]
-        set_xml_text_at(paragraphs, info_i, edu["combined"])
+        set_xml_header_at(paragraphs, info_i, edu["combined"])
         if date_i is not None:
-            set_xml_text_at(paragraphs, date_i, edu["date"])
+            set_xml_text_at(paragraphs, date_i, "")
         filled += 1
     return filled
 
 
-def _fill_list(paragraphs, indices: list[int], values: list[str]) -> int:
+def _fill_list(paragraphs, indices: list[int], values: list[str], bold: bool = False) -> int:
     for i, para_i in enumerate(indices):
-        set_xml_text_at(paragraphs, para_i, values[i] if i < len(values) else "")
+        text = values[i] if i < len(values) else ""
+        if bold:
+            set_xml_bold_text_at(paragraphs, para_i, text)
+        else:
+            set_xml_text_at(paragraphs, para_i, text)
     return min(len(indices), len(values))
 
 
@@ -471,7 +505,7 @@ def render_known_template(doc: Document, state: CVAgentState, template_id: str) 
             [(23, 24, 26, [31, 32, 33]), (36, 37, 38, [42, 43]), (46, 47, 48, [54, 55])],
             experiences,
         )
-        filled += _fill_list(paragraphs, [30, 35, 40, 41, 45], skills)
+        filled += _fill_list(paragraphs, [30, 35, 40, 41, 45], skills, bold=True)
         set_xml_text_at(paragraphs, 53, ", ".join(languages))
         filled += _fill_education_combined_blocks(paragraphs, [(66, 69), (68, 73)], educations)
         reference = build_references(state)
@@ -497,8 +531,8 @@ def render_known_template(doc: Document, state: CVAgentState, template_id: str) 
         replace_xml_paragraph_exact(paragraphs, "123 Anywhere St., Any City, ST  12345", contact["location"])
         set_following_nonempty_after_heading(paragraphs, "About Me", [build_summary(state)], occurrence=0)
         set_following_nonempty_after_heading(paragraphs, "About Me", [build_summary(state)], occurrence=1)
-        set_following_nonempty_after_heading(paragraphs, "Skills", skills[:6], occurrence=0)
-        set_following_nonempty_after_heading(paragraphs, "Skills", skills[:6], occurrence=1)
+        set_following_nonempty_after_heading(paragraphs, "Skills", skills[:6], occurrence=0, bold=True)
+        set_following_nonempty_after_heading(paragraphs, "Skills", skills[:6], occurrence=1, bold=True)
 
     elif template_id == "3":
         set_xml_text_at(paragraphs, 0, build_full_name(state).upper())
@@ -513,7 +547,7 @@ def render_known_template(doc: Document, state: CVAgentState, template_id: str) 
             [(23, 24, 25, [32, 33, 34]), (38, 39, 40, [44]), (53, 54, 56, [66])],
             experiences,
         )
-        filled += _fill_list(paragraphs, [31, 36, 37, 42, 43], skills)
+        filled += _fill_list(paragraphs, [31, 36, 37, 42, 43], skills, bold=True)
         set_xml_text_at(paragraphs, 51, ", ".join(languages))
         set_xml_text_at(paragraphs, 65, build_references(state))
         clear_xml_at(paragraphs, 70, 71, 72)
@@ -530,7 +564,7 @@ def render_known_template(doc: Document, state: CVAgentState, template_id: str) 
             experiences,
         )
         filled += _fill_education_blocks(paragraphs, [(44, 45, 46), (49, 50, 52)], educations)
-        filled += _fill_list(paragraphs, [57, 58, 61, 62], skills)
+        filled += _fill_list(paragraphs, [57, 58, 61, 62], skills, bold=True)
 
     elif template_id == "5":
         set_xml_text_at(paragraphs, 0, build_full_name(state).upper())
@@ -543,7 +577,7 @@ def render_known_template(doc: Document, state: CVAgentState, template_id: str) 
             experiences,
         )
         filled += _fill_education_blocks(paragraphs, [(23, 24, 31), (28, 29, 36)], educations)
-        filled += _fill_list(paragraphs, [42, 43, 44, 45, 46, 47, 48, 49], skills)
+        filled += _fill_list(paragraphs, [42, 43, 44, 45, 46, 47, 48, 49], skills, bold=True)
 
     added = _append_missing_template_sections(doc, state, template_id)
     return {"filled": filled, "deleted": 0, "added": added}
@@ -591,12 +625,118 @@ def xml_paragraph_text(paragraph_element) -> str:
     return "".join(t.text or "" for t in paragraph_element.findall(".//" + qn("w:t")))
 
 
+def _paragraph_properties(paragraph_element):
+    p_pr = paragraph_element.find(qn("w:pPr"))
+    if p_pr is None:
+        p_pr = OxmlElement("w:pPr")
+        paragraph_element.insert(0, p_pr)
+    return p_pr
+
+
+def _first_run(paragraph_element):
+    run = paragraph_element.find(qn("w:r"))
+    if run is None:
+        run = OxmlElement("w:r")
+        paragraph_element.append(run)
+    return run
+
+
+def _run_properties(run):
+    r_pr = run.find(qn("w:rPr"))
+    if r_pr is None:
+        r_pr = OxmlElement("w:rPr")
+        run.insert(0, r_pr)
+    return r_pr
+
+
+def _set_run_bold(run, bold: bool):
+    r_pr = _run_properties(run)
+    for node in list(r_pr.findall(qn("w:b"))):
+        r_pr.remove(node)
+    if bold:
+        r_pr.append(OxmlElement("w:b"))
+
+
+def _set_run_size(run, points: int):
+    r_pr = _run_properties(run)
+    for node in list(r_pr.findall(qn("w:sz"))):
+        r_pr.remove(node)
+    size = OxmlElement("w:sz")
+    size.set(qn("w:val"), str(points * 2))
+    r_pr.append(size)
+
+
+def _set_right_tab_stop(paragraph_element):
+    p_pr = _paragraph_properties(paragraph_element)
+    tabs = p_pr.find(qn("w:tabs"))
+    if tabs is None:
+        tabs = OxmlElement("w:tabs")
+        p_pr.append(tabs)
+
+    tab = OxmlElement("w:tab")
+    tab.set(qn("w:val"), "right")
+    tab.set(qn("w:pos"), "9000")
+    tabs.append(tab)
+
+
+def _set_paragraph_keep_together(paragraph_element):
+    p_pr = _paragraph_properties(paragraph_element)
+    if p_pr.find(qn("w:keepLines")) is None:
+        p_pr.append(OxmlElement("w:keepLines"))
+    if p_pr.find(qn("w:keepNext")) is None:
+        p_pr.append(OxmlElement("w:keepNext"))
+
+
+def set_xml_header_with_date(paragraph_element, text: str):
+    left, _, right = text.partition("\t")
+    run = _first_run(paragraph_element)
+    r_pr = copy.deepcopy(run.find(qn("w:rPr")))
+
+    for child in list(run):
+        if child.tag != qn("w:rPr"):
+            run.remove(child)
+
+    if r_pr is not None and run.find(qn("w:rPr")) is None:
+        run.insert(0, r_pr)
+
+    for extra_run in paragraph_element.findall(qn("w:r")):
+        if extra_run is run:
+            continue
+        for child in list(extra_run):
+            if child.tag != qn("w:rPr"):
+                extra_run.remove(child)
+
+    _set_run_bold(run, True)
+    _set_run_size(run, 12)
+    _set_right_tab_stop(paragraph_element)
+    _set_paragraph_keep_together(paragraph_element)
+
+    left_node = OxmlElement("w:t")
+    left_node.set(qn("xml:space"), "preserve")
+    left_node.text = compact_text(left)
+    run.append(left_node)
+
+    if right.strip():
+        run.append(OxmlElement("w:tab"))
+        right_node = OxmlElement("w:t")
+        right_node.set(qn("xml:space"), "preserve")
+        right_node.text = compact_text(right)
+        run.append(right_node)
+
+
+def set_xml_header_at(paragraphs, index: int, text: str) -> bool:
+    if 0 <= index < len(paragraphs):
+        set_xml_header_with_date(paragraphs[index], text)
+        return True
+    return False
+
+
 def set_xml_paragraph_text(paragraph_element, text: str):
     text_nodes = paragraph_element.findall(".//" + qn("w:t"))
     if not text_nodes:
         return
 
-    text_nodes[0].text = text or ""
+    text_nodes[0].text = compact_text(text)
     text_nodes[0].set(qn("xml:space"), "preserve")
     for node in text_nodes[1:]:
         node.text = ""
@@ -609,12 +749,22 @@ def set_xml_text_at(paragraphs, index: int, text: str) -> bool:
     return False
 
 
+def set_xml_bold_text_at(paragraphs, index: int, text: str) -> bool:
+    if not (0 <= index < len(paragraphs)):
+        return False
+    p = paragraphs[index]
+    set_xml_paragraph_text(p, text)
+    for run in p.findall(qn("w:r")):
+        _set_run_bold(run, True)
+    return True
+
+
 def clear_xml_at(paragraphs, *indices: int):
     for index in indices:
         set_xml_text_at(paragraphs, index, "")
 
 
-def set_following_nonempty_after_heading(paragraphs, heading: str, values: list[str], occurrence: int = 0) -> int:
+def set_following_nonempty_after_heading(paragraphs, heading: str, values: list[str], occurrence: int = 0, bold: bool = False) -> int:
     seen = 0
     for i, p in enumerate(paragraphs):
         if xml_paragraph_text(p).strip().lower() != heading.lower():
@@ -631,6 +781,9 @@ def set_following_nonempty_after_heading(paragraphs, heading: str, values: list[
             if cursor >= len(paragraphs):
                 break
             set_xml_paragraph_text(paragraphs[cursor], value)
+            if bold:
+                for run in paragraphs[cursor].findall(qn("w:r")):
+                    _set_run_bold(run, True)
             cursor += 1
             changed += 1
         return changed
@@ -840,25 +993,30 @@ def fill_section_content(doc: Document, section: SectionDetection, lines: list[t
             remove_paragraph(p)
         return 0
 
-    filtered_lines = [(t, txt) for t, txt in lines if txt or t == "blank"]
+    filtered_lines = [(t, compact_tabbed_text(txt)) for t, txt in lines if compact_text(txt)]
 
     para_idx = 0
     last_para = None
 
     for line_type, line_text in filtered_lines:
-        if line_type == "blank":
-            if para_idx < len(content_paras):
-                p = content_paras[para_idx]
-                clear_paragraph_text(p)
-                last_para = p
-                para_idx += 1
-            continue
-
-        is_bold = line_type in ("header", "subheader")
+        is_bold = line_type in ("header", "subheader", "header_with_date")
 
         if para_idx < len(content_paras):
             p = content_paras[para_idx]
-            set_paragraph_text(p, line_text, bold=is_bold)
+            if line_type == "header_with_date":
+                left, _, right = line_text.partition("\t")
+                clear_paragraph_text(p)
+                run = p.runs[0] if p.runs else p.add_run("")
+                run.text = compact_text(left)
+                if right.strip():
+                    run.add_tab()
+                    run.add_text(compact_text(right))
+                run.bold = True
+                run.font.size = Pt(12)
+                _set_right_tab_stop(p._element)
+                _set_paragraph_keep_together(p._element)
+            else:
+                set_paragraph_text(p, line_text, bold=is_bold)
             last_para = p
             para_idx += 1
         else:
@@ -869,7 +1027,7 @@ def fill_section_content(doc: Document, section: SectionDetection, lines: list[t
         remove_paragraph(content_paras[para_idx])
         para_idx += 1
 
-    return len([l for l in filtered_lines if l[1]])
+    return len(filtered_lines)
 
 
 def append_section(doc: Document, section_field: str, lines: list[tuple], language: str = "vi"):
@@ -888,10 +1046,21 @@ def append_section(doc: Document, section_field: str, lines: list[tuple], langua
 
     for line_type, text in lines:
         if not text:
-            doc.add_paragraph()
             continue
         p = doc.add_paragraph()
-        run = p.add_run(text)
+        run = p.add_run("")
+        if line_type == "header_with_date":
+            left, _, right = compact_tabbed_text(text).partition("\t")
+            run.add_text(left)
+            if right.strip():
+                run.add_tab()
+                run.add_text(compact_text(right))
+            run.bold = True
+            run.font.size = Pt(12)
+            _set_right_tab_stop(p._element)
+            _set_paragraph_keep_together(p._element)
+        else:
+            run.add_text(compact_text(text))
         if line_type in ("header", "subheader"):
             run.bold = True
 

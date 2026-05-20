@@ -53,7 +53,11 @@ Tạo file `.env` ở thư mục gốc với nội dung:
 
 ```
 OPENAI_API_KEY=sk-...
+PUBLIC_API_URL=http://localhost:8000
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
 ```
+
+`ONLYOFFICE_DOCUMENT_SERVER_URL` là URL của OnlyOffice Docs / Document Server. Nếu chưa cấu hình biến này, app sẽ tự quay về chế độ preview/edit đơn giản.
 
 ---
 
@@ -91,6 +95,23 @@ uvicorn gateway:app --reload --port 8000
 cd frontend
 npm run dev
 ```
+
+## Chạy OnlyOffice Docs để edit giống Word
+
+Bạn cần chạy thêm OnlyOffice Document Server, ví dụ bằng Docker:
+
+```powershell
+docker run -i -t -d -p 8080:80 --restart=always onlyoffice/documentserver
+```
+
+Sau đó đảm bảo `.env` có:
+
+```
+PUBLIC_API_URL=http://host.docker.internal:8000
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
+```
+
+Nếu không dùng Docker Desktop hoặc Document Server chạy trên máy khác, đặt `PUBLIC_API_URL` thành URL mà OnlyOffice Document Server có thể truy cập được tới backend.
 
 ---
 

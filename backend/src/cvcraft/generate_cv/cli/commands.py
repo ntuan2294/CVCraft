@@ -243,6 +243,52 @@ def build_hf_index(
         )
 
 
+@app.command("build-kaggle-index")
+def build_kaggle_index(
+    reset: bool = typer.Option(False, "--reset", help="Xóa và re-index"),
+    csv_path: str = typer.Option(
+        "",
+        "--csv",
+        help="Path đến file UpdatedResumeDataSet.csv đã tải sẵn. Bỏ trống = tự download qua kagglehub",
+    ),
+    max_records: int = typer.Option(1000, "--max-records", help="Số CV hợp lệ tối đa"),
+    no_seed: bool = typer.Option(False, "--no-seed", help="Không index Tier 1 seed kèm Tier 2"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Chỉ parse, không ghi vào ChromaDB"),
+):
+    """Build CV Tier 2 RAG index từ Kaggle (snehaanbhawal/resume-dataset).
+
+    Cần OPENAI_API_KEY trong .env.
+    Nếu không cung cấp --csv, cần thêm KAGGLE_USERNAME + KAGGLE_KEY trong .env.
+    """
+    if not dry_run and not os.getenv("OPENAI_API_KEY"):
+        typer.echo("⚠️  Cần set OPENAI_API_KEY", err=True)
+        raise typer.Exit(1)
+
+    from cvcraft.generate_cv.services.rag_service import RAGService
+
+    typer.echo("Building CV Tier 2 index from Kaggle: snehaanbhawal/resume-dataset")
+    service = RAGService()
+    result = service.build_kaggle_index(
+        reset=reset,
+        csv_path=csv_path or None,
+        max_records=max_records,
+        include_seed=not no_seed,
+        dry_run=dry_run,
+    )
+
+    if result["skipped"]:
+        typer.echo("✓ DB đã có data. Dùng --reset để re-index.")
+    elif result.get("dry_run"):
+        typer.echo(f"✓ DRY RUN hoàn tất. Parsed {result.get('kaggle_samples', 0)} Kaggle CV samples.")
+    else:
+        typer.echo(
+            "✅ Indexed "
+            f"{result['summaries_indexed']} summaries, "
+            f"{result['bullets_indexed']} bullets "
+            f"from {result.get('kaggle_samples', 0)} Kaggle CV samples"
+        )
+
+
 @app.command("rag-stats")
 def rag_stats():
     """Hiển thị thống kê RAG vector store."""

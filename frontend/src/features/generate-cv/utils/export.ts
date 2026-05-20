@@ -4,16 +4,30 @@ export async function downloadCvAsPdf() {
   const editor = document.querySelector<HTMLElement>('[data-cv-docx-editor="true"]')
   if (!editor) return
 
+  const page = editor.querySelector<HTMLElement>('.docx-wrapper > section') ?? editor
   const html2pdf = (await import('html2pdf.js')).default
+  const options = {
+    margin: 0,
+    filename: 'cv.pdf',
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      onclone: (_clonedDocument: Document, clonedElement: HTMLElement) => {
+        clonedElement.style.backgroundColor = '#ffffff'
+        clonedElement.style.color = '#111827'
+        clonedElement.style.boxShadow = 'none'
+        clonedElement.style.outline = 'none'
+      },
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+    pagebreak: { mode: ['css', 'legacy'], avoid: ['p', 'table', 'tr'] },
+  }
+
   await html2pdf()
-    .set({
-      margin: 0,
-      filename: 'cv.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    })
-    .from(editor)
+    .set(options)
+    .from(page)
     .save()
 }
 

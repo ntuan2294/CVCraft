@@ -31,6 +31,44 @@ body {
   outline: none;
 }
 
+.docx-output-editor .docx-wrapper p,
+.docx-output-editor .docx-wrapper table,
+.docx-output-editor .docx-wrapper tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.docx-output-editor .docx-wrapper br {
+  line-height: inherit;
+}
+
+.docx-output-editor .docx-wrapper .cv-edit-tab {
+  display: inline-block;
+  width: 32px;
+}
+
+.docx-output-editor .docx-wrapper .cv-date-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  font-weight: 400;
+}
+
+.docx-output-editor .docx-wrapper .cv-date-line__label {
+  min-width: 0;
+  font-weight: 700 !important;
+}
+
+.docx-output-editor .docx-wrapper .cv-date-line__date {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-weight: 400 !important;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .docx-output-editor [contenteditable='true']:focus,
 .docx-output-editor .docx-wrapper:focus {
   outline: 2px solid #c7d2fe;

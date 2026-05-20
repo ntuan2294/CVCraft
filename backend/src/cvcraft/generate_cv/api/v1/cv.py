@@ -6,9 +6,13 @@ GET  /v1/cv/rag/stats     - Thống kê RAG index
 POST /v1/cv/rag/build     - Build / rebuild CV RAG index (seed | hf | kaggle)
 """
 import os
+from pathlib import Path
+from urllib.parse import quote
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from cvcraft.config.settings import settings
 from cvcraft.generate_cv.api.deps import get_cv_service, get_rag_service
 from cvcraft.generate_cv.services.cv_service import CVService
 from cvcraft.generate_cv.services.rag_service import RAGService
@@ -39,6 +43,21 @@ class GenerateCVResponse(BaseModel):
     messages: list[str] = []
 
 
+class OnlyOfficeCallbackRequest(BaseModel):
+    status: int
+    url: str | None = None
+
+
+def _require_existing_docx(path: str) -> Path:
+    if not path:
+        raise HTTPException(status_code=400, detail="Thiếu path")
+
+    file_path = Path(path)
+    if not file_path.exists() or file_path.suffix.lower() != ".docx":
+        raise HTTPException(status_code=404, detail="File không tìm thấy")
+    return file_path
+
+
 @router.post("/generate", response_model=GenerateCVResponse)
 async def generate_cv(
     request: GenerateCVRequest,
@@ -65,13 +84,69 @@ async def generate_cv(
 @router.get("/download")
 async def download_cv(path: str):
     """Tải file CV đã tạo (.docx)."""
-    if not path or not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="File không tìm thấy")
+    _require_existing_docx(path)
     return FileResponse(
         path,
         filename="cv.docx",
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
+
+
+@router.get("/onlyoffice/config")
+async def onlyoffice_config(path: str):
+    """Trả về config mở file DOCX bằng OnlyOffice Docs."""
+    file_path = _require_existing_docx(path)
+    document_server_url = settings.onlyoffice_document_server_url.rstrip("/")
+    if not document_server_url:
+        return {"enabled": False, "reason": "ONLYOFFICE_DOCUMENT_SERVER_URL chưa được cấu hình"}
+
+    public_api_url = settings.public_api_url.rstrip("/")
+    encoded_path = quote(str(file_path), safe="")
+    file_key = f"{file_path.name}-{int(file_path.stat().st_mtime)}-{file_path.stat().st_size}"
+
+    return {
+        "enabled": True,
+        "documentServerUrl": document_server_url,
+        "config": {
+            "document": {
+                "fileType": "docx",
+                "key": file_key,
+                "title": file_path.name,
+                "url": f"{public_api_url}/v1/cv/download?path={encoded_path}",
+            },
+            "documentType": "word",
+            "editorConfig": {
+                "callbackUrl": f"{public_api_url}/v1/cv/onlyoffice/callback?path={encoded_path}",
+                "lang": "vi",
+                "mode": "edit",
+                "user": {"id": "cvcraft-user", "name": "CVCraft User"},
+            },
+            "height": "100%",
+            "type": "desktop",
+            "width": "100%",
+        },
+    }
+
+
+@router.post("/onlyoffice/callback")
+async def onlyoffice_callback(path: str, payload: OnlyOfficeCallbackRequest):
+    """
+    Callback lưu file sau khi OnlyOffice hoàn tất chỉnh sửa.
+
+    OnlyOffice gửi status=2 hoặc 6 kèm URL file mới cần tải về.
+    """
+    file_path = _require_existing_docx(path)
+    if payload.status not in {2, 6}:
+        return {"error": 0}
+    if not payload.url:
+        return {"error": 1}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(payload.url)
+        response.raise_for_status()
+        file_path.write_bytes(response.content)
+
+    return {"error": 0}
 
 
 @router.get("/rag/stats")
