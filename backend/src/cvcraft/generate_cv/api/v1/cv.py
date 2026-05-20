@@ -1,23 +1,48 @@
 """
 CV generation endpoints.
 
-POST /v1/cv/generate      - Tạo CV từ JD + user profile
-GET  /v1/cv/rag/stats     - Thống kê RAG index
-POST /v1/cv/rag/build     - Build / rebuild CV RAG index (seed | hf | kaggle)
+Sync (legacy):
+  POST /v1/cv/generate          - Tạo CV, block cho đến khi xong (~30-60s)
+
+Async (recommended):
+  POST /v1/cv/generate/async    - Submit task, trả ngay task_id
+  GET  /v1/cv/tasks/{task_id}   - Poll trạng thái + kết quả
+
+History:
+  GET  /v1/cv/history           - 20 lần tạo CV gần nhất
+  DELETE /v1/cv/history         - Xóa history
+
+File:
+  GET  /v1/cv/download          - Tải file .docx
+  GET  /v1/cv/onlyoffice/config - Config OnlyOffice
+  POST /v1/cv/onlyoffice/callback
+
+RAG:
+  GET  /v1/cv/rag/stats
+  POST /v1/cv/rag/build
+  GET  /v1/cv/rag/build/status
+
+Info:
+  GET  /v1/cv/cache/stats       - Thống kê Redis cache
 """
 import os
 from pathlib import Path
 from urllib.parse import quote
+
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+
 from cvcraft.config.settings import settings
-from cvcraft.generate_cv.api.deps import get_cv_service, get_rag_service
+from cvcraft.generate_cv.api.deps import get_cv_service, get_rag_service, get_task_service
 from cvcraft.generate_cv.services.cv_service import CVService
 from cvcraft.generate_cv.services.rag_service import RAGService
+from cvcraft.generate_cv.services.task_service import CVTaskService, TaskStatus
 
 router = APIRouter()
+
+# ── Request / Response schemas ────────────────────────────────────────────────
 
 
 class GenerateCVRequest(BaseModel):
@@ -43,42 +68,165 @@ class GenerateCVResponse(BaseModel):
     messages: list[str] = []
 
 
+class AsyncGenerateCVResponse(BaseModel):
+    task_id: str
+    status: str = TaskStatus.QUEUED
+    message: str = "CV đang được tạo ở background. Dùng GET /v1/cv/tasks/{task_id} để kiểm tra."
+    poll_url: str = ""
+
+
+class TaskStatusResponse(BaseModel):
+    task_id: str
+    status: str
+    created_at: str | None = None
+    updated_at: str | None = None
+    result: GenerateCVResponse | None = None
+    error: str | None = None
+
+
 class OnlyOfficeCallbackRequest(BaseModel):
     status: int
     url: str | None = None
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
 def _require_existing_docx(path: str) -> Path:
     if not path:
         raise HTTPException(status_code=400, detail="Thiếu path")
-
     file_path = Path(path)
     if not file_path.exists() or file_path.suffix.lower() != ".docx":
         raise HTTPException(status_code=404, detail="File không tìm thấy")
     return file_path
 
 
+def _build_generate_response(result: dict) -> GenerateCVResponse:
+    score = result.get("quality_score")
+    return GenerateCVResponse(
+        status="success",
+        output_path=result.get("output_path"),
+        quality_score=QualityScoreOut(**score.model_dump()) if score else None,
+        cv_draft=result.get("cv_draft").model_dump() if result.get("cv_draft") else None,
+        messages=result.get("messages", []),
+    )
+
+
+# ── CV Generation — Sync ──────────────────────────────────────────────────────
+
+
 @router.post("/generate", response_model=GenerateCVResponse)
 async def generate_cv(
     request: GenerateCVRequest,
+    req: Request,
     service: CVService = Depends(get_cv_service),
 ) -> GenerateCVResponse:
+    """Tạo CV đồng bộ (block ~30-60s). Dùng /generate/async để không block."""
+    _apply_rate_limit(req, limit=f"{settings.rate_limit_cv_generate}/minute")
     try:
         result = service.generate_cv(
             jd_text=request.job_description,
             user_input=request.user_input,
             max_revisions=request.max_revisions,
         )
-        score = result.get("quality_score")
-        return GenerateCVResponse(
-            status="success",
-            output_path=result.get("output_path"),
-            quality_score=QualityScoreOut(**score.model_dump()) if score else None,
-            cv_draft=result.get("cv_draft").model_dump() if result.get("cv_draft") else None,
-            messages=result.get("messages", []),
-        )
+        return _build_generate_response(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── CV Generation — Async ─────────────────────────────────────────────────────
+
+
+@router.post("/generate/async", response_model=AsyncGenerateCVResponse, status_code=202)
+async def generate_cv_async(
+    request: GenerateCVRequest,
+    req: Request,
+    service: CVService = Depends(get_cv_service),
+    task_svc: CVTaskService = Depends(get_task_service),
+) -> AsyncGenerateCVResponse:
+    """
+    Submit CV generation task, trả về ngay task_id (202 Accepted).
+    Client poll GET /v1/cv/tasks/{task_id} để lấy kết quả.
+    """
+    _apply_rate_limit(req, limit=f"{settings.rate_limit_cv_generate}/minute")
+    job_title = request.user_input.get("job_title", "")
+    task_id = task_svc.create_task(job_title=job_title)
+    task_svc.submit(
+        task_id=task_id,
+        cv_service=service,
+        jd_text=request.job_description,
+        user_input=request.user_input,
+        max_revisions=request.max_revisions,
+    )
+    return AsyncGenerateCVResponse(
+        task_id=task_id,
+        poll_url=f"/v1/cv/tasks/{task_id}",
+    )
+
+
+@router.get("/tasks/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(
+    task_id: str,
+    task_svc: CVTaskService = Depends(get_task_service),
+) -> TaskStatusResponse:
+    """Poll trạng thái CV generation task."""
+    task = task_svc.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task '{task_id}' không tìm thấy")
+
+    result = None
+    raw_result = task.get("result")
+    if task["status"] == TaskStatus.DONE and raw_result:
+        score_data = raw_result.get("quality_score")
+        result = GenerateCVResponse(
+            status="success",
+            output_path=raw_result.get("output_path"),
+            quality_score=QualityScoreOut(**score_data) if score_data else None,
+            cv_draft=raw_result.get("cv_draft"),
+            messages=raw_result.get("messages", []),
+        )
+
+    return TaskStatusResponse(
+        task_id=task_id,
+        status=task["status"],
+        created_at=task.get("created_at"),
+        updated_at=task.get("updated_at"),
+        result=result,
+        error=task.get("error"),
+    )
+
+
+# ── History ───────────────────────────────────────────────────────────────────
+
+
+@router.get("/history")
+async def get_history(
+    task_svc: CVTaskService = Depends(get_task_service),
+) -> dict:
+    """Trả về lịch sử 20 lần tạo CV gần nhất."""
+    return {"history": task_svc.get_history()}
+
+
+@router.delete("/history", status_code=204)
+async def clear_history(
+    task_svc: CVTaskService = Depends(get_task_service),
+) -> None:
+    """Xóa toàn bộ history."""
+    task_svc.clear_history()
+
+
+# ── Cache stats ───────────────────────────────────────────────────────────────
+
+
+@router.get("/cache/stats")
+async def cache_stats() -> dict:
+    """Trả về thống kê Redis cache (hits, misses, memory...)."""
+    from cvcraft.infrastructure.cache.redis_cache import get_cache
+
+    return get_cache().get_stats()
+
+
+# ── File operations ───────────────────────────────────────────────────────────
 
 
 @router.get("/download")
@@ -132,8 +280,7 @@ async def onlyoffice_config(path: str):
 async def onlyoffice_callback(path: str, payload: OnlyOfficeCallbackRequest):
     """
     Callback lưu file sau khi OnlyOffice hoàn tất chỉnh sửa.
-
-    OnlyOffice gửi status=2 hoặc 6 kèm URL file mới cần tải về.
+    OnlyOffice gửi status=2 hoặc 6 kèm URL file mới.
     """
     file_path = _require_existing_docx(path)
     if payload.status not in {2, 6}:
@@ -149,21 +296,23 @@ async def onlyoffice_callback(path: str, payload: OnlyOfficeCallbackRequest):
     return {"error": 0}
 
 
+# ── RAG management ────────────────────────────────────────────────────────────
+
+
 @router.get("/rag/stats")
 async def rag_stats(
     service: RAGService = Depends(get_rag_service),
 ) -> dict:
-    """Trả về thống kê RAG vector store."""
     return service.get_stats()
 
 
 class RagBuildRequest(BaseModel):
-    source: str = Field("seed", description="Nguồn data: 'seed' | 'hf' | 'kaggle'")
-    reset: bool = Field(False, description="Xóa và index lại từ đầu")
-    max_records: int = Field(1000, ge=1, description="Số CV tối đa (chỉ áp dụng với hf/kaggle)")
-    dataset_name: str | None = Field(None, description="HuggingFace dataset id (chỉ dùng với source=hf)")
-    csv_path: str | None = Field(None, description="Path CSV đã tải (chỉ dùng với source=kaggle)")
-    include_seed: bool = Field(True, description="Kèm tier 1 seed khi index tier 2 (hf/kaggle)")
+    source: str = Field("seed", description="'seed' | 'hf' | 'kaggle'")
+    reset: bool = Field(False)
+    max_records: int = Field(1000, ge=1)
+    dataset_name: str | None = Field(None)
+    csv_path: str | None = Field(None)
+    include_seed: bool = Field(True)
 
 
 _build_status: dict = {"running": False, "last_result": None}
@@ -203,15 +352,6 @@ async def build_rag_index(
     background_tasks: BackgroundTasks,
     service: RAGService = Depends(get_rag_service),
 ):
-    """
-    Build CV RAG index ở background.
-
-    - **source=seed**: index tier 1 (seed samples thủ công, ~5s)
-    - **source=hf**: index từ HuggingFace dataset (~vài phút, cần OPENAI_API_KEY)
-    - **source=kaggle**: index từ Kaggle CSV (~vài phút, cần OPENAI_API_KEY)
-
-    Trả về ngay 202 Accepted. Dùng GET /v1/cv/rag/stats để kiểm tra kết quả.
-    """
     if _build_status["running"]:
         raise HTTPException(status_code=409, detail="Đang có build đang chạy, vui lòng chờ")
     if not os.getenv("OPENAI_API_KEY"):
@@ -226,8 +366,18 @@ async def build_rag_index(
 
 @router.get("/rag/build/status")
 async def build_rag_status():
-    """Trạng thái build RAG index hiện tại."""
-    return {
-        "running": _build_status["running"],
-        "last_result": _build_status["last_result"],
-    }
+    return {"running": _build_status["running"], "last_result": _build_status["last_result"]}
+
+
+# ── Internal: rate limit helper ───────────────────────────────────────────────
+
+
+def _apply_rate_limit(request: Request, limit: str) -> None:
+    """Apply rate limit nếu slowapi được cài. Bỏ qua nếu không có."""
+    try:
+        from cvcraft.infrastructure.rate_limit.limiter import limiter
+
+        if limiter is not None:
+            limiter.limit(limit)(lambda r: None)(request)
+    except Exception:
+        pass

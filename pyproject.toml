@@ -26,6 +26,12 @@ api = [
     "uvicorn[standard]>=0.30.0",
     "httpx>=0.27.0",
 ]
+cache = [
+    "redis[hiredis]>=5.0.0",   # Redis client + hiredis parser (nhanh hơn pure-Python)
+]
+ratelimit = [
+    "slowapi>=0.1.9",          # Rate limiting cho FastAPI (dựa trên limits)
+]
 kaggle = [
     "kagglehub>=0.3.0",
 ]

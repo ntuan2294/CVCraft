@@ -1,16 +1,25 @@
 """
 Service layer cho tính năng RAG JD Search.
 Orchestrates: vector search (score >= 0.5) -> reconstruct JDDocument -> format JD sections.
+
+Cache layer (Redis-backed):
+  - Kết quả search query: TTL 1h (key: jd:search:{hash(query)})
+  - JD sections đã format bởi LLM: TTL 24h (key: jd:fmt:{hash(sections)})
 """
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import hashlib
+import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 from pydantic import BaseModel
 
+from cvcraft.infrastructure.cache.redis_cache import get_cache
 from cvcraft.jd_search.core.models import JDDocument, JDRewrittenSections, JDSearchResult, JDSearchResponse
 from cvcraft.jd_search.infrastructure.llm.factory import LLMFactory, call_with_structured_output
 from cvcraft.jd_search.rag.vector_store import JDVectorStore
 from cvcraft.jd_search.rag.indexing.jd_indexer import index_jd_samples, index_seed_samples
+
+logger = logging.getLogger(__name__)
 
 
 class FormattedJDSections(BaseModel):
@@ -28,7 +37,6 @@ class FormattedJDBatch(BaseModel):
 
 
 class JDSearchService:
-    _format_cache: dict[tuple[str, str, str], FormattedJDSections] = {}
     _formatter_executor = ThreadPoolExecutor(max_workers=2)
     SEARCH_TIMEOUT_SECONDS = 10
     FORMAT_TIMEOUT_SECONDS = 60
@@ -38,8 +46,20 @@ class JDSearchService:
 
     def __init__(self):
         self._store = JDVectorStore()
+        self._cache = get_cache()
 
     def search(self, query: str) -> JDSearchResponse:
+        from cvcraft.config.settings import settings
+
+        cache_key = f"jd:search:{_hash(query)}"
+        cached = self._cache.get_json(cache_key)
+        if cached is not None:
+            logger.debug("[JDSearch] Cache hit for query: %.40s", query)
+            try:
+                return JDSearchResponse(**cached)
+            except Exception:
+                pass  # cache corrupt, regenerate
+
         raw_results = self._query_with_timeout(query)
         score_threshold = self._score_threshold_for_query(query)
         filtered_results = []
@@ -59,7 +79,14 @@ class JDSearchService:
         filtered_results.sort(key=lambda item: item.get("similarity_score", 0.0), reverse=True)
         top_jds = [self._to_search_result(r) for r in filtered_results[: self.MAX_RESULTS]]
         self._format_sections_with_ai(top_jds)
-        return JDSearchResponse(query=query, top_jds=top_jds)
+        response = JDSearchResponse(query=query, top_jds=top_jds)
+
+        try:
+            self._cache.set_json(cache_key, response.model_dump(), ttl=settings.cache_ttl_jd_search)
+        except Exception as e:
+            logger.warning("[JDSearch] Không cache được kết quả search: %s", e)
+
+        return response
 
     def _query_with_timeout(self, query: str) -> list[dict]:
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -124,8 +151,9 @@ class JDSearchService:
         )
         return JDSearchResult(jd=jd, similarity_score=similarity)
 
-    @classmethod
-    def _format_sections_with_ai(cls, results: list[JDSearchResult]) -> None:
+    def _format_sections_with_ai(self, results: list[JDSearchResult]) -> None:
+        from cvcraft.config.settings import settings
+
         pending: list[tuple[JDSearchResult, tuple[str, str, str]]] = []
         for result in results:
             details = result.jd.details
@@ -135,38 +163,47 @@ class JDSearchService:
             if not any([job_description, requirements, benefits]):
                 continue
 
-            cache_key = (job_description, requirements, benefits)
-            formatted = cls._format_cache.get(cache_key)
-            if formatted is not None:
-                cls._apply_formatted_sections(result, formatted)
-            else:
-                pending.append((result, cache_key))
+            sections_key = (job_description, requirements, benefits)
+            redis_key = f"jd:fmt:{_hash('|'.join(sections_key))}"
+            cached_raw = self._cache.get_json(redis_key)
+            if cached_raw is not None:
+                try:
+                    formatted = FormattedJDSections(**cached_raw)
+                    self._apply_formatted_sections(result, formatted)
+                    continue
+                except Exception:
+                    pass
+            pending.append((result, sections_key))
 
         if not pending:
             return
 
-        future = cls._formatter_executor.submit(cls._format_jds_batch, pending)
+        future = self._formatter_executor.submit(self._format_jds_batch, pending)
         try:
-            formatted_batch = future.result(timeout=cls.FORMAT_TIMEOUT_SECONDS)
+            formatted_batch = future.result(timeout=self.FORMAT_TIMEOUT_SECONDS)
         except Exception:
-            for result, cache_key in pending:
-                formatted = cls._fallback_format_sections(cache_key)
-                cls._apply_formatted_sections(result, formatted)
+            for result, sections_key in pending:
+                formatted = self._fallback_format_sections(sections_key)
+                self._apply_formatted_sections(result, formatted)
             return
 
         formatted_by_id = {item.id: item for item in formatted_batch.items}
-        for result, cache_key in pending:
+        for result, sections_key in pending:
             item = formatted_by_id.get(result.jd.id)
             if item is None:
-                cls._apply_formatted_sections(result, cls._fallback_format_sections(cache_key))
+                self._apply_formatted_sections(result, self._fallback_format_sections(sections_key))
                 continue
             formatted = FormattedJDSections(
-                job_description=cls._clean_bullet_items(item.job_description),
-                requirements=cls._clean_bullet_items(item.requirements),
-                benefits=cls._clean_bullet_items(item.benefits),
+                job_description=self._clean_bullet_items(item.job_description),
+                requirements=self._clean_bullet_items(item.requirements),
+                benefits=self._clean_bullet_items(item.benefits),
             )
-            cls._format_cache[cache_key] = formatted
-            cls._apply_formatted_sections(result, formatted)
+            redis_key = f"jd:fmt:{_hash('|'.join(sections_key))}"
+            try:
+                self._cache.set_json(redis_key, formatted.model_dump(), ttl=settings.cache_ttl_jd_format)
+            except Exception as e:
+                logger.warning("[JDSearch] Không cache được formatted sections: %s", e)
+            self._apply_formatted_sections(result, formatted)
 
     @staticmethod
     def _apply_formatted_sections(result: JDSearchResult, formatted: FormattedJDSections) -> None:
@@ -301,3 +338,8 @@ class JDSearchService:
     @classmethod
     def _is_short_query(cls, query: str) -> bool:
         return len(cls._normalize_text(query)) <= 2
+
+
+def _hash(text: str) -> str:
+    """MD5 hash ngắn dùng làm cache key suffix."""
+    return hashlib.md5(text.encode("utf-8")).hexdigest()[:16]
