@@ -1,25 +1,18 @@
 """
 Service layer cho tính năng RAG JD Search.
 Orchestrates: vector search (score >= 0.5) -> reconstruct JDDocument -> format JD sections.
-
-Cache layer (Redis-backed):
-  - Kết quả search query: TTL 1h (key: jd:search:{hash(query)})
-  - JD sections đã format bởi LLM: TTL 24h (key: jd:fmt:{hash(sections)})
 """
-import hashlib
-import logging
-import re
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import re
+from threading import Lock
+import time
 
 from pydantic import BaseModel
 
-from cvcraft.infrastructure.cache.redis_cache import get_cache
-from cvcraft.jd_search.core.models import JDDocument, JDRewrittenSections, JDSearchResult, JDSearchResponse
+from cvcraft.jd_search.core.models import JDDocument, JDRewrittenSections, JDSearchResult, JDSearchResponse, JDCardResult, JDSearchCardResponse, JDFormattedDetail
 from cvcraft.jd_search.infrastructure.llm.factory import LLMFactory, call_with_structured_output
 from cvcraft.jd_search.rag.vector_store import JDVectorStore
 from cvcraft.jd_search.rag.indexing.jd_indexer import index_jd_samples, index_seed_samples
-
-logger = logging.getLogger(__name__)
 
 
 class FormattedJDSections(BaseModel):
@@ -37,28 +30,28 @@ class FormattedJDBatch(BaseModel):
 
 
 class JDSearchService:
+    _format_cache: dict[tuple[str, str, str], FormattedJDSections] = {}
+    _search_cache: dict[str, tuple[float, "JDSearchResponse"]] = {}
+    _card_cache: dict[str, tuple[float, "JDSearchCardResponse"]] = {}
+    _raw_jd_cache: dict[str, dict] = {}
     _formatter_executor = ThreadPoolExecutor(max_workers=2)
+    _prefetch_executor = ThreadPoolExecutor(max_workers=1)
+    _scheduled_format_keys: set[tuple[str, str, str]] = set()
+    _scheduled_format_lock = Lock()
     SEARCH_TIMEOUT_SECONDS = 10
     FORMAT_TIMEOUT_SECONDS = 60
     MAX_RESULTS = 10
     DEFAULT_SCORE_THRESHOLD = 0.5
     SHORT_QUERY_SCORE_THRESHOLD = 0.25
+    SEARCH_CACHE_TTL = 30
 
     def __init__(self):
         self._store = JDVectorStore()
-        self._cache = get_cache()
 
     def search(self, query: str) -> JDSearchResponse:
-        from cvcraft.config.settings import settings
-
-        cache_key = f"jd:search:{_hash(query)}"
-        cached = self._cache.get_json(cache_key)
-        if cached is not None:
-            logger.debug("[JDSearch] Cache hit for query: %.40s", query)
-            try:
-                return JDSearchResponse(**cached)
-            except Exception:
-                pass  # cache corrupt, regenerate
+        cache_entry = self._search_cache.get(query)
+        if cache_entry and time.time() - cache_entry[0] < self.SEARCH_CACHE_TTL:
+            return cache_entry[1]
 
         raw_results = self._query_with_timeout(query)
         score_threshold = self._score_threshold_for_query(query)
@@ -80,12 +73,7 @@ class JDSearchService:
         top_jds = [self._to_search_result(r) for r in filtered_results[: self.MAX_RESULTS]]
         self._format_sections_with_ai(top_jds)
         response = JDSearchResponse(query=query, top_jds=top_jds)
-
-        try:
-            self._cache.set_json(cache_key, response.model_dump(), ttl=settings.cache_ttl_jd_search)
-        except Exception as e:
-            logger.warning("[JDSearch] Không cache được kết quả search: %s", e)
-
+        self._search_cache[query] = (time.time(), response)
         return response
 
     def _query_with_timeout(self, query: str) -> list[dict]:
@@ -96,6 +84,92 @@ class JDSearchService:
             except TimeoutError:
                 future.cancel()
                 return []
+
+    def search_cards(self, query: str) -> JDSearchCardResponse:
+        cache_entry = self._card_cache.get(query)
+        if cache_entry and time.time() - cache_entry[0] < self.SEARCH_CACHE_TTL:
+            return cache_entry[1]
+
+        raw_results = self._query_with_timeout(query)
+        score_threshold = self._score_threshold_for_query(query)
+        filtered = []
+        for raw in raw_results:
+            meta = raw.get("metadata", {})
+            distance = raw.get("distance")
+            semantic_score = 1 - distance if distance is not None else 0.0
+            title_score = self._title_match_score(query, meta.get("title", ""))
+            similarity_score = round(max(semantic_score, title_score), 4)
+            raw["similarity_score"] = similarity_score
+            if similarity_score >= score_threshold:
+                filtered.append(raw)
+
+        if not filtered and self._is_short_query(query):
+            filtered = raw_results[: self.MAX_RESULTS]
+
+        filtered.sort(key=lambda item: item.get("similarity_score", 0.0), reverse=True)
+
+        cards = []
+        raw_cards = []
+        for raw in filtered[: self.MAX_RESULTS]:
+            meta = raw.get("metadata", {})
+            jd_id = raw.get("id") or meta.get("title", "unknown").replace(" ", "_").lower()
+            self._raw_jd_cache[jd_id] = {"id": jd_id, "metadata": meta, "text": raw.get("text", "")}
+            raw_cards.append(raw)
+            cards.append(JDCardResult(
+                id=jd_id,
+                title=meta.get("title", ""),
+                company=meta.get("company") or None,
+                industry=meta.get("industry") or None,
+                seniority=meta.get("seniority") or None,
+                similarity_score=raw["similarity_score"],
+            ))
+
+        response = JDSearchCardResponse(query=query, results=cards)
+        self._card_cache[query] = (time.time(), response)
+        self._schedule_format_prefetch(raw_cards)
+        return response
+
+    def format_jd(self, jd_id: str) -> JDFormattedDetail:
+        raw = self._raw_jd_cache.get(jd_id)
+        if not raw:
+            return JDFormattedDetail(id=jd_id)
+
+        meta = raw["metadata"]
+        job_description = meta.get("job_description", "")
+        requirements = meta.get("requirements", "")
+        benefits = meta.get("benefits", "")
+
+        cache_key = (job_description, requirements, benefits)
+        formatted = self._format_cache.get(cache_key)
+        if formatted is None:
+            dummy_result = JDSearchResult(
+                jd=JDDocument(
+                    id=jd_id,
+                    title=meta.get("title", ""),
+                    description=meta.get("description", raw.get("text", "")),
+                    required_skills=[s.strip() for s in meta.get("required_skills", "").split(",") if s.strip()],
+                    keywords=[],
+                    details=meta,
+                ),
+                similarity_score=1.0,
+            )
+            self._format_sections_with_ai([dummy_result])
+            formatted = self._format_cache.get(cache_key) or FormattedJDSections(
+                job_description=self._text_to_bullets(job_description),
+                requirements=self._text_to_bullets(requirements),
+                benefits=self._text_to_bullets(benefits),
+            )
+
+        quick_info_keys = {"salary", "location", "experience_level", "job_position"}
+        quick_info = {k: str(v) for k, v in meta.items() if k in quick_info_keys and v}
+
+        return JDFormattedDetail(
+            id=jd_id,
+            description_bullets=formatted.job_description,
+            requirements_bullets=formatted.requirements,
+            benefits_bullets=formatted.benefits,
+            quick_info=quick_info,
+        )
 
     def index_jd(self, jd: JDDocument) -> None:
         searchable_text = (
@@ -151,9 +225,8 @@ class JDSearchService:
         )
         return JDSearchResult(jd=jd, similarity_score=similarity)
 
-    def _format_sections_with_ai(self, results: list[JDSearchResult]) -> None:
-        from cvcraft.config.settings import settings
-
+    @classmethod
+    def _format_sections_with_ai(cls, results: list[JDSearchResult]) -> None:
         pending: list[tuple[JDSearchResult, tuple[str, str, str]]] = []
         for result in results:
             details = result.jd.details
@@ -163,47 +236,38 @@ class JDSearchService:
             if not any([job_description, requirements, benefits]):
                 continue
 
-            sections_key = (job_description, requirements, benefits)
-            redis_key = f"jd:fmt:{_hash('|'.join(sections_key))}"
-            cached_raw = self._cache.get_json(redis_key)
-            if cached_raw is not None:
-                try:
-                    formatted = FormattedJDSections(**cached_raw)
-                    self._apply_formatted_sections(result, formatted)
-                    continue
-                except Exception:
-                    pass
-            pending.append((result, sections_key))
+            cache_key = (job_description, requirements, benefits)
+            formatted = cls._format_cache.get(cache_key)
+            if formatted is not None:
+                cls._apply_formatted_sections(result, formatted)
+            else:
+                pending.append((result, cache_key))
 
         if not pending:
             return
 
-        future = self._formatter_executor.submit(self._format_jds_batch, pending)
+        future = cls._formatter_executor.submit(cls._format_jds_batch, pending)
         try:
-            formatted_batch = future.result(timeout=self.FORMAT_TIMEOUT_SECONDS)
+            formatted_batch = future.result(timeout=cls.FORMAT_TIMEOUT_SECONDS)
         except Exception:
-            for result, sections_key in pending:
-                formatted = self._fallback_format_sections(sections_key)
-                self._apply_formatted_sections(result, formatted)
+            for result, cache_key in pending:
+                formatted = cls._fallback_format_sections(cache_key)
+                cls._apply_formatted_sections(result, formatted)
             return
 
         formatted_by_id = {item.id: item for item in formatted_batch.items}
-        for result, sections_key in pending:
+        for result, cache_key in pending:
             item = formatted_by_id.get(result.jd.id)
             if item is None:
-                self._apply_formatted_sections(result, self._fallback_format_sections(sections_key))
+                cls._apply_formatted_sections(result, cls._fallback_format_sections(cache_key))
                 continue
             formatted = FormattedJDSections(
-                job_description=self._clean_bullet_items(item.job_description),
-                requirements=self._clean_bullet_items(item.requirements),
-                benefits=self._clean_bullet_items(item.benefits),
+                job_description=cls._clean_bullet_items(item.job_description),
+                requirements=cls._clean_bullet_items(item.requirements),
+                benefits=cls._clean_bullet_items(item.benefits),
             )
-            redis_key = f"jd:fmt:{_hash('|'.join(sections_key))}"
-            try:
-                self._cache.set_json(redis_key, formatted.model_dump(), ttl=settings.cache_ttl_jd_format)
-            except Exception as e:
-                logger.warning("[JDSearch] Không cache được formatted sections: %s", e)
-            self._apply_formatted_sections(result, formatted)
+            cls._format_cache[cache_key] = formatted
+            cls._apply_formatted_sections(result, formatted)
 
     @staticmethod
     def _apply_formatted_sections(result: JDSearchResult, formatted: FormattedJDSections) -> None:
@@ -215,6 +279,40 @@ class JDSearchService:
         result.jd.description_bullets = formatted.job_description
         result.jd.requirements_bullets = formatted.requirements
         result.jd.benefits_bullets = formatted.benefits
+
+    @classmethod
+    def _schedule_format_prefetch(cls, raw_results: list[dict]) -> None:
+        pending: list[JDSearchResult] = []
+        scheduled_keys: list[tuple[str, str, str]] = []
+
+        with cls._scheduled_format_lock:
+            for raw in raw_results:
+                result = cls._to_search_result(raw)
+                details = result.jd.details
+                cache_key = (
+                    details.get("job_description", ""),
+                    details.get("requirements", ""),
+                    details.get("benefits", ""),
+                )
+                if not any(cache_key):
+                    continue
+                if cache_key in cls._format_cache or cache_key in cls._scheduled_format_keys:
+                    continue
+                cls._scheduled_format_keys.add(cache_key)
+                scheduled_keys.append(cache_key)
+                pending.append(result)
+
+        if not pending:
+            return
+
+        future = cls._prefetch_executor.submit(cls._format_sections_with_ai, pending)
+
+        def cleanup(_future) -> None:
+            with cls._scheduled_format_lock:
+                for cache_key in scheduled_keys:
+                    cls._scheduled_format_keys.discard(cache_key)
+
+        future.add_done_callback(cleanup)
 
     @staticmethod
     def _format_jds_batch(
@@ -338,8 +436,3 @@ class JDSearchService:
     @classmethod
     def _is_short_query(cls, query: str) -> bool:
         return len(cls._normalize_text(query)) <= 2
-
-
-def _hash(text: str) -> str:
-    """MD5 hash ngắn dùng làm cache key suffix."""
-    return hashlib.md5(text.encode("utf-8")).hexdigest()[:16]

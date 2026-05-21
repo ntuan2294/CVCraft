@@ -42,8 +42,11 @@ def build_graph():
 
     graph.add_edge("jd_analyzer", "summary_agent")
     graph.add_edge("user_profile", "summary_agent")
+
+    # experience_agent và skills_agent chạy song song sau summary_agent
     graph.add_edge("summary_agent", "experience_agent")
-    graph.add_edge("experience_agent", "skills_agent")
+    graph.add_edge("summary_agent", "skills_agent")
+    graph.add_edge("experience_agent", "qc_agent")
     graph.add_edge("skills_agent", "qc_agent")
 
     graph.add_conditional_edges(

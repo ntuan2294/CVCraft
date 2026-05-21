@@ -72,6 +72,29 @@ class CVDraft(BaseModel):
     projects: list[dict] = Field(default_factory=list)
 
 
+def merge_cv_drafts(left: Optional[CVDraft], right: Optional[CVDraft]) -> Optional[CVDraft]:
+    """Merge partial CVDraft updates from parallel LangGraph nodes."""
+    if left is None:
+        return right
+    if right is None:
+        return left
+
+    merged = left.model_copy(deep=True)
+
+    if right.summary is not None:
+        merged.summary = right.summary
+    if right.experiences:
+        merged.experiences = right.experiences
+    if right.skills_categorized:
+        merged.skills_categorized = right.skills_categorized
+    if right.educations:
+        merged.educations = right.educations
+    if right.projects:
+        merged.projects = right.projects
+
+    return merged
+
+
 # ============ QUALITY CONTROL MODELS ============
 
 class QualityScore(BaseModel):
@@ -98,7 +121,7 @@ class CVAgentState(BaseModel):
     # Intermediate outputs
     job_requirement: Optional[JobRequirement] = None
     user_profile: Optional[UserProfile] = None
-    cv_draft: Optional[CVDraft] = None
+    cv_draft: Annotated[Optional[CVDraft], merge_cv_drafts] = None
     quality_score: Optional[QualityScore] = None
 
     # Control flow

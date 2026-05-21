@@ -1,34 +1,38 @@
 import type { GenerateCVResponse } from '@/lib/types'
 
-export function printCvEditorAsPdf() {
+export async function downloadCvEditorAsPdf() {
   const editor = document.querySelector('[data-cv-docx-editor="true"]')
   if (!editor) return
 
-  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-    .map((node) => node.outerHTML)
-    .join('\n')
-  const win = window.open('', '_blank', 'width=900,height=1100')
-  if (!win) return
+  const pages = Array.from(editor.querySelectorAll<HTMLElement>('.docx-wrapper > section'))
+  const targets = pages.length > 0 ? pages : [editor as HTMLElement]
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf'),
+  ])
 
-  win.document.write(`
-    <html>
-      <head>
-        <title></title>
-        ${styles}
-        <style>
-          @page { margin: 0; size: A4; }
-          body { margin: 0; background: #ffffff; }
-          .docx-output-editor { min-height: auto !important; overflow: visible !important; padding: 0 !important; background: #ffffff !important; }
-          .docx-wrapper { background: #ffffff !important; padding: 0 !important; box-shadow: none !important; }
-          .docx-wrapper > section { box-shadow: none !important; margin: 0 auto !important; }
-        </style>
-      </head>
-      <body>${editor.outerHTML}</body>
-    </html>
-  `)
-  win.document.close()
-  win.focus()
-  win.print()
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+
+  for (const [index, target] of targets.entries()) {
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+    })
+    const image = canvas.toDataURL('image/png')
+    const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height)
+    const width = canvas.width * ratio
+    const height = canvas.height * ratio
+    const x = (pageWidth - width) / 2
+    const y = (pageHeight - height) / 2
+
+    if (index > 0) pdf.addPage()
+    pdf.addImage(image, 'PNG', x, y, width, height)
+  }
+
+  pdf.save('cv.pdf')
 }
 
 export function downloadGeneratedDocx(result: GenerateCVResponse | null) {

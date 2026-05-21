@@ -28,12 +28,14 @@ class LLMFactory:
             return ChatOpenAI(
                 model="gpt-4o-mini",
                 temperature=0.3,
+                max_tokens=800,
                 api_key=api_key,
             )
         else:
             return ChatOpenAI(
                 model="gpt-4o",
                 temperature=0.7,
+                max_tokens=1500,
                 api_key=api_key,
             )
 

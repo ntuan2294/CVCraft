@@ -82,11 +82,11 @@ export const CV_TEMPLATES: CVTemplate[] = [
 ]
 
 export const TEMPLATE_PATH_BY_ID: Record<string, string> = {
-  '1': 'templates/1.docx',
-  '2': 'templates/2.docx',
-  '3': 'templates/3.docx',
-  '4': 'templates/4.docx',
-  '5': 'templates/5.docx',
+  '1': 'template cv/1.docx',
+  '2': 'template cv/2.docx',
+  '3': 'template cv/3.docx',
+  '4': 'template cv/4.docx',
+  '5': 'template cv/5.docx',
 }
 
 export const SUMMARY_FIELD_BY_TEMPLATE: Record<string, 'profile' | 'about_me' | 'personal_summary' | 'summary'> = {

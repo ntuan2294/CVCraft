@@ -14,6 +14,7 @@ import csv
 import os
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 from cvcraft.generate_cv.rag.loaders.hf_cv_loader import parse_hf_cv_row
 

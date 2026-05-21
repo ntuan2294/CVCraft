@@ -3,15 +3,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
-import type { JDSearchResponse, JDDocument } from '@/lib/types'
+import type { JDCardResult, JDFormattedDetail } from '@/lib/types'
 import JDResultCard from '@/components/JDResultCard'
 
 export default function JDSearchPage() {
   const { t } = useI18n()
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<JDDocument[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [results, setResults] = useState<JDCardResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
@@ -22,14 +21,47 @@ export default function JDSearchPage() {
     setLoading(true)
     setError('')
     try {
-      const data: JDSearchResponse = await api.jd.search(query)
-      setResults(data.top_jds.map(r => r.jd))
+      const data = await api.jd.search(query)
+      setResults(data.results)
       setSearched(true)
     } catch {
       setError(t('jd.error'))
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGenerate = (detail: JDFormattedDetail, card: JDCardResult) => {
+    sessionStorage.setItem(
+      'selected_jd',
+      JSON.stringify({
+        id: card.id,
+        title: card.title,
+        company: card.company,
+        industry: card.industry,
+        seniority: card.seniority,
+        description: detail.description_bullets.join('\n'),
+        required_skills: [],
+        keywords: [],
+        details: {
+          job_title: card.title,
+          company_name: card.company ?? '',
+          ...detail.quick_info,
+          job_description: detail.description_bullets.join('\n'),
+          requirements: detail.requirements_bullets.join('\n'),
+          benefits: detail.benefits_bullets.join('\n'),
+        },
+        rewritten_sections: {
+          job_description: detail.description_bullets,
+          requirements: detail.requirements_bullets,
+          benefits: detail.benefits_bullets,
+        },
+        description_bullets: detail.description_bullets,
+        requirements_bullets: detail.requirements_bullets,
+        benefits_bullets: detail.benefits_bullets,
+      }),
+    )
+    router.push('/cv/generate')
   }
 
   return (
@@ -105,13 +137,11 @@ export default function JDSearchPage() {
       {!loading && results.length > 0 && (
         <div className="space-y-4">
           <p className="text-sm text-gray-500 mb-2">{t('jd.results', { n: results.length })}</p>
-          {results.map((jd, i) => (
+          {results.map((card) => (
             <JDResultCard
-              key={jd.id ?? i}
-              jd={jd}
-              selected={selectedId === (jd.id ?? String(i))}
-              onSelect={() => setSelectedId(jd.id ?? String(i))}
-              onGenerate={() => router.push('/cv/generate')}
+              key={card.id}
+              card={card}
+              onGenerate={handleGenerate}
             />
           ))}
         </div>

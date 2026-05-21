@@ -12,14 +12,18 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "frontend"
+JAVA_BACKEND_DIR = ROOT_DIR / "cvcraft-backend"
 
 
 def npm_command() -> str:
     return "npm.cmd" if os.name == "nt" else "npm"
 
 
+def mvn_command() -> str:
+    return "mvn.cmd" if os.name == "nt" else "mvn"
+
+
 def kill_port(port: int) -> None:
-    """Kill bất kỳ process nào đang chiếm port (Windows + Unix)."""
     try:
         if os.name == "nt":
             result = subprocess.run(
@@ -53,11 +57,9 @@ def can_bind_port(port: int) -> bool:
 
 
 def free_port(port: int) -> int:
-    """Giải phóng port nếu bị chiếm, trả về port đã free."""
     if not can_bind_port(port):
         print(f"[dev] Port {port} đang bị chiếm, đang kill process...", flush=True)
         kill_port(port)
-        # Chờ tối đa 3s để port được giải phóng
         import time
         for _ in range(6):
             time.sleep(0.5)
@@ -114,9 +116,26 @@ def stop_processes(processes: list[subprocess.Popen[str]]) -> None:
                 process.kill()
 
 
+def load_dotenv(env: dict[str, str]) -> None:
+    dotenv_path = ROOT_DIR / ".env"
+    if not dotenv_path.exists():
+        return
+    with open(dotenv_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            if key and key not in env:
+                env[key] = value
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run CVCraft frontend and backend services.")
     parser.add_argument("--backend-port", type=int, default=8000)
+    parser.add_argument("--java-port", type=int, default=8080)
     parser.add_argument("--frontend-port", type=int, default=3000)
     parser.add_argument(
         "--kill-ports", action="store_true", default=True,
@@ -126,6 +145,10 @@ def parse_args() -> argparse.Namespace:
         "--no-kill-ports", dest="kill_ports", action="store_false",
         help="Không kill process cũ, tìm port trống tiếp theo thay thế",
     )
+    parser.add_argument(
+        "--no-java", dest="java", action="store_false", default=True,
+        help="Bỏ qua Java backend",
+    )
     return parser.parse_args()
 
 
@@ -134,14 +157,12 @@ def main() -> int:
     used_ports: set[int] = set()
 
     backend_port = find_available_port(args.backend_port, used_ports, free=args.kill_ports)
+    java_port = find_available_port(args.java_port, used_ports, free=args.kill_ports) if args.java else None
     frontend_port = find_available_port(args.frontend_port, used_ports, free=args.kill_ports)
 
-    if backend_port != args.backend_port:
-        print(f"[dev] Backend dùng port {backend_port} (port {args.backend_port} không trống).", flush=True)
-    if frontend_port != args.frontend_port:
-        print(f"[dev] Frontend dùng port {frontend_port} (port {args.frontend_port} không trống).", flush=True)
-
     env = os.environ.copy()
+    load_dotenv(env)
+
     env["GENERATE_CV_URL"] = f"http://localhost:{backend_port}"
     env["JD_SEARCH_URL"] = f"http://localhost:{backend_port}"
     env["PYTHONIOENCODING"] = "utf-8"
@@ -151,23 +172,44 @@ def main() -> int:
 
     processes = [
         start_process(
-            "backend",
+            "py-backend",
             [sys.executable, "-m", "uvicorn", "gateway:app", "--reload", "--port", str(backend_port)],
             ROOT_DIR,
             env,
         ),
+    ]
+
+    if args.java and JAVA_BACKEND_DIR.exists():
+        java_env = env.copy()
+        java_env["SERVER_PORT"] = str(java_port)
+        if "DB_USERNAME" in java_env:
+            java_env["SPRING_DATASOURCE_USERNAME"] = java_env["DB_USERNAME"]
+        if "DB_PASSWORD" in java_env:
+            java_env["SPRING_DATASOURCE_PASSWORD"] = java_env["DB_PASSWORD"]
+        processes.append(
+            start_process(
+                "java-backend",
+                [mvn_command(), "spring-boot:run", f"-Dspring-boot.run.arguments=--server.port={java_port}"],
+                JAVA_BACKEND_DIR,
+                java_env,
+            )
+        )
+
+    processes.append(
         start_process(
             "frontend",
             [npm_command(), "run", "dev", "--", "--port", str(frontend_port)],
             FRONTEND_DIR,
             env,
-        ),
-    ]
+        )
+    )
 
+    java_line = f"[dev] Java API:  http://localhost:{java_port}/api/swagger-ui.html\n" if java_port else ""
     print(
         "\n[dev] Services are starting.\n"
-        f"[dev] Frontend: http://localhost:{frontend_port}\n"
-        f"[dev] Backend:  http://localhost:{backend_port}/docs\n"
+        f"[dev] Frontend:  http://localhost:{frontend_port}\n"
+        f"[dev] Py API:    http://localhost:{backend_port}/docs\n"
+        f"{java_line}"
         "[dev] Press Ctrl+C to stop all services.\n",
         flush=True,
     )

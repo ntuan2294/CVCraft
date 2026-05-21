@@ -1,4 +1,4 @@
-import type { JDSearchResponse, UserInput, GenerateCVResponse } from './types'
+import type { JDSearchCardResponse, JDFormattedDetail, UserInput, GenerateCVResponse } from './types'
 
 function formatApiError(error: unknown, fallback: string) {
   if (!error || typeof error !== 'object') return fallback
@@ -36,7 +36,9 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 export const api = {
   jd: {
     search: (query: string) =>
-      post<JDSearchResponse>('/api/jd/search', { query }),
+      post<JDSearchCardResponse>('/api/jd/search', { query }),
+    format: (jd_id: string) =>
+      post<JDFormattedDetail>('/api/jd/format', { jd_id }),
   },
   cv: {
     generate: (job_description: string, user_input: UserInput, max_revisions = 2) =>

@@ -35,3 +35,25 @@ class JDSearchResult(BaseModel):
 class JDSearchResponse(BaseModel):
     query: str
     top_jds: list[JDSearchResult]
+
+
+class JDCardResult(BaseModel):
+    id: str
+    title: str
+    company: Optional[str] = None
+    industry: Optional[str] = None
+    seniority: Optional[str] = None
+    similarity_score: float
+
+
+class JDSearchCardResponse(BaseModel):
+    query: str
+    results: list[JDCardResult]
+
+
+class JDFormattedDetail(BaseModel):
+    id: str
+    description_bullets: list[str] = Field(default_factory=list)
+    requirements_bullets: list[str] = Field(default_factory=list)
+    benefits_bullets: list[str] = Field(default_factory=list)
+    quick_info: dict[str, str] = Field(default_factory=dict)

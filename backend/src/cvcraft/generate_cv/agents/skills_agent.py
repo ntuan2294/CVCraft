@@ -75,7 +75,7 @@ def skills_agent_node(state: CVAgentState) -> dict:
             user_message=user_msg,
         )
 
-        current_draft = state.cv_draft or CVDraft()
+        current_draft = state.cv_draft.model_copy(deep=True) if state.cv_draft else CVDraft()
         current_draft.skills_categorized = {cat.name: cat.skills for cat in result.categories}
         current_draft.educations = state.user_profile.educations
         current_draft.projects = []

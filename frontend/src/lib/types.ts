@@ -99,6 +99,28 @@ export interface JDSearchResponse {
   top_jds: JDSearchResult[]
 }
 
+export interface JDCardResult {
+  id: string
+  title: string
+  company?: string
+  industry?: string
+  seniority?: string
+  similarity_score: number
+}
+
+export interface JDSearchCardResponse {
+  query: string
+  results: JDCardResult[]
+}
+
+export interface JDFormattedDetail {
+  id: string
+  description_bullets: string[]
+  requirements_bullets: string[]
+  benefits_bullets: string[]
+  quick_info: Record<string, string>
+}
+
 export interface JDSearchRequest {
   query: string
 }

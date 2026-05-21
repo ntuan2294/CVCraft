@@ -50,7 +50,7 @@ def summary_agent_node(state: CVAgentState) -> dict:
     context_parts.append(f"Kỹ năng: {', '.join(profile.skills_raw)}")
 
     if jd_req:
-        context_parts.append("\n--- JD đang ứng tuyển ---")
+        context_parts.append(f"\n--- JD đang ứng tuyển ---")
         context_parts.append(f"Vị trí: {jd_req.job_title}")
         context_parts.append(f"Level: {jd_req.seniority_level}")
         context_parts.append(f"Kỹ năng yêu cầu: {', '.join(jd_req.required_skills[:5])}")
@@ -78,7 +78,7 @@ def summary_agent_node(state: CVAgentState) -> dict:
         user_msg = examples_block + "\n\n--- THÔNG TIN USER ---\n" + user_msg
 
     if state.revision_count > 0 and state.quality_score:
-        user_msg += "\n\n--- FEEDBACK CẦN XỬ LÝ ---\n"
+        user_msg += f"\n\n--- FEEDBACK CẦN XỬ LÝ ---\n"
         user_msg += "\n".join(state.quality_score.feedback)
 
     try:
@@ -86,7 +86,7 @@ def summary_agent_node(state: CVAgentState) -> dict:
         language_msg = "Output language: English." if language == "en" else "Output language: Vietnamese."
         summary = call_text(llm, SYSTEM_PROMPT, language_msg + "\n\n" + user_msg)
 
-        current_draft = state.cv_draft or CVDraft()
+        current_draft = state.cv_draft.model_copy(deep=True) if state.cv_draft else CVDraft()
         current_draft.summary = summary.strip()
 
         rag_msg = f" (dùng {len(retrieved_summaries)} RAG examples)" if retrieved_summaries else ""
