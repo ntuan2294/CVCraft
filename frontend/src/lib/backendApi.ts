@@ -35,9 +35,24 @@ export const authApi = {
 }
 
 // CV Profile (personal info used for CV generation)
+export interface UpdateProfileRequest {
+  headline?: string
+  bio?: string
+  location?: string
+  experienceYears?: number
+  experienceLevel?: string
+  skills?: string[]
+  linkedinUrl?: string
+  githubUrl?: string
+  portfolioUrl?: string
+  workExperiences?: string
+  educations?: string
+  certifications?: string
+}
+
 export const profileApi = {
   getMe: () => request<UserProfile>('/profile'),
-  updateMe: (data: Partial<UserProfile>) =>
+  updateMe: (data: UpdateProfileRequest) =>
     request<UserProfile>('/profile', { method: 'PUT', body: JSON.stringify(data) }),
 }
 
