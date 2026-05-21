@@ -1,157 +1,196 @@
-# Luồng Xử Lý AI
+# Luồng Xử Lý AI — CVCraft
 
-Tài liệu này mô tả đường đi dữ liệu từ FE tới BE và các bước AI trong CVCraft.
+CVCraft có hai luồng AI chính: **Tạo CV** và **Tìm kiếm JD**.  
+Cả hai đều được dùng phối hợp — người dùng tìm JD phù hợp, rồi dùng nó để tạo CV được cá nhân hóa.
+
+---
 
 ## 1. JD Search Flow
 
-Mục tiêu: người dùng nhập vị trí/kỹ năng mong muốn, hệ thống trả về các JD phù hợp và định dạng lại các mục mô tả công việc, yêu cầu, quyền lợi.
+**Mục tiêu:** Người dùng nhập vị trí/kỹ năng, hệ thống trả về các JD phù hợp (đã format sạch), dùng làm đầu vào cho quá trình tạo CV.
 
-```text
+```
 Frontend
-  |
-  v
-POST /api/jd/search
-  |
-  v
-Next.js proxy route
-  |
-  v
-jd-search FastAPI: POST /v1/jd/search
-  |
-  v
+  │
+  ▼
+POST /api/jd/search   (Next.js proxy route)
+  │
+  ▼
+Python FastAPI: POST /v1/jd/search
+  │
+  ▼
 JDSearchService.search()
-  |
-  +--> Embed query
-  +--> Query JDVectorStore / ChromaDB
-  +--> Score theo semantic similarity và title match
-  +--> Lọc top results
-  +--> LLM format lại job_description / requirements / benefits
-  |
-  v
-JDSearchResponse
+  │
+  ├── Embed query (OpenAI text-embedding)
+  ├── Query ChromaDB → semantic similarity search
+  ├── Score và lọc top results
+  └── LLM format lại: job_description / requirements / benefits → bullet points
+  │
+  ▼
+JDSearchResponse { top_jds: [...] }
 ```
 
-File chính:
+**Files liên quan:**
 
-```text
+```
 frontend/src/app/api/jd/search/route.ts
-jd-search/src/jd_search/api/v1/jd.py
-jd-search/src/jd_search/services/jd_search_service.py
-jd-search/src/jd_search/rag/vector_store.py
+backend/src/cvcraft/jd_search/api/v1/jd.py
+backend/src/cvcraft/jd_search/services/jd_search_service.py
+backend/src/cvcraft/jd_search/rag/vector_store.py
 ```
+
+---
 
 ## 2. Generate CV Flow
 
-Mục tiêu: người dùng chọn/nhập JD và profile, hệ thống sinh CV draft, chấm điểm chất lượng, sửa lại nếu cần và render ra file `.docx` khi có template.
+**Mục tiêu:** Người dùng nhập thông tin cá nhân + JD, hệ thống sinh CV draft, chấm điểm chất lượng, sửa lại nếu cần, và render ra file `.docx`.
 
-```text
+```
 Frontend
-  |
-  v
-POST /api/cv/generate
-  |
-  v
-Next.js proxy route
-  |
-  v
-generate-cv FastAPI: POST /v1/cv/generate
-  |
-  v
+  │
+  ▼
+POST /api/cv/generate   (Next.js proxy route)
+  │
+  ▼
+Python FastAPI: POST /v1/cv/generate
+  │
+  ▼
 CVService.generate_cv()
-  |
-  v
-LangGraph pipeline
+  │
+  ▼
+LangGraph Pipeline (6 agents)
 ```
 
-LangGraph pipeline:
+### LangGraph Pipeline
 
-```text
+```
 START
-  |
-  +--> jd_analyzer --------+
-  |                        |
-  +--> user_profile -------+
-                           |
-                           v
-                    summary_agent
-                           |
-                           v
-                  experience_agent
-                           |
-                           v
-                     skills_agent
-                           |
-                           v
-                       qc_agent
-                           |
-             +-------------+-------------+
-             |                           |
-             v                           v
-  overall thấp và còn lượt sửa     đạt yêu cầu
-             |                           |
-             v                           v
-      summary_agent loop       template_renderer hoặc END
+  │
+  ├──► jd_analyzer ──────────────┐
+  │                              │
+  └──► user_profile ─────────────┤
+                                 │
+                                 ▼
+                          summary_agent    ◄── RAG (ví dụ CV tốt)
+                                 │
+                                 ▼
+                        experience_agent  ◄── RAG
+                                 │
+                                 ▼
+                           skills_agent
+                                 │
+                                 ▼
+                             qc_agent
+                                 │
+                    ┌────────────┴─────────────┐
+                    │                          │
+              Điểm thấp &               Điểm đủ cao
+              còn lượt sửa                    │
+                    │                          ▼
+                    └──► summary_agent   template_renderer
+                         (loop cải thiện)      │
+                                               ▼
+                                         .docx output
 ```
 
-File chính:
+**Files liên quan:**
 
-```text
+```
 frontend/src/app/api/cv/generate/route.ts
-generate-cv/src/generate_cv/api/v1/cv.py
-generate-cv/src/generate_cv/services/cv_service.py
-generate-cv/src/generate_cv/pipeline/graph.py
-generate-cv/src/generate_cv/agents/
+backend/src/cvcraft/generate_cv/api/v1/cv.py
+backend/src/cvcraft/generate_cv/services/cv_service.py
+backend/src/cvcraft/generate_cv/pipeline/graph.py
+backend/src/cvcraft/generate_cv/agents/
 ```
+
+---
 
 ## 3. Vai Trò Các Agent
 
 | Agent | Nhiệm vụ |
-|---|---|
-| `jd_analyzer` | Phân tích JD thành role, seniority, required skills, keywords |
+|-------|---------|
+| `jd_analyzer` | Phân tích JD → role, seniority, required skills, keywords |
 | `user_profile` | Chuẩn hóa input người dùng thành profile có cấu trúc |
-| `summary_agent` | Viết professional summary, có thể dùng RAG examples |
+| `summary_agent` | Viết professional summary, có dùng RAG examples |
 | `experience_agent` | Viết lại bullet points kinh nghiệm theo JD |
-| `skills_agent` | Phân nhóm kỹ năng phù hợp với JD |
-| `qc_agent` | Chấm điểm ATS, JD match, linguistic quality |
-| `template_renderer` | Render kết quả vào template `.docx` |
+| `skills_agent` | Phân nhóm và ưu tiên kỹ năng phù hợp với JD |
+| `qc_agent` | Chấm điểm ATS score, JD match, linguistic quality |
+| `template_renderer` | Render kết quả cuối vào template `.docx` |
 
-## 4. RAG Và LLM
+---
 
-Hai backend service đều có phần RAG riêng:
+## 4. RAG và LLM
+
+### RAG
 
 | Service | RAG dùng cho |
-|---|---|
-| `jd-search` | Tìm JD bằng embedding và ChromaDB |
-| `generate-cv` | Lấy ví dụ CV tốt để hỗ trợ agent viết summary/bullets |
+|---------|-------------|
+| `jd_search` | Tìm JD bằng embedding + ChromaDB |
+| `generate_cv` | Lấy ví dụ CV tốt để hỗ trợ agent viết summary/bullets |
 
-LLM được gọi ở các điểm chính:
+### LLM được gọi tại
 
-```text
-jd-search:
-  - Format JD sections thành bullet sạch, dễ hiển thị
+```
+jd_search:
+  - Format JD sections thành bullet sạch
 
-generate-cv:
-  - Phân tích JD
-  - Sinh summary
-  - Sinh experience bullets
-  - Phân loại skills
-  - Chấm điểm QC
+generate_cv:
+  - jd_analyzer:        phân tích JD
+  - summary_agent:      sinh professional summary
+  - experience_agent:   sinh experience bullets
+  - skills_agent:       phân loại skills
+  - qc_agent:           chấm điểm quality
 ```
 
-## 5. Contract FE-BE
+---
 
-FE giữ type ở:
+## 5. Luồng Lưu CV vào Thư Viện
 
-```text
+Sau khi tạo CV xong, người dùng có thể lưu vào thư viện (Java backend):
+
+```
+Frontend nhận GenerateCVResponse
+  │
+  ├── downloadUrl (link tải .docx từ Python service)
+  ├── atsScore (từ qc_agent)
+  └── Người dùng click "Save to Library"
+          │
+          ▼
+   POST /api/cv-docs  (Java Spring Boot)
+   Body: { title, templateId, fileName, downloadUrl, atsScore, jdTitle }
+          │
+          ▼
+   CvDocument được lưu vào PostgreSQL
+          │
+          ▼
+   Hiển thị trong /dashboard → tab "My CVs"
+```
+
+---
+
+## 6. Contract FE–BE
+
+Type definitions FE tại:
+
+```
 frontend/src/lib/types.ts
 ```
 
-Backend trả response chính:
+Responses chính từ Python AI:
 
-```text
-JDSearchResponse
-GenerateCVResponse
-QualityScore
+```typescript
+GenerateCVResponse   // kết quả tạo CV
+QualityScore         // điểm ATS / JD match / linguistic
+JDSearchResponse     // kết quả tìm JD
 ```
 
-Khi thay đổi schema backend, cần cập nhật `frontend/src/lib/types.ts` để UI không lệch contract.
+Responses từ Java backend:
+
+```typescript
+AuthResponse         // JWT tokens + user info
+UserProfile          // profile CV cá nhân
+CvDocument           // CV đã lưu trong thư viện
+PageResponse<T>      // danh sách phân trang
+```
+
+> Khi thay đổi schema backend, cần cập nhật `frontend/src/lib/types.ts` để UI không lệch contract.

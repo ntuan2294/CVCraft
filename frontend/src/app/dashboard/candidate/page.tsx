@@ -2,45 +2,27 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { applicationApi, candidateApi } from '@/lib/backendApi'
+import { cvDocumentApi, profileApi } from '@/lib/backendApi'
 import { useAuth } from '@/lib/authContext'
-import type { ApplicationItem, CandidateProfile, ApplicationStatus, PageResponse } from '@/lib/types'
+import type { CvDocument, UserProfile, PageResponse } from '@/lib/types'
 
-const STATUS_CONFIG: Record<ApplicationStatus, { label: string; color: string }> = {
-  PENDING:    { label: 'Pending',     color: 'bg-yellow-100 text-yellow-700' },
-  REVIEWING:  { label: 'Reviewing',   color: 'bg-blue-100 text-blue-700' },
-  SHORTLISTED:{ label: 'Shortlisted', color: 'bg-violet-100 text-violet-700' },
-  INTERVIEW:  { label: 'Interview',   color: 'bg-purple-100 text-purple-700' },
-  OFFERED:    { label: 'Offered!',    color: 'bg-green-100 text-green-700' },
-  HIRED:      { label: 'Hired! 🎉',   color: 'bg-green-200 text-green-800' },
-  REJECTED:   { label: 'Rejected',    color: 'bg-red-100 text-red-700' },
-  WITHDRAWN:  { label: 'Withdrawn',   color: 'bg-gray-100 text-gray-600' },
-}
-
-export default function CandidateDashboard() {
+export default function Dashboard() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [profile, setProfile] = useState<CandidateProfile | null>(null)
-  const [applications, setApplications] = useState<PageResponse<ApplicationItem> | null>(null)
-  const [appPage, setAppPage] = useState(0)
-  const [tab, setTab] = useState<'overview' | 'applications' | 'profile'>('overview')
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [cvDocs, setCvDocs] = useState<PageResponse<CvDocument> | null>(null)
+  const [tab, setTab] = useState<'cvs' | 'profile'>('cvs')
+  const [deleting, setDeleting] = useState<number | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login')
-    if (user?.role !== 'CANDIDATE' && user) router.push('/dashboard/recruiter')
   }, [user, authLoading, router])
 
   useEffect(() => {
     if (!user) return
-    candidateApi.getMe().then(setProfile).catch(() => {})
-    applicationApi.getMyApplications(0).then(setApplications).catch(() => {})
+    profileApi.getMe().then(setProfile).catch(() => {})
+    cvDocumentApi.getMyCvs().then(setCvDocs).catch(() => {})
   }, [user])
-
-  useEffect(() => {
-    if (tab === 'applications') {
-      applicationApi.getMyApplications(appPage).then(setApplications).catch(() => {})
-    }
-  }, [tab, appPage])
 
   if (authLoading || !user) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -48,10 +30,29 @@ export default function CandidateDashboard() {
     </div>
   )
 
-  const statusCounts = applications?.content.reduce((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1
-    return acc
-  }, {} as Record<string, number>) ?? {}
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this CV?')) return
+    setDeleting(id)
+    try {
+      await cvDocumentApi.deleteCv(id)
+      setCvDocs(prev => prev ? {
+        ...prev,
+        content: prev.content.filter(c => c.id !== id),
+        totalElements: prev.totalElements - 1,
+      } : prev)
+    } catch {}
+    setDeleting(null)
+  }
+
+  const handleSetPrimary = async (id: number) => {
+    try {
+      const updated = await cvDocumentApi.setPrimary(id)
+      setCvDocs(prev => prev ? {
+        ...prev,
+        content: prev.content.map(c => ({ ...c, isPrimary: c.id === updated.id }))
+      } : prev)
+    } catch {}
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -61,122 +62,63 @@ export default function CandidateDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">Welcome back, {user.fullName.split(' ')[0]}!</p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/cv/generate" className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">
-            ✨ Build CV
-          </Link>
-          <Link href="/jobs" className="bg-white border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors">
-            Browse Jobs
-          </Link>
-        </div>
+        <Link href="/cv/generate" className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <span>✨</span> Build New CV
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Saved CVs', value: cvDocs?.totalElements ?? 0, icon: '📄' },
+          { label: 'Best ATS Score', value: cvDocs?.content.reduce((max, c) => Math.max(max, c.atsScore ?? 0), 0) ?? 0, icon: '🎯' },
+          { label: 'Skills Listed', value: profile?.skills?.length ?? 0, icon: '🛠' },
+          { label: 'Profile Complete', value: profile ? `${calcCompletion(profile)}%` : '0%', icon: '✅' },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div className="text-2xl mb-1">{s.icon}</div>
+            <div className="text-xl font-bold text-gray-900">{s.value}</div>
+            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
-        {(['overview', 'applications', 'profile'] as const).map(t => (
+        {(['cvs', 'profile'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
               tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}>
-            {t}
+            {t === 'cvs' ? 'My CVs' : 'Profile'}
           </button>
         ))}
       </div>
 
-      {tab === 'overview' && (
-        <div className="space-y-6">
-          {/* Profile Completion */}
-          {profile && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-2xl font-bold">
-                  {user.fullName.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{user.fullName}</h3>
-                  <p className="text-sm text-gray-500">{profile.headline ?? 'No headline yet'}</p>
-                  {profile.isOpenToWork
-                    ? <span className="inline-block mt-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">🟢 Open to work</span>
-                    : <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Not looking</span>
-                  }
-                </div>
-                <Link href="/profile" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  Edit Profile →
-                </Link>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 text-center">
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{profile.profileViews}</div>
-                  <div className="text-xs text-gray-500">Profile Views</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{applications?.totalElements ?? 0}</div>
-                  <div className="text-xs text-gray-500">Applications</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{profile.skills?.length ?? 0}</div>
-                  <div className="text-xs text-gray-500">Skills Listed</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Application Status Summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Application Summary</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { status: 'PENDING', icon: '⏳' },
-                { status: 'INTERVIEW', icon: '📅' },
-                { status: 'OFFERED', icon: '🎁' },
-                { status: 'HIRED', icon: '🎉' },
-              ].map(({ status, icon }) => (
-                <div key={status} className="bg-gray-50 rounded-xl p-4 text-center">
-                  <div className="text-2xl mb-1">{icon}</div>
-                  <div className="text-xl font-bold text-gray-900">{statusCounts[status] ?? 0}</div>
-                  <div className="text-xs text-gray-500">{STATUS_CONFIG[status as ApplicationStatus]?.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Applications */}
-          {applications && applications.content.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Recent Applications</h3>
-                <button onClick={() => setTab('applications')} className="text-sm text-blue-600 hover:text-blue-700">View all</button>
-              </div>
-              <div className="space-y-3">
-                {applications.content.slice(0, 4).map(app => (
-                  <ApplicationRow key={app.id} app={app} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'applications' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">All Applications ({applications?.totalElements ?? 0})</h3>
-          {applications?.content.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-3">📄</div>
-              <p className="text-gray-500">No applications yet</p>
-              <Link href="/jobs" className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-700 font-medium">Browse jobs →</Link>
+      {tab === 'cvs' && (
+        <div>
+          {!cvDocs || cvDocs.content.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
+              <div className="text-5xl mb-4">📄</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No CVs yet</h3>
+              <p className="text-gray-500 text-sm mb-6">Generate your first AI-powered CV tailored to a job description</p>
+              <Link href="/cv/generate" className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-xl hover:bg-blue-700 transition-colors inline-block">
+                ✨ Build My First CV
+              </Link>
             </div>
           ) : (
-            <div className="space-y-3">
-              {applications?.content.map(app => <ApplicationRow key={app.id} app={app} extended />)}
-            </div>
-          )}
-          {applications && applications.totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-6">
-              <button onClick={() => setAppPage(p => p - 1)} disabled={applications.first}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40">← Prev</button>
-              <button onClick={() => setAppPage(p => p + 1)} disabled={applications.last}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40">Next →</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cvDocs.content.map(cv => (
+                <CvCard key={cv.id} cv={cv} onDelete={handleDelete} onSetPrimary={handleSetPrimary} deleting={deleting === cv.id} />
+              ))}
+              {/* Add new card */}
+              <Link href="/cv/generate"
+                className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-3 hover:border-blue-300 hover:bg-blue-50/50 transition-all group min-h-[200px]">
+                <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                  <span className="text-2xl">+</span>
+                </div>
+                <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600 transition-colors">Create New CV</span>
+              </Link>
             </div>
           )}
         </div>
@@ -184,10 +126,24 @@ export default function CandidateDashboard() {
 
       {tab === 'profile' && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Profile Details</h3>
-          <p className="text-gray-500 text-sm mb-4">Keep your profile up to date to attract recruiters.</p>
-          <Link href="/profile" className="bg-blue-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors inline-block">
-            Edit Full Profile
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-semibold text-gray-900">CV Profile</h3>
+            <span className="text-sm text-gray-500">Used to pre-fill CV forms</span>
+          </div>
+          {profile ? (
+            <div className="space-y-4">
+              <ProfileField label="Headline" value={profile.headline} />
+              <ProfileField label="Location" value={profile.location} />
+              <ProfileField label="Experience" value={profile.experienceYears ? `${profile.experienceYears} years` : null} />
+              <ProfileField label="Skills" value={profile.skills?.join(', ')} />
+              <ProfileField label="LinkedIn" value={profile.linkedinUrl} />
+              <ProfileField label="GitHub" value={profile.githubUrl} />
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">Loading profile...</p>
+          )}
+          <Link href="/profile" className="mt-6 inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+            Edit Full Profile →
           </Link>
         </div>
       )}
@@ -195,24 +151,78 @@ export default function CandidateDashboard() {
   )
 }
 
-function ApplicationRow({ app, extended = false }: { app: ApplicationItem; extended?: boolean }) {
-  const cfg = STATUS_CONFIG[app.status]
+function CvCard({ cv, onDelete, onSetPrimary, deleting }: {
+  cv: CvDocument
+  onDelete: (id: number) => void
+  onSetPrimary: (id: number) => void
+  deleting: boolean
+}) {
+  const scoreColor = (score?: number) => {
+    if (!score) return 'text-gray-400'
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    return 'text-red-500'
+  }
+
   return (
-    <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
-        {app.job.companyName.charAt(0)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 text-sm truncate">{app.job.title}</div>
-        <div className="text-xs text-gray-500">{app.job.companyName} · {app.job.location}</div>
-        {extended && app.interviewDate && (
-          <div className="text-xs text-purple-600 mt-0.5">📅 Interview: {new Date(app.interviewDate).toLocaleDateString()}</div>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900 truncate">{cv.title}</h3>
+            {cv.isPrimary && (
+              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium shrink-0">Primary</span>
+            )}
+          </div>
+          {cv.jdTitle && <p className="text-xs text-gray-500 mt-0.5 truncate">For: {cv.jdTitle}</p>}
+        </div>
+        {cv.atsScore != null && (
+          <div className={`text-right shrink-0 ${scoreColor(cv.atsScore)}`}>
+            <div className="text-lg font-bold">{cv.atsScore}</div>
+            <div className="text-xs">ATS</div>
+          </div>
         )}
       </div>
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
-        <span className="text-xs text-gray-400">{new Date(app.appliedAt).toLocaleDateString()}</span>
+
+      <div className="text-xs text-gray-400">
+        {cv.templateId && <span className="mr-3">Template: {cv.templateId}</span>}
+        <span>{new Date(cv.createdAt).toLocaleDateString()}</span>
+      </div>
+
+      <div className="flex gap-2 pt-1 border-t border-gray-100">
+        {cv.downloadUrl && (
+          <a href={cv.downloadUrl} target="_blank" rel="noopener noreferrer"
+            className="flex-1 text-center text-xs font-medium text-blue-600 border border-blue-200 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+            Download
+          </a>
+        )}
+        {!cv.isPrimary && (
+          <button onClick={() => onSetPrimary(cv.id)}
+            className="flex-1 text-center text-xs font-medium text-gray-600 border border-gray-200 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            Set Primary
+          </button>
+        )}
+        <button onClick={() => onDelete(cv.id)} disabled={deleting}
+          className="text-xs font-medium text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40">
+          {deleting ? '...' : 'Delete'}
+        </button>
       </div>
     </div>
   )
+}
+
+function ProfileField({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null
+  return (
+    <div className="flex gap-4">
+      <span className="text-sm text-gray-500 w-24 shrink-0">{label}</span>
+      <span className="text-sm text-gray-900">{value}</span>
+    </div>
+  )
+}
+
+function calcCompletion(p: UserProfile): number {
+  const fields = [p.headline, p.bio, p.location, p.experienceYears, p.skills?.length, p.linkedinUrl]
+  const filled = fields.filter(Boolean).length
+  return Math.round((filled / fields.length) * 100)
 }

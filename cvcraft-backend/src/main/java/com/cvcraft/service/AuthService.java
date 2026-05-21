@@ -40,7 +40,7 @@ public class AuthService {
             .password(passwordEncoder.encode(req.password()))
             .fullName(req.fullName())
             .phone(req.phone())
-            .role(req.role())
+            .role(User.Role.CANDIDATE)
             .isActive(true)
             .isEmailVerified(false)
             .build();

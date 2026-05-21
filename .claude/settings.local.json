@@ -6,7 +6,18 @@
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\" -Recurse | Where-Object { !$_.FullName.Contains\\(\"node_modules\"\\) -and !$_.FullName.Contains\\(\".git\"\\) -and !$_.FullName.Contains\\(\"__pycache__\"\\) -and !$_.FullName.Contains\\(\".egg-info\"\\) -and !$_.FullName.Contains\\(\"chroma\"\\) -and !$_.FullName.Contains\\(\"vectordb\"\\) -and !$_.FullName.Contains\\(\"3ddf\"\\) } | ForEach-Object { $_.FullName.Replace\\(\"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\\", \"\"\\) })",
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\src\\\\cvcraft\\\\rag\" -Recurse | ForEach-Object { $_.FullName.Replace\\(\"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\\", \"\"\\) })",
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Tutran\\\\OneDrive\\\\Máy tính\\\\duan\\\\CVCraft\\\\templates\" | ForEach-Object { $_.Name })",
-      "Bash(.venv/Scripts/python.exe -c ' *)"
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(psql -U postgres -c \"\\\\l\")",
+      "Bash(curl -s http://localhost:8080/api/swagger-ui.html)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(powershell -Command \"Get-Service -Name 'postgresql*' -ErrorAction SilentlyContinue | Select-Object Name, Status\")",
+      "Bash(psql -U postgres -c \"SELECT version\\(\\);\")",
+      "Bash(PGPASSWORD=040104 psql -U postgres -c \"SELECT datname FROM pg_database WHERE datname='cvcraft_db';\")",
+      "Bash(echo \"EXIT: $?\")",
+      "PowerShell(netstat -ano)",
+      "PowerShell(Get-Process -Id 22508)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/swagger-ui.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"x\",\"password\":\"x\"}')"
     ]
   }
 }

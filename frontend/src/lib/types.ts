@@ -1,10 +1,6 @@
-// ---- Java Backend Platform Types ----
-export type UserRole = 'CANDIDATE' | 'RECRUITER' | 'ADMIN'
-export type JobType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'FREELANCE' | 'INTERNSHIP'
+// ---- Auth Types ----
+export type UserRole = 'CANDIDATE' | 'ADMIN'
 export type ExperienceLevel = 'INTERN' | 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'MANAGER' | 'DIRECTOR'
-export type WorkMode = 'ONSITE' | 'REMOTE' | 'HYBRID'
-export type JobStatus = 'OPEN' | 'PAUSED' | 'CLOSED' | 'DRAFT'
-export type ApplicationStatus = 'PENDING' | 'REVIEWING' | 'SHORTLISTED' | 'INTERVIEW' | 'OFFERED' | 'HIRED' | 'REJECTED' | 'WITHDRAWN'
 
 export interface AuthUser {
   id: number
@@ -22,57 +18,8 @@ export interface AuthResponse {
   user: AuthUser
 }
 
-export interface Company {
-  id: number
-  name: string
-  slug: string
-  description?: string
-  industry?: string
-  size?: string
-  website?: string
-  location?: string
-  logoUrl?: string
-  coverUrl?: string
-  foundedYear?: number
-  isVerified: boolean
-}
-
-export interface JobPost {
-  id: number
-  title: string
-  description: string
-  requirements?: string
-  benefits?: string
-  location: string
-  jobType: JobType
-  experienceLevel: ExperienceLevel
-  workMode: WorkMode
-  salaryMin?: number
-  salaryMax?: number
-  salaryCurrency: string
-  isSalaryVisible: boolean
-  category?: string
-  skills: string[]
-  deadline?: string
-  vacancyCount: number
-  status: JobStatus
-  viewCount: number
-  applicationCount: number
-  company: {
-    id: number
-    name: string
-    slug: string
-    logoUrl?: string
-    location?: string
-    isVerified: boolean
-  }
-  recruiter: { id: number; fullName: string; avatarUrl?: string }
-  createdAt: string
-  isBookmarked: boolean
-  hasApplied: boolean
-}
-
-export interface CandidateProfile {
+// ---- User CV Profile ----
+export interface UserProfile {
   id: number
   userId: number
   fullName: string
@@ -84,35 +31,31 @@ export interface CandidateProfile {
   experienceYears?: number
   experienceLevel?: ExperienceLevel
   skills: string[]
-  desiredSalaryMin?: number
-  desiredSalaryMax?: number
-  desiredWorkMode?: WorkMode
   cvUrl?: string
   linkedinUrl?: string
   githubUrl?: string
   portfolioUrl?: string
-  isOpenToWork: boolean
-  profileViews: number
   workExperiences?: string
   educations?: string
   certifications?: string
   createdAt: string
-  isBookmarked: boolean
 }
 
-export interface ApplicationItem {
+// ---- CV Library ----
+export interface CvDocument {
   id: number
-  job: { id: number; title: string; location: string; companyName: string; companyLogo?: string }
-  candidate: { id: number; fullName: string; email: string; avatarUrl?: string; headline?: string }
-  cvUrl?: string
-  coverLetter?: string
-  status: ApplicationStatus
-  recruiterNote?: string
-  interviewDate?: string
-  appliedAt: string
+  title: string
+  templateId?: string
+  fileName?: string
+  downloadUrl?: string
+  atsScore?: number
+  jdTitle?: string
+  isPrimary: boolean
+  createdAt: string
   updatedAt: string
 }
 
+// ---- Pagination ----
 export interface PageResponse<T> {
   content: T[]
   page: number
@@ -121,19 +64,6 @@ export interface PageResponse<T> {
   totalPages: number
   last: boolean
   first: boolean
-}
-
-export interface JobSearchParams {
-  keyword?: string
-  location?: string
-  category?: string
-  jobType?: JobType
-  experienceLevel?: ExperienceLevel
-  workMode?: WorkMode
-  salaryMin?: number
-  page?: number
-  size?: number
-  sort?: string
 }
 
 // ---- JD Search types ----
@@ -173,7 +103,7 @@ export interface JDSearchRequest {
   query: string
 }
 
-// CV Generation types
+// ---- CV Generation types ----
 export interface WorkExperience {
   company: string
   position: string

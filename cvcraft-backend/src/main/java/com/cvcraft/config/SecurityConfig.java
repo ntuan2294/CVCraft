@@ -4,7 +4,6 @@ import com.cvcraft.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -35,22 +34,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configure(http))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/jobs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/companies/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/candidates/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/stats/**").permitAll()
-                // Protected endpoints
-                .requestMatchers("/jobs/*/apply").hasRole("CANDIDATE")
-                .requestMatchers(HttpMethod.POST, "/jobs/**").hasRole("RECRUITER")
-                .requestMatchers(HttpMethod.PUT, "/jobs/**").hasRole("RECRUITER")
-                .requestMatchers(HttpMethod.DELETE, "/jobs/**").hasRole("RECRUITER")
-                .requestMatchers("/applications/**").authenticated()
-                .requestMatchers("/bookmarks/**").authenticated()
                 .requestMatchers("/profile/**").authenticated()
-                .requestMatchers("/users/**").hasRole("ADMIN")
+                .requestMatchers("/cv-docs/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -7,10 +7,9 @@ interface AuthContext {
   user: AuthUser | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; fullName: string; phone?: string; role: string }) => Promise<void>
+  register: (data: { email: string; password: string; fullName: string; phone?: string }) => Promise<void>
   logout: () => void
   isCandidate: boolean
-  isRecruiter: boolean
 }
 
 const Ctx = createContext<AuthContext | null>(null)
@@ -33,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user)
   }, [])
 
-  const register = useCallback(async (data: { email: string; password: string; fullName: string; phone?: string; role: string }) => {
+  const register = useCallback(async (data: { email: string; password: string; fullName: string; phone?: string }) => {
     const res = await authApi.register(data)
     localStorage.setItem('cvcraft_token', res.accessToken)
     localStorage.setItem('cvcraft_refresh', res.refreshToken)
@@ -51,8 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={{
       user, loading, login, register, logout,
-      isCandidate: user?.role === 'CANDIDATE',
-      isRecruiter: user?.role === 'RECRUITER',
+      isCandidate: user?.role === 'CANDIDATE' || user?.role === 'ADMIN',
     }}>
       {children}
     </Ctx.Provider>

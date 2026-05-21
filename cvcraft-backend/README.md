@@ -1,75 +1,127 @@
 # CVCraft Backend — Java Spring Boot
 
-REST API for CVCraft recruitment platform. Handles authentication, job posts, candidate profiles, applications, bookmarks, and company management.
+REST API cho CVCraft. Quản lý xác thực, profile CV cá nhân và thư viện CV của người dùng.
+
+> **Lưu ý:** Backend Java chỉ xử lý Auth + Profile + CV Library. Toàn bộ tính năng AI tạo CV chạy trên Python FastAPI (port 8000).
 
 ## Tech Stack
+
 - **Java 21** + Spring Boot 3.2
-- **Spring Security 6** with JWT (jjwt)
+- **Spring Security 6** với JWT (jjwt)
 - **Spring Data JPA** + PostgreSQL
 - **Flyway** — database migrations
-- **Caffeine** — in-memory caching
 - **SpringDoc OpenAPI** — Swagger UI
-- **Lombok** + MapStruct
+- **Lombok**
 
-## Prerequisites
+## Yêu cầu
+
 - Java 21+
 - Maven 3.9+
 - PostgreSQL 15+
 
-## Setup
+## Cài đặt
 
-### 1. Create database
+### 1. Tạo database
+
 ```sql
 CREATE DATABASE cvcraft_db;
 ```
 
-### 2. Configure environment
+### 2. Cấu hình biến môi trường
+
 ```bash
+export DB_URL=jdbc:postgresql://localhost:5432/cvcraft_db
 export DB_USERNAME=postgres
 export DB_PASSWORD=your_password
 export JWT_SECRET=your_jwt_secret_min_32_chars
+export JWT_EXPIRATION=3600000
 ```
-Or set them in `application.yml`.
 
-### 3. Run
+Hoặc đặt trong `src/main/resources/application.yml`.
+
+### 3. Chạy
+
 ```bash
 mvn spring-boot:run
 ```
 
-The server starts at **http://localhost:8080/api**
+Server khởi động tại **http://localhost:8080/api**
 
-## API Documentation
 Swagger UI: http://localhost:8080/api/swagger-ui.html
 
-## Key API Endpoints
+## Migrations Flyway
 
-| Method | Endpoint                          | Auth     | Description                     |
-|--------|-----------------------------------|----------|---------------------------------|
-| POST   | /auth/register                    | Public   | Register candidate/recruiter    |
-| POST   | /auth/login                       | Public   | Login, get JWT tokens           |
-| GET    | /jobs                             | Public   | Search & filter jobs            |
-| GET    | /jobs/{id}                        | Public   | Get job detail                  |
-| POST   | /jobs                             | RECRUITER| Create job post                 |
-| GET    | /candidates                       | Public   | Browse candidates               |
-| GET    | /candidates/{id}                  | Public   | Get candidate profile           |
-| PUT    | /candidates/me                    | CANDIDATE| Update my profile               |
-| POST   | /applications/jobs/{jobId}        | CANDIDATE| Apply to job                    |
-| GET    | /applications/my                  | AUTH     | My applications                 |
-| PATCH  | /applications/{id}/status         | RECRUITER| Update application status       |
-| POST   | /bookmarks/jobs/{jobId}           | AUTH     | Bookmark job                    |
-| POST   | /bookmarks/candidates/{id}        | AUTH     | Shortlist candidate             |
-| GET    | /companies                        | Public   | Search companies                |
-| POST   | /companies                        | RECRUITER| Create company                  |
+| Version | Nội dung |
+|---------|----------|
+| V1 | Schema ban đầu (users, candidate_profiles) |
+| V2 | Fix admin password |
+| V3 | Bảng `cv_documents` (CV library), cập nhật role constraint |
 
-## Features
-- **JWT Authentication** with access + refresh tokens
-- **Role-based access control** (CANDIDATE / RECRUITER / ADMIN)
-- **Full-text job search** with filters (location, type, level, salary, work mode)
-- **Candidate browsing & filtering** (skills, experience, open-to-work status)
-- **Application lifecycle tracking** (PENDING → REVIEWING → SHORTLISTED → INTERVIEW → OFFERED → HIRED / REJECTED)
-- **Bookmark system** for jobs (candidates) and candidate shortlisting (recruiters)
-- **Company management** with verified badge
-- **View count tracking** for jobs and profiles
-- **Pagination** on all list endpoints
-- **Database migrations** via Flyway
-- **OpenAPI docs** via SpringDoc
+## API Endpoints
+
+### Auth
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|-------|
+| `POST` | `/auth/register` | Public | Đăng ký tài khoản mới |
+| `POST` | `/auth/login` | Public | Đăng nhập, nhận JWT |
+| `POST` | `/auth/refresh` | Public | Làm mới access token |
+
+### Profile
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|-------|
+| `GET`  | `/profile` | JWT | Xem profile CV của mình |
+| `PUT`  | `/profile` | JWT | Cập nhật profile (kỹ năng, kinh nghiệm, links...) |
+
+### CV Library (`/cv-docs`)
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|-------|
+| `GET`  | `/cv-docs` | JWT | Danh sách CV đã lưu (phân trang) |
+| `POST` | `/cv-docs` | JWT | Lưu CV mới vào thư viện |
+| `PATCH`| `/cv-docs/{id}/primary` | JWT | Đánh dấu làm CV chính |
+| `DELETE`| `/cv-docs/{id}` | JWT | Xóa CV khỏi thư viện |
+| `GET`  | `/cv-docs/stats` | JWT | Thống kê (tổng số CV) |
+
+## Data Models
+
+### User
+
+```
+id, email, password, fullName, phone
+role: CANDIDATE | ADMIN
+isActive, isEmailVerified
+createdAt, updatedAt
+```
+
+### CandidateProfile (profile CV cá nhân)
+
+```
+id, userId
+headline, bio, location
+experienceYears, experienceLevel (INTERN/JUNIOR/MID/SENIOR/LEAD/MANAGER/DIRECTOR)
+skills[]
+cvUrl, linkedinUrl, githubUrl, portfolioUrl
+workExperiences (JSONB), educations (JSONB), certifications (JSONB)
+createdAt, updatedAt
+```
+
+### CvDocument (thư viện CV)
+
+```
+id, userId
+title, templateId
+fileName, downloadUrl
+atsScore, jdTitle, jdText
+isPrimary
+createdAt, updatedAt
+```
+
+## Tính năng
+
+- **JWT Authentication** với access + refresh token
+- **Profile CV** — lưu thông tin cá nhân để tái sử dụng khi tạo CV
+- **CV Library** — lưu nhiều phiên bản CV, đánh dấu CV chính
+- **Database migrations** tự động qua Flyway
+- **OpenAPI docs** qua SpringDoc

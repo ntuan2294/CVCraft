@@ -6,7 +6,7 @@ import { useI18n } from '@/lib/i18n'
 import { useRouter } from 'next/navigation'
 
 export default function Navbar() {
-  const { user, logout, isRecruiter } = useAuth()
+  const { user, logout } = useAuth()
   const { t, locale, setLocale } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropOpen, setDropOpen] = useState(false)
@@ -18,11 +18,9 @@ export default function Navbar() {
   }
 
   const navLinks: [string, string][] = [
-    [t('nav.findJobs'), '/jobs'],
-    [t('nav.browseTalent'), '/candidates'],
-    [t('nav.companies'), '/companies'],
     [t('nav.aiCvBuilder'), '/cv/generate'],
     [t('nav.jdSearch'), '/jd/search'],
+    [t('nav.myCvs'), '/dashboard'],
   ]
 
   return (
@@ -73,20 +71,17 @@ export default function Navbar() {
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
-                      <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                        {user.role}
-                      </span>
                     </div>
-                    <Link href={isRecruiter ? '/dashboard/recruiter' : '/dashboard/candidate'}
+                    <Link href="/dashboard"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setDropOpen(false)}>
                       {t('nav.dashboard')}
                     </Link>
-                    {!isRecruiter && (
-                      <Link href="/applications" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
-                        {t('nav.myApplications')}
-                      </Link>
-                    )}
+                    <Link href="/cv/generate"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropOpen(false)}>
+                      {t('nav.buildCv')}
+                    </Link>
                     <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
                       {t('nav.profileSettings')}
                     </Link>

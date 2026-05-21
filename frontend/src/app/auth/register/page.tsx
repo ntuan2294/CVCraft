@@ -1,15 +1,13 @@
 'use client'
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { useI18n } from '@/lib/i18n'
 
 function RegisterForm() {
   const { t } = useI18n()
-  const searchParams = useSearchParams()
-  const initialRole = searchParams.get('role') ?? 'CANDIDATE'
-  const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '', role: initialRole })
+  const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
@@ -24,7 +22,7 @@ function RegisterForm() {
     setLoading(true)
     try {
       await register(form)
-      router.push(form.role === 'RECRUITER' ? '/dashboard/recruiter' : '/dashboard/candidate')
+      router.push('/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
     } finally {
@@ -34,23 +32,6 @@ function RegisterForm() {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-      {/* Role Selector */}
-      <div className="mb-4">
-        <p className="text-sm font-medium text-gray-700 mb-2">{t('auth.iAmA')}</p>
-        <div className="grid grid-cols-2 gap-3">
-          {(['CANDIDATE', 'RECRUITER'] as const).map(r => (
-            <button key={r} type="button" onClick={() => update('role', r)}
-              className={`py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
-                form.role === r
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}>
-              {r === 'CANDIDATE' ? `👤 ${t('auth.candidate')}` : `🏢 ${t('auth.recruiter')}`}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.fullName')}</label>

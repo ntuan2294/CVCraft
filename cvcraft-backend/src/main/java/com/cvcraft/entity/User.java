@@ -7,7 +7,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -57,13 +56,7 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CandidateProfile candidateProfile;
 
-    @OneToMany(mappedBy = "recruiter", fetch = FetchType.LAZY)
-    private List<JobPost> jobPosts;
-
-    @OneToMany(mappedBy = "candidate", fetch = FetchType.LAZY)
-    private List<Application> applications;
-
     public enum Role {
-        CANDIDATE, RECRUITER, ADMIN
+        CANDIDATE, ADMIN
     }
 }

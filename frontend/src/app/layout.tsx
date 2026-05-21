@@ -9,8 +9,8 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CVCraft — Professional Recruitment Platform',
-  description: 'Find your dream job or top talent. AI-powered CV builder, job search, and candidate matching.',
+  title: 'CVCraft — AI-Powered CV Builder',
+  description: 'Create professional, ATS-optimized CVs in minutes with multi-agent AI. Tailored to any job description.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

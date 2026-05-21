@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
@@ -20,25 +20,14 @@ export default function Footer() {
             <p className="text-sm text-gray-400 leading-relaxed">{t('footer.tagline')}</p>
           </div>
 
-          {/* For Job Seekers */}
+          {/* Features */}
           <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">{t('footer.jobSeekers')}</h4>
+            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">{t('footer.forUsers')}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/jobs" className="hover:text-white transition-colors">{t('footer.browseJobs')}</Link></li>
               <li><Link href="/cv/generate" className="hover:text-white transition-colors">{t('footer.aiCvBuilder')}</Link></li>
               <li><Link href="/jd/search" className="hover:text-white transition-colors">{t('footer.jdSearch')}</Link></li>
-              <li><Link href="/auth/register?role=CANDIDATE" className="hover:text-white transition-colors">{t('footer.createAccount')}</Link></li>
-            </ul>
-          </div>
-
-          {/* For Recruiters */}
-          <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">{t('footer.forRecruiters')}</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/candidates" className="hover:text-white transition-colors">{t('footer.browseCandidates')}</Link></li>
-              <li><Link href="/jobs/post" className="hover:text-white transition-colors">{t('footer.postJob')}</Link></li>
-              <li><Link href="/companies" className="hover:text-white transition-colors">{t('footer.companyProfiles')}</Link></li>
-              <li><Link href="/auth/register?role=RECRUITER" className="hover:text-white transition-colors">{t('footer.recruiterSignUp')}</Link></li>
+              <li><Link href="/dashboard" className="hover:text-white transition-colors">{t('footer.myCvLibrary')}</Link></li>
+              <li><Link href="/auth/register" className="hover:text-white transition-colors">{t('footer.createAccount')}</Link></li>
             </ul>
           </div>
 

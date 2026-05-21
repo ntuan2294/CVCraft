@@ -19,6 +19,9 @@ export default function GenerateCVPage() {
           result={model.result}
           onDownloadDocx={() => downloadGeneratedDocx(model.result)}
           onExportPdf={printCvEditorAsPdf}
+          jobTitle={model.form.job_title}
+          jdText={model.jdText}
+          templateId={model.templateId}
         />
       </div>
     </div>

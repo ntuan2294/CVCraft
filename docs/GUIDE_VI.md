@@ -22,9 +22,13 @@
 | Python  | 3.11+               | `python --version` |
 | Node.js | 18+                 | `node --version` |
 | npm     | 9+                  | `npm --version` |
+| Java    | 21+                 | `java --version` |
+| Maven   | 3.9+                | `mvn --version` |
+| PostgreSQL | 15+             | `psql --version` |
 | Git     | Bất kỳ              | `git --version` |
 
-> **Redis** là tuỳ chọn. App chạy bình thường không có Redis (dùng in-memory cache thay thế).
+> **Redis** là tuỳ chọn — app chạy bình thường không có Redis (dùng in-memory cache).  
+> **Java backend** là tuỳ chọn nếu chỉ muốn test AI generation (không cần Auth/Profile/CV Library).
 
 ---
 
@@ -32,17 +36,17 @@
 
 ```
 CVCraft/
-├── backend/                    ← Python AI services (FastAPI)
+├── backend/                    ← Python AI services (FastAPI, port 8000)
 │   ├── src/cvcraft/
 │   │   ├── config/             ← Settings (API key, paths, Redis, rate limits)
 │   │   ├── infrastructure/
-│   │   │   ├── cache/          ← Redis cache layer (với in-memory fallback)
-│   │   │   ├── llm/            ← LLM factory (OpenAI)
+│   │   │   ├── cache/          ← Redis cache (với in-memory fallback)
+│   │   │   ├── llm/            ← LLM factory (OpenAI / Claude)
 │   │   │   └── rate_limit/     ← Rate limiting (slowapi)
 │   │   ├── generate_cv/        ← Pipeline tạo CV (LangGraph 6-agent)
 │   │   │   ├── agents/         ← jd_analyzer, summary, experience, skills, qc, renderer
 │   │   │   ├── pipeline/       ← Orchestration graph
-│   │   │   ├── rag/            ← Vector store + RAG examples
+│   │   │   ├── rag/            ← Vector store + CV examples
 │   │   │   ├── services/       ← CVService, RAGService, CVTaskService
 │   │   │   └── api/v1/cv.py    ← REST endpoints /v1/cv/*
 │   │   └── jd_search/          ← Tìm kiếm JD semantic
@@ -52,15 +56,19 @@ CVCraft/
 │   ├── data/vectordb/          ← ChromaDB local (tự động tạo, không commit)
 │   ├── outputs/                ← CV đã tạo (.docx) (không commit)
 │   └── templates/              ← 5 mẫu CV (.docx)
-├── frontend/                   ← Next.js 16 UI
-│   ├── src/app/                ← Pages
-│   ├── src/components/         ← Shared components
-│   ├── src/features/           ← Feature modules (generate-cv)
-│   └── src/lib/                ← API clients, types, i18n
-├── cvcraft-backend/            ← Java Spring Boot API (tách biệt)
+├── cvcraft-backend/            ← Java Spring Boot (port 8080)
+│   └── src/main/java/com/cvcraft/
+│       ├── controller/         ← AuthController, CandidateController, CvDocumentController
+│       ├── entity/             ← User, CandidateProfile, CvDocument
+│       └── resources/db/migration/ ← Flyway SQL migrations
+├── frontend/                   ← Next.js 16 (port 3000)
+│   └── src/
+│       ├── app/                ← Pages
+│       ├── components/         ← Navbar, Footer, ...
+│       ├── features/           ← generate-cv feature module
+│       └── lib/                ← API clients, types, i18n
 ├── docs/                       ← Tài liệu dự án
-├── scripts/dev.py              ← Khởi động toàn bộ stack
-├── gateway.py                  ← FastAPI entry point (mount 2 router vào 1 port)
+├── gateway.py                  ← FastAPI entry point
 ├── pyproject.toml              ← Python dependencies
 ├── Makefile                    ← Lệnh tắt
 └── .env                        ← Biến môi trường (không commit)
@@ -85,7 +93,7 @@ cd CVCraft
 python -m venv .venv
 ```
 
-Kích hoạt virtual environment:
+Kích hoạt:
 
 ```powershell
 # Windows (PowerShell)
@@ -98,16 +106,12 @@ Kích hoạt virtual environment:
 source .venv/bin/activate
 ```
 
-Sau khi kích hoạt, prompt sẽ có dạng `(.venv) PS C:\...>`.
+Sau khi kích hoạt, prompt có dạng `(.venv) PS C:\...>`.
 
 ### Bước 3 — Cài Python packages
 
 ```powershell
-# Bản cơ bản (backend + dev tools)
 pip install -e ".[api,dev]"
-
-# Nếu muốn dùng Redis cache + Rate limiting (khuyên dùng cho production)
-pip install -e ".[api,dev,cache,ratelimit]"
 ```
 
 ### Bước 4 — Cài Frontend packages
@@ -118,45 +122,65 @@ npm install
 cd ..
 ```
 
-### Bước 5 — Tạo file `.env`
+### Bước 5 — Cài đặt Java Backend
 
-Sao chép từ template:
+```powershell
+# Tạo PostgreSQL database
+psql -U postgres -c "CREATE DATABASE cvcraft_db;"
+
+# Build Java backend
+cd cvcraft-backend
+mvn clean install -DskipTests
+cd ..
+```
+
+### Bước 6 — Tạo file `.env`
 
 ```powershell
 copy .env.example .env
 ```
 
-Mở file `.env` và điền API key (xem [Mục 4](#4-cấu-hình-biến-môi-trường)).
+Mở `.env` và điền API key (xem [Mục 4](#4-cấu-hình-biến-môi-trường)).
 
 ---
 
 ## 4. Cấu hình biến môi trường
 
-File `.env` đặt ở **thư mục gốc** của dự án.
-
-### Bắt buộc
+### File `.env` — Python AI + Frontend
 
 ```env
+# Bắt buộc
 OPENAI_API_KEY=sk-...
+
+# Tuỳ chọn
+REDIS_URL=redis://localhost:6379/0
+GENERATE_CV_URL=http://localhost:8000
+PUBLIC_API_URL=http://localhost:8000
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
 ```
 
-Lấy API key tại: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+### File `cvcraft-backend/src/main/resources/application.yml` — Java Backend
 
-### Tuỳ chọn
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cvcraft_db
+    username: postgres
+    password: your_password
 
-```env
-# Redis — bật cache và rate limiting qua Redis
-# Nếu không đặt, app dùng in-memory (vẫn chạy bình thường)
-REDIS_URL=redis://localhost:6379/0
+jwt:
+  secret: your_secret_key_at_least_32_characters_long
+  expiration: 3600000
+  refresh-expiration: 86400000
+```
 
-# URL backend mà frontend gọi tới
-GENERATE_CV_URL=http://localhost:8000
+Hoặc dùng biến môi trường:
 
-# URL công khai của backend (dùng để OnlyOffice gọi lại)
-PUBLIC_API_URL=http://localhost:8000
-
-# OnlyOffice Document Server — bật chỉnh sửa CV giống Word trên trình duyệt
-ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/cvcraft_db"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "your_password"
+$env:JWT_SECRET = "your_secret_key_at_least_32_characters"
 ```
 
 ### Bảng tóm tắt
@@ -165,24 +189,32 @@ ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
 |------|----------|-------|----------|
 | `OPENAI_API_KEY` | ✅ | API key OpenAI | — |
 | `REDIS_URL` | ❌ | URL Redis server | `redis://localhost:6379/0` |
-| `GENERATE_CV_URL` | ❌ | URL backend cho FE | `http://localhost:8000` |
-| `PUBLIC_API_URL` | ❌ | URL backend công khai | `http://localhost:8000` |
+| `GENERATE_CV_URL` | ❌ | URL Python AI cho FE | `http://localhost:8000` |
+| `PUBLIC_API_URL` | ❌ | URL backend công khai (OnlyOffice) | `http://localhost:8000` |
 | `ONLYOFFICE_DOCUMENT_SERVER_URL` | ❌ | URL OnlyOffice server | (tắt) |
 
 ---
 
 ## 5. Chạy dự án
 
-### Cách 1 — Chạy toàn bộ stack (khuyên dùng)
+### Service nào cần thiết?
 
-Mở **1 terminal**, chạy:
+| Muốn làm gì | Service cần chạy |
+|-------------|-----------------|
+| Tạo CV bằng AI | Python (8000) + Frontend (3000) |
+| Lưu CV, quản lý thư viện | + Java Backend (8080) + PostgreSQL |
+| Đầy đủ tính năng | Tất cả 3 service |
+
+---
+
+### Cách 1 — Chạy Python AI + Frontend (khuyên dùng khi dev AI)
 
 ```powershell
 .venv\Scripts\Activate.ps1
 python scripts/dev.py
 ```
 
-Khi thấy log sau là sẵn sàng:
+Khi thấy:
 
 ```
 [dev] Frontend: http://localhost:3000
@@ -190,28 +222,47 @@ Khi thấy log sau là sẵn sàng:
 [dev] Press Ctrl+C to stop all services.
 ```
 
-Mở trình duyệt: **http://localhost:3000**
-
-Nhấn **Ctrl+C** để dừng tất cả.
+→ Mở http://localhost:3000
 
 ---
 
-### Cách 2 — Chạy riêng từng service
+### Cách 2 — Chạy đầy đủ 3 service (mở 3 terminal)
 
-Mở **2 terminal** riêng biệt:
-
-**Terminal 1 — Backend:**
+**Terminal 1 — Python AI Backend:**
 
 ```powershell
 .venv\Scripts\Activate.ps1
 uvicorn gateway:app --reload --port 8000
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 — Java Backend:**
+
+```powershell
+cd cvcraft-backend
+mvn spring-boot:run
+```
+
+**Terminal 3 — Frontend:**
 
 ```powershell
 cd frontend
 npm run dev
+```
+
+---
+
+### Cách 3 — Chạy riêng từng service
+
+```powershell
+# Python AI (port 8000)
+.venv\Scripts\Activate.ps1
+uvicorn gateway:app --reload --port 8000
+
+# Frontend (port 3000)
+cd frontend && npm run dev
+
+# Java (port 8080)
+cd cvcraft-backend && mvn spring-boot:run
 ```
 
 ---
@@ -229,44 +280,60 @@ python scripts/dev.py --backend-port 8010 --frontend-port 3001
 | Service | URL | Mô tả |
 |---------|-----|-------|
 | **Giao diện chính** | http://localhost:3000 | Web app |
-| **Tạo CV** | http://localhost:3000/cv/generate | Form tạo CV |
-| **Tìm việc** | http://localhost:3000/jd/search | Tìm JD semantic |
-| **Swagger UI** | http://localhost:8000/docs | API docs tương tác |
-| **ReDoc** | http://localhost:8000/redoc | API docs đọc |
-| **Health check** | http://localhost:8000/health | Trạng thái server + Redis |
-| **Cache stats** | http://localhost:8000/v1/cv/cache/stats | Thống kê Redis cache |
+| **Tạo CV** | http://localhost:3000/cv/generate | Form tạo CV bằng AI |
+| **Tìm JD** | http://localhost:3000/jd/search | Tìm JD semantic |
+| **Thư viện CV** | http://localhost:3000/dashboard | CV đã lưu của tôi |
+| **Python Swagger** | http://localhost:8000/docs | API docs AI |
+| **Java Swagger** | http://localhost:8080/api/swagger-ui.html | API docs Java |
+| **Health check** | http://localhost:8000/health | Trạng thái Python server |
+| **Cache stats** | http://localhost:8000/v1/cv/cache/stats | Thống kê Redis |
 
 ---
 
 ## 7. API Reference
 
-### CV Generation
+### CV Generation (Python, port 8000)
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| `POST` | `/v1/cv/generate` | Tạo CV **đồng bộ** (~30-60s, block) |
-| `POST` | `/v1/cv/generate/async` | Tạo CV **bất đồng bộ** — trả ngay `task_id` |
+| `POST` | `/v1/cv/generate` | Tạo CV **đồng bộ** (~30-60s) |
+| `POST` | `/v1/cv/generate/async` | Tạo CV **bất đồng bộ** — trả `task_id` ngay |
 | `GET`  | `/v1/cv/tasks/{task_id}` | Poll trạng thái task async |
-| `GET`  | `/v1/cv/history` | Lịch sử 20 lần tạo CV gần nhất |
+| `GET`  | `/v1/cv/history` | Lịch sử 20 CV gần nhất |
 | `DELETE` | `/v1/cv/history` | Xoá lịch sử |
 | `GET`  | `/v1/cv/download?path=...` | Tải file `.docx` |
-| `GET`  | `/v1/cv/cache/stats` | Thống kê Redis cache |
 
-### JD Search
+### JD Search (Python, port 8000)
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| `POST` | `/v1/jd/search` | Tìm kiếm JD theo semantic search |
+| `POST` | `/v1/jd/search` | Tìm kiếm JD theo semantic |
 | `POST` | `/v1/jd/index` | Index JD mới vào vector store |
 | `GET`  | `/v1/jd/stats` | Thống kê JD collection |
 
-### RAG Management
+### Auth (Java, port 8080/api)
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
-| `GET`  | `/v1/cv/rag/stats` | Thống kê CV RAG index |
-| `POST` | `/v1/cv/rag/build` | Build RAG index (`seed` / `hf` / `kaggle`) |
-| `GET`  | `/v1/cv/rag/build/status` | Trạng thái build đang chạy |
+| `POST` | `/auth/register` | Đăng ký tài khoản |
+| `POST` | `/auth/login` | Đăng nhập, lấy JWT |
+| `POST` | `/auth/refresh` | Làm mới access token |
+
+### Profile (Java, port 8080/api)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET`  | `/profile` | Xem profile CV của mình |
+| `PUT`  | `/profile` | Cập nhật profile |
+
+### CV Library (Java, port 8080/api)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET`  | `/cv-docs` | Danh sách CV đã lưu |
+| `POST` | `/cv-docs` | Lưu CV mới |
+| `PATCH`| `/cv-docs/{id}/primary` | Đặt làm CV chính |
+| `DELETE`| `/cv-docs/{id}` | Xóa CV |
 
 ### Luồng async (khuyên dùng cho production)
 
@@ -293,56 +360,57 @@ Client                          Backend
 
 ### Redis Cache
 
-Redis giúp tăng tốc đáng kể bằng cách cache:
-- Kết quả tìm kiếm JD theo query (TTL 1 giờ)
+Redis tăng tốc bằng cách cache:
+- Kết quả tìm kiếm JD (TTL 1 giờ)
 - JD sections đã format bởi LLM (TTL 24 giờ)
 - CV task state (TTL 24 giờ)
 
-**Cài Redis trên Windows (khuyên dùng Docker):**
+**Cài Redis (Docker):**
 
 ```powershell
 docker run -d --name redis -p 6379:6379 redis:alpine
 ```
 
-Sau đó thêm vào `.env`:
+Thêm vào `.env`:
 
 ```env
 REDIS_URL=redis://localhost:6379/0
 ```
 
-Kiểm tra kết nối tại: http://localhost:8000/health
+Kiểm tra: http://localhost:8000/health
 
 ---
 
 ### OnlyOffice — Chỉnh sửa CV giống Word trên trình duyệt
 
 ```powershell
-docker run -d --name onlyoffice -p 8080:80 --restart=always onlyoffice/documentserver
+docker run -d --name onlyoffice -p 80:80 --restart=always onlyoffice/documentserver
 ```
 
 Thêm vào `.env`:
 
 ```env
 PUBLIC_API_URL=http://host.docker.internal:8000
-ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:80
 ```
 
-> **Lưu ý:** `PUBLIC_API_URL` phải là URL mà OnlyOffice container có thể truy cập được tới backend. Trên Windows/Mac dùng `host.docker.internal`, trên Linux dùng IP thực của máy.
+> `PUBLIC_API_URL` phải là URL OnlyOffice container có thể truy cập được.  
+> Windows/Mac: dùng `host.docker.internal`. Linux: dùng IP thực của máy.
 
 ---
 
 ### Build RAG Index
 
-RAG index giúp AI tạo CV chất lượng hơn bằng cách học từ ví dụ:
+RAG giúp AI tạo CV chất lượng hơn bằng cách học từ ví dụ:
 
 ```powershell
-# Build từ seed samples có sẵn (~5 giây, đủ để test)
+# Build CV RAG từ seed samples (~5 giây)
 make build-index
 
 # Build JD search index
 make jd-build-seed-index
 
-# Build từ HuggingFace dataset (cần internet, mất vài phút)
+# Build từ HuggingFace dataset (cần internet)
 curl -X POST http://localhost:8000/v1/cv/rag/build \
   -H "Content-Type: application/json" \
   -d '{"source": "hf", "max_records": 500}'
@@ -353,14 +421,13 @@ curl -X POST http://localhost:8000/v1/cv/rag/build \
 ## 9. Lệnh thường dùng
 
 ```powershell
-# Cài đặt
-make install              # Cài Python packages
-make frontend-install     # Cài npm packages
-
 # Chạy
-make dev                  # Chạy toàn bộ app (backend + frontend)
-make api                  # Chạy backend riêng
-make frontend             # Chạy frontend riêng
+make dev                  # Python AI + Frontend cùng lúc
+make api                  # Python AI riêng
+make frontend             # Frontend riêng
+
+# Java backend
+cd cvcraft-backend && mvn spring-boot:run
 
 # RAG
 make build-index          # Build CV RAG index (seed)
@@ -371,23 +438,39 @@ make jd-stats             # Xem thống kê JD index
 # Dev
 make test                 # Chạy test suite
 make lint                 # Kiểm tra code style (ruff)
+make install              # Cài Python packages
+make frontend-install     # Cài npm packages
 ```
 
 ---
 
 ## 10. Xử lý lỗi thường gặp
 
-### Lỗi khi chạy `python scripts/dev.py`
+### Lỗi Python
 
-| Lỗi trong log | Nguyên nhân | Cách sửa |
-|---------------|-------------|----------|
-| `ModuleNotFoundError: No module named 'cvcraft'` | Chưa cài packages hoặc chưa activate venv | Kích hoạt venv rồi chạy `pip install -e ".[api,dev]"` |
-| `AuthenticationError` / `Incorrect API key` | Sai hoặc thiếu `OPENAI_API_KEY` | Kiểm tra file `.env` ở thư mục gốc |
-| `Address already in use` | Port đang bị chiếm bởi process khác | Đổi port: `python scripts/dev.py --backend-port 8010` |
-| `Error: Cannot find module` | Chưa cài npm packages | Vào `frontend/` và chạy `npm install` |
-| `Cannot find module 'next'` | npm install chưa xong | Chạy lại `cd frontend && npm install` |
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|-------------|----------|
+| `ModuleNotFoundError: No module named 'cvcraft'` | Chưa activate venv hoặc chưa install | Activate venv rồi `pip install -e ".[api,dev]"` |
+| `AuthenticationError` / `Incorrect API key` | Sai OPENAI_API_KEY | Kiểm tra file `.env` |
+| `Address already in use` | Port đang bị chiếm | `python scripts/dev.py --backend-port 8010` |
 
-### Lỗi về quyền trên PowerShell
+### Lỗi Frontend
+
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|-------------|----------|
+| `Cannot find module 'next'` | Chưa cài npm packages | `cd frontend && npm install` |
+| `Error: Cannot find module` | npm install chưa xong | Chạy lại `npm install` |
+
+### Lỗi Java Backend
+
+| Lỗi | Nguyên nhân | Cách sửa |
+|-----|-------------|----------|
+| `Connection refused` (PostgreSQL) | PostgreSQL chưa chạy | Khởi động PostgreSQL service |
+| `Database does not exist` | Chưa tạo database | `psql -c "CREATE DATABASE cvcraft_db;"` |
+| `Flyway migration failed` | Migration lỗi | Xem log, check DB schema |
+| Port 8080 bị chiếm | Process khác | Đổi port trong application.yml |
+
+### Lỗi quyền PowerShell
 
 ```
 .venv\Scripts\Activate.ps1 cannot be loaded because running scripts is disabled
@@ -399,26 +482,10 @@ make lint                 # Kiểm tra code style (ruff)
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Backend crash ngay sau khi start
-
-Script `dev.py` dừng toàn bộ nếu **bất kỳ service nào crash**. Đọc log để tìm lỗi:
-
-```
-[backend] ERROR: ...lỗi cụ thể...
-[dev] A service exited with code 1. Stopped remaining services.
-```
-
-Kiểm tra file `.env` có đúng `OPENAI_API_KEY` chưa — đây là nguyên nhân phổ biến nhất.
-
 ### Reset dữ liệu RAG
 
-Nếu vector store bị lỗi hoặc muốn build lại từ đầu:
-
 ```powershell
-# Xoá thủ công
 Remove-Item -Recurse -Force backend\data\vectordb
-
-# Build lại
 make build-index
 make jd-build-seed-index
 ```
@@ -428,5 +495,6 @@ make jd-build-seed-index
 ## Lưu ý bảo mật
 
 - File `.env` chứa API key — **không bao giờ commit lên Git**
-- `.env.example` đã có sẵn placeholder để chia sẻ với team — an toàn để commit
-- Rate limiting tự động giới hạn: 10 req/phút/IP cho CV generation, 30 req/phút/IP cho JD search
+- `.env.example` là template an toàn để commit
+- Rate limiting: 10 req/phút/IP cho CV generation, 30 req/phút/IP cho JD search
+- JWT secret phải dài ít nhất 32 ký tự

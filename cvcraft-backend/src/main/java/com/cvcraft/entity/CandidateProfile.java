@@ -2,6 +2,8 @@ package com.cvcraft.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -37,25 +39,12 @@ public class CandidateProfile {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "experience_level")
-    private JobPost.ExperienceLevel experienceLevel;
+    private ExperienceLevel experienceLevel;
 
     @ElementCollection
     @CollectionTable(name = "candidate_skills", joinColumns = @JoinColumn(name = "profile_id"))
     @Column(name = "skill")
     private List<String> skills;
-
-    @Column(name = "desired_salary_min")
-    private Long desiredSalaryMin;
-
-    @Column(name = "desired_salary_max")
-    private Long desiredSalaryMax;
-
-    @Column(name = "desired_job_types")
-    private String desiredJobTypes;
-
-    @Column(name = "desired_work_mode")
-    @Enumerated(EnumType.STRING)
-    private JobPost.WorkMode desiredWorkMode;
 
     @Column(name = "cv_url")
     private String cvUrl;
@@ -69,24 +58,15 @@ public class CandidateProfile {
     @Column(name = "portfolio_url", length = 200)
     private String portfolioUrl;
 
-    @Column(name = "is_open_to_work")
-    @Builder.Default
-    private Boolean isOpenToWork = true;
-
-    @Column(name = "is_profile_visible")
-    @Builder.Default
-    private Boolean isProfileVisible = true;
-
-    @Column(name = "profile_views")
-    @Builder.Default
-    private Long profileViews = 0L;
-
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String workExperiences;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String educations;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String certifications;
 
@@ -97,4 +77,8 @@ public class CandidateProfile {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public enum ExperienceLevel {
+        INTERN, JUNIOR, MID, SENIOR, LEAD, MANAGER, DIRECTOR
+    }
 }
