@@ -82,17 +82,15 @@ export function GenerateCvResult({
                 className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
                 disabled={!result.output_path}
               >
-                {isHtml ? 'Tải HTML' : t('gen.downloadDocx')}
+                {t('gen.downloadDocx')}
               </button>
-              {!isHtml && (
-                <button
-                  type="button"
-                  onClick={onExportPdf}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
-                >
-                  Xuất PDF
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onExportPdf}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
+              >
+                {t('gen.exportPdf')}
+              </button>
               {/* Save to library button */}
               {saved ? (
                 <span className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-700 flex items-center gap-1">
