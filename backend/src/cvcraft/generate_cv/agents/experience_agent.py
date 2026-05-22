@@ -3,6 +3,7 @@ Experience Agent - Layer 2.
 Viết bullet points STAR cho từng kinh nghiệm.
 Dùng strong model + RAG bullets làm few-shot.
 """
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pydantic import BaseModel, Field
 from cvcraft.generate_cv.core.state import CVAgentState, CVDraft, WorkExperience
 from cvcraft.generate_cv.infrastructure.llm.factory import LLMFactory, call_with_structured_output
@@ -74,14 +75,17 @@ def experience_agent_node(state: CVAgentState) -> dict:
     except Exception:
         pass
 
-    updated_experiences = []
-    for exp in state.user_profile.work_experiences:
-        user_msg_parts = []
+    language = state.user_input.get("output_language", "vi")
+    language_msg = "Output language: English." if language == "en" else "Output language: Vietnamese."
+    revision_feedback = []
+    if state.revision_count > 0 and state.quality_score:
+        revision_feedback = [f for f in state.quality_score.feedback if 'experience' in f.lower() or 'bullet' in f.lower()]
 
+    def _write_bullets_for_exp(exp: WorkExperience) -> WorkExperience:
+        user_msg_parts = []
         if rag_examples_block:
             user_msg_parts.append(rag_examples_block)
             user_msg_parts.append("--- THÔNG TIN JOB CẦN VIẾT ---")
-
         user_msg_parts.extend([
             f"Vị trí: {exp.position}",
             f"Công ty: {exp.company}",
@@ -89,20 +93,12 @@ def experience_agent_node(state: CVAgentState) -> dict:
             f"Mô tả thô từ user:",
             exp.raw_description,
         ])
-
         if jd_keywords:
             user_msg_parts.append(f"\nKeywords từ JD cần lồng ghép tự nhiên: {', '.join(jd_keywords[:10])}")
-
-        if state.revision_count > 0 and state.quality_score:
-            relevant_feedback = [f for f in state.quality_score.feedback if 'experience' in f.lower() or 'bullet' in f.lower()]
-            if relevant_feedback:
-                user_msg_parts.append(f"\n--- FEEDBACK CẦN XỬ LÝ ---")
-                user_msg_parts.extend(relevant_feedback)
-
-        language = state.user_input.get("output_language", "vi")
-        language_msg = "Output language: English." if language == "en" else "Output language: Vietnamese."
+        if revision_feedback:
+            user_msg_parts.append("\n--- FEEDBACK CẦN XỬ LÝ ---")
+            user_msg_parts.extend(revision_feedback)
         user_msg = language_msg + "\n\n" + "\n".join(user_msg_parts)
-
         try:
             result = call_with_structured_output(
                 llm=llm,
@@ -110,7 +106,7 @@ def experience_agent_node(state: CVAgentState) -> dict:
                 system_prompt=SYSTEM_PROMPT,
                 user_message=user_msg,
             )
-            new_exp = WorkExperience(
+            return WorkExperience(
                 company=exp.company,
                 position=exp.position,
                 start_date=exp.start_date,
@@ -118,9 +114,15 @@ def experience_agent_node(state: CVAgentState) -> dict:
                 raw_description=exp.raw_description,
                 bullets=result.bullets,
             )
-            updated_experiences.append(new_exp)
         except Exception:
-            updated_experiences.append(exp)
+            return exp
+
+    experiences = state.user_profile.work_experiences
+    updated_experiences: list[WorkExperience] = [None] * len(experiences)  # type: ignore
+    with ThreadPoolExecutor(max_workers=min(len(experiences), 4)) as pool:
+        futures = {pool.submit(_write_bullets_for_exp, exp): i for i, exp in enumerate(experiences)}
+        for future in as_completed(futures):
+            updated_experiences[futures[future]] = future.result()
 
     current_draft = state.cv_draft.model_copy(deep=True) if state.cv_draft else CVDraft()
     current_draft.experiences = updated_experiences

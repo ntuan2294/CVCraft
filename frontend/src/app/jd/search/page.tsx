@@ -14,16 +14,24 @@ export default function JDSearchPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
+  const [prefetchedDetails, setPrefetchedDetails] = useState<Map<string, JDFormattedDetail>>(new Map())
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!query.trim()) return
     setLoading(true)
     setError('')
+    setPrefetchedDetails(new Map())
     try {
       const data = await api.jd.search(query)
-      setResults(data.results)
+      const sorted = [...data.results].sort((a, b) => b.similarity_score - a.similarity_score)
+      setResults(sorted)
       setSearched(true)
+      sorted.forEach(card => {
+        api.jd.format(card.id)
+          .then(detail => setPrefetchedDetails(prev => new Map(prev).set(card.id, detail)))
+          .catch(() => {})
+      })
     } catch {
       setError(t('jd.error'))
     } finally {
@@ -141,6 +149,7 @@ export default function JDSearchPage() {
             <JDResultCard
               key={card.id}
               card={card}
+              prefetched={prefetchedDetails.get(card.id)}
               onGenerate={handleGenerate}
             />
           ))}

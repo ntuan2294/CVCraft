@@ -39,7 +39,7 @@ def qc_agent_node(state: CVAgentState) -> dict:
     if not state.cv_draft:
         return {"messages": ["[QC Agent] Không có CV draft để chấm"]}
 
-    llm = LLMFactory.get_llm(tier="strong")
+    llm = LLMFactory.get_llm(tier="cheap")
 
     draft = state.cv_draft
     cv_parts = []

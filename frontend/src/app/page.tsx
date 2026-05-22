@@ -34,7 +34,7 @@ export default function LandingPage() {
   return (
     <div className="bg-white">
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-blue-950 via-blue-900 to-violet-900 text-white overflow-hidden">
+      <section className="relative bg-linear-to-br from-blue-950 via-blue-900 to-violet-900 text-white overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-blue-800/50 border border-blue-700/50 rounded-full px-4 py-1.5 text-sm text-blue-200 mb-6">
@@ -43,7 +43,7 @@ export default function LandingPage() {
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
               {t('home.heroTitle1')}<br />
-              <span className="bg-gradient-to-r from-blue-300 to-violet-300 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-blue-300 to-violet-300 bg-clip-text text-transparent">
                 {t('home.heroTitle2')}
               </span>
             </h1>
@@ -137,7 +137,7 @@ export default function LandingPage() {
 
       {/* CTA Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-br from-blue-600 to-violet-700 rounded-3xl p-12 text-center text-white">
+        <div className="bg-linear-to-br from-blue-600 to-violet-700 rounded-3xl p-12 text-center text-white">
           <div className="text-5xl mb-4">✨</div>
           <h2 className="text-3xl font-bold mb-4">{t('home.ctaTitle')}</h2>
           <p className="text-blue-100 max-w-xl mx-auto mb-8 text-lg">{t('home.ctaDesc')}</p>

@@ -53,7 +53,7 @@ CVCraft/
 | LLM | OpenAI GPT-4o (hoặc Anthropic Claude) |
 | Document | python-docx, OnlyOffice (tuỳ chọn) |
 
-## Cài đặt nhanh
+## Cài đặt nhanh (đầy đủ)
 
 ```bash
 # 1. Python virtual environment
@@ -66,13 +66,12 @@ pip install -e ".[api,dev]"
 # 2. Frontend
 cd frontend && npm install && cd ..
 
-# 3. Java backend (cần PostgreSQL đang chạy)
-# Tạo DB trước: CREATE DATABASE cvcraft_db;
-# Xem cvcraft-backend/README.md để cấu hình
-
-# 4. Biến môi trường
+# 3. Biến môi trường
 copy .env.example .env
 # Điền OPENAI_API_KEY vào .env
+
+# 4. Tải dữ liệu ban đầu (JD + CV từ HuggingFace)
+python scripts/download_data.py
 ```
 
 ## Chạy dự án

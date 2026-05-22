@@ -2,7 +2,7 @@
 RAG Service - quản lý vector index.
 """
 from cvcraft.generate_cv.rag.vector_store import CVVectorStore
-from cvcraft.generate_cv.rag.indexing.indexer import index_hf_samples, index_kaggle_samples, index_samples
+from cvcraft.generate_cv.rag.indexing.indexer import index_hf_samples, index_samples
 
 
 class RAGService:
@@ -39,23 +39,6 @@ class RAGService:
         if dataset_name:
             kwargs["dataset_name"] = dataset_name
         return index_hf_samples(**kwargs)
-
-    def build_kaggle_index(
-        self,
-        reset: bool = False,
-        csv_path: str | None = None,
-        max_records: int = 1000,
-        include_seed: bool = True,
-        dry_run: bool = False,
-    ) -> dict:
-        """Index CV Tier 2 từ Kaggle (snehaanbhawal/resume-dataset) vào ChromaDB."""
-        return index_kaggle_samples(
-            reset=reset,
-            csv_path=csv_path,
-            max_records=max_records,
-            include_seed=include_seed,
-            dry_run=dry_run,
-        )
 
     def get_stats(self) -> dict:
         return {

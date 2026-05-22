@@ -67,6 +67,7 @@ export function useGenerateCvForm() {
   const [photo, setPhoto] = useState<UploadedPhoto | undefined>()
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>('vi')
   const [loading, setLoading] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<GenerateCVResponse | null>(null)
 
@@ -185,6 +186,7 @@ export function useGenerateCvForm() {
     }
 
     setLoading(true)
+    setLoadingMsg('Đang khởi động...')
     setError('')
     setResult(null)
 
@@ -210,12 +212,36 @@ export function useGenerateCvForm() {
         export_format: 'docx',
       }
 
-      const data = await api.cv.generate(jdText.trim(), userInput)
-      setResult(data)
+      const { task_id } = await api.cv.generateAsync(jdText.trim(), userInput)
+
+      const phases = [
+        { until: 8, msg: 'Đang phân tích JD...' },
+        { until: 20, msg: 'Đang viết nội dung CV...' },
+        { until: 35, msg: 'Đang kiểm tra chất lượng ATS...' },
+        { until: Infinity, msg: 'Đang hoàn thiện...' },
+      ]
+      const start = Date.now()
+
+      while (true) {
+        await new Promise<void>((r) => setTimeout(r, 1000))
+        const elapsed = Math.round((Date.now() - start) / 1000)
+        const phase = phases.find((p) => elapsed < p.until)?.msg ?? 'Đang xử lý...'
+        setLoadingMsg(`${phase} (${elapsed}s)`)
+
+        const task = await api.cv.getTask(task_id)
+        if (task.status === 'done' && task.result) {
+          setResult(task.result)
+          break
+        }
+        if (task.status === 'failed') {
+          throw new Error(task.error ?? 'Tạo CV thất bại')
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tạo CV thất bại')
     } finally {
       setLoading(false)
+      setLoadingMsg('')
     }
   }
 
@@ -235,6 +261,7 @@ export function useGenerateCvForm() {
     outputLanguage,
     setOutputLanguage,
     loading,
+    loadingMsg,
     error,
     result,
     loadSampleProfile,

@@ -12,7 +12,8 @@ from pydantic import BaseModel
 from cvcraft.jd_search.core.models import JDDocument, JDRewrittenSections, JDSearchResult, JDSearchResponse, JDCardResult, JDSearchCardResponse, JDFormattedDetail
 from cvcraft.jd_search.infrastructure.llm.factory import LLMFactory, call_with_structured_output
 from cvcraft.jd_search.rag.vector_store import JDVectorStore
-from cvcraft.jd_search.rag.indexing.jd_indexer import index_jd_samples, index_seed_samples
+from cvcraft.jd_search.rag.indexing.jd_indexer import index_jd_samples
+from cvcraft.jd_search.text_preprocessing import preprocess_jd_text
 
 
 class FormattedJDSections(BaseModel):
@@ -127,30 +128,16 @@ class JDSearchService:
             return JDFormattedDetail(id=jd_id)
 
         meta = raw["metadata"]
-        job_description = meta.get("job_description", "")
-        requirements = meta.get("requirements", "")
-        benefits = meta.get("benefits", "")
+        job_description = preprocess_jd_text(meta.get("job_description", ""))
+        requirements = preprocess_jd_text(meta.get("requirements", ""))
+        benefits = preprocess_jd_text(meta.get("benefits", ""))
 
         cache_key = (job_description, requirements, benefits)
         formatted = self._format_cache.get(cache_key)
         if formatted is None:
-            dummy_result = JDSearchResult(
-                jd=JDDocument(
-                    id=jd_id,
-                    title=meta.get("title", ""),
-                    description=meta.get("description", raw.get("text", "")),
-                    required_skills=[s.strip() for s in meta.get("required_skills", "").split(",") if s.strip()],
-                    keywords=[],
-                    details=meta,
-                ),
-                similarity_score=1.0,
-            )
-            self._format_sections_with_ai([dummy_result])
-            formatted = self._format_cache.get(cache_key) or FormattedJDSections(
-                job_description=self._text_to_bullets(job_description),
-                requirements=self._text_to_bullets(requirements),
-                benefits=self._text_to_bullets(benefits),
-            )
+            # Return text-parsed result immediately — schedule LLM enrichment in background.
+            formatted = self._fallback_format_sections(cache_key)
+            self._schedule_format_prefetch([raw])
 
         quick_info_keys = {"salary", "location", "experience_level", "job_position"}
         quick_info = {k: str(v) for k, v in meta.items() if k in quick_info_keys and v}
@@ -164,10 +151,14 @@ class JDSearchService:
         )
 
     def index_jd(self, jd: JDDocument) -> None:
+        processed_details = {
+            key: preprocess_jd_text(value) if key in {"description", "job_description", "requirements", "benefits"} else value
+            for key, value in jd.details.items()
+        }
         searchable_text = (
             f"{jd.title} | {jd.company or ''} | {jd.industry or ''} | "
             f"{jd.seniority or ''} | {' '.join(jd.required_skills)} | "
-            f"{jd.description}"
+            f"{preprocess_jd_text(jd.description)}"
         )
         metadata = {
             "title": jd.title,
@@ -176,16 +167,13 @@ class JDSearchService:
             "seniority": jd.seniority or "",
             "required_skills": ", ".join(jd.required_skills),
             "keywords": ", ".join(jd.keywords),
-            "description": jd.description,
-            **jd.details,
+            "description": preprocess_jd_text(jd.description),
+            **processed_details,
         }
         self._store.add_jd(doc_id=jd.id, text=searchable_text, metadata=metadata)
 
     def build_hf_index(self, reset: bool = False, max_records: int = 3000) -> dict:
         return index_jd_samples(reset=reset, max_records=max_records)
-
-    def build_seed_index(self, reset: bool = False) -> dict:
-        return index_seed_samples(reset=reset)
 
     def get_stats(self) -> dict:
         count = self._store.jd_collection.count()
@@ -222,9 +210,9 @@ class JDSearchService:
         pending: list[tuple[JDSearchResult, tuple[str, str, str]]] = []
         for result in results:
             details = result.jd.details
-            job_description = details.get("job_description", "")
-            requirements = details.get("requirements", "")
-            benefits = details.get("benefits", "")
+            job_description = preprocess_jd_text(details.get("job_description", ""))
+            requirements = preprocess_jd_text(details.get("requirements", ""))
+            benefits = preprocess_jd_text(details.get("benefits", ""))
             if not any([job_description, requirements, benefits]):
                 continue
 
@@ -282,9 +270,9 @@ class JDSearchService:
                 result = cls._to_search_result(raw)
                 details = result.jd.details
                 cache_key = (
-                    details.get("job_description", ""),
-                    details.get("requirements", ""),
-                    details.get("benefits", ""),
+                    preprocess_jd_text(details.get("job_description", "")),
+                    preprocess_jd_text(details.get("requirements", "")),
+                    preprocess_jd_text(details.get("benefits", "")),
                 )
                 if not any(cache_key):
                     continue
@@ -310,21 +298,87 @@ class JDSearchService:
     def _format_jds_batch(
         pending: list[tuple[JDSearchResult, tuple[str, str, str]]],
     ) -> FormattedJDBatch:
-        llm = LLMFactory.get_llm("cheap")
+        llm = LLMFactory.get_llm("cheap_large")
         system_prompt = (
-            "Bạn là biên tập viên tin tuyển dụng chuyên nghiệp. "
-            "Nhiệm vụ: viết lại 3 mục job_description, requirements, benefits dưới dạng JSON array of strings.\n\n"
-            "QUY TẮC NỘI DUNG:\n"
-            "- Không bịa thêm bất kỳ nội dung nào (nhiệm vụ, yêu cầu, phúc lợi, số liệu, mức lương, tên công nghệ, địa điểm) không có trong input.\n"
-            "- Được phép diễn đạt lại cho rõ ràng hơn, gom hoặc tách ý, nhưng phải bám sát ý nghĩa gốc.\n"
-            "- Giữ nguyên ngôn ngữ: tiếng Việt giữ tiếng Việt, tiếng Anh giữ tiếng Anh, không dịch.\n"
-            "- Loại bỏ các tiêu đề lặp như 'MÔ TẢ CÔNG VIỆC:', 'YÊU CẦU:', 'QUYỀN LỢI:', 'CHẾ ĐỘ ĐÃI NGỘ:'.\n\n"
-            "QUY TẮC ĐỊNH DẠNG (bắt buộc):\n"
-            "- Mỗi trường (job_description, requirements, benefits) là một JSON array of strings.\n"
-            "- Mỗi string trong array là MỘT ý hoàn chỉnh, không có bullet prefix ('- ', '● ', '• ').\n"
-            "- Mỗi string không được chứa ký tự xuống dòng (\\n).\n"
-            "- Không để string rỗng trong array.\n"
-            "Trả về đủ tất cả item theo đúng id input."
+            "Bạn là biên tập viên tin tuyển dụng. Nhiệm vụ duy nhất: chuẩn hóa 3 trường "
+            "`job_description`, `requirements`, `benefits` thành JSON array of strings, "
+            "mỗi string là một ý độc lập.\n\n"
+
+            "## ĐỊNH NGHĨA 'MỘT Ý' (QUAN TRỌNG)\n"
+            "Một ý = MỘT nhiệm vụ / MỘT yêu cầu / MỘT phúc lợi cụ thể, độ dài thường 5-25 từ.\n"
+            "Nếu một string output dài > 30 từ hoặc chứa nhiều hơn 1 nhiệm vụ/yêu cầu/phúc lợi, "
+            "BẮT BUỘC phải tách nhỏ hơn.\n\n"
+
+            "Quy tắc tách (áp dụng theo thứ tự ưu tiên):\n"
+            "1. Mỗi dòng (\\n) trong input → tối thiểu một string riêng.\n"
+            "2. Trong cùng một dòng, tách tiếp tại các ranh giới sau:\n"
+            "   - Dấu '.' giữa hai mệnh đề (vd: 'Quản lý server. Nghiên cứu công nghệ mới' → tách).\n"
+            "   - Dấu ';'.\n"
+            "   - Dấu ',' KHI vế sau là một ý/phúc lợi/yêu cầu độc lập "
+            "(vd: 'Lương tháng 13, thưởng dự án, BHXH' → tách 3. "
+            "Nhưng 'Python, FastAPI, Docker' trong cùng yêu cầu kỹ năng → KHÔNG tách).\n"
+            "3. KHÔNG gộp nhiều bullet/dòng input vào một string output.\n"
+            "4. Ngoại lệ KHÔNG tách: liệt kê tên công nghệ/ngôn ngữ trong cùng yêu cầu kỹ năng, "
+            "danh sách trong ngoặc đơn, ngày lễ liệt kê (vd: '1/1, 30/4, 2/9').\n\n"
+
+            "## QUY TẮC NỘI DUNG\n"
+            "- KHÔNG thêm thông tin không có trong input.\n"
+            "- KHÔNG dịch ngôn ngữ.\n"
+            "- KHÔNG suy diễn số liệu, năm kinh nghiệm, công nghệ.\n"
+            "- Được phép: sửa chính tả rõ ràng, chuẩn hóa khoảng trắng, viết hoa đầu câu, "
+            "bỏ tiêu đề section ('MÔ TẢ CÔNG VIỆC', 'YÊU CẦU', 'PHÚC LỢI', 'QUYỀN LỢI', "
+            "'CHẾ ĐỘ ĐÃI NGỘ', 'JOB DESCRIPTION', 'REQUIREMENTS', 'BENEFITS').\n\n"
+
+            "## QUY TẮC ĐỊNH DẠNG\n"
+            "- KHÔNG bullet prefix: '-', '*', '+', '●', '•', '▪', '►', '★', '✓'.\n"
+            "- KHÔNG số thứ tự đầu dòng: '1.', '1)', '1:'.\n"
+            "- KHÔNG ký tự '\\n', '\\r', '\\t' trong string.\n"
+            "- KHÔNG string rỗng/whitespace-only.\n"
+            "- KHÔNG kết thúc bằng ':' hoặc ','.\n"
+            "- KHÔNG trùng lặp string trong cùng array.\n"
+            "- Trim whitespace, gộp space liên tiếp.\n\n"
+
+            "## OUTPUT SCHEMA\n"
+            "Chỉ trả về JSON object, không markdown fence, không giải thích:\n"
+            "{\n"
+            '  "<id>": {\n'
+            '    "job_description": [...],\n'
+            '    "requirements": [...],\n'
+            '    "benefits": [...]\n'
+            "  }\n"
+            "}\n"
+            "Field rỗng/null → trả về [].\n\n"
+
+            "## VÍ DỤ\n"
+            "Input:\n"
+            "{\n"
+            '  "job_001": {\n'
+            '    "job_description": "Quản lý hệ thống web/app server, Storage. Tối ưu chi phí, performance, scaling ứng dụng. Nghiên cứu công nghệ mới",\n'
+            '    "requirements": "Từ 2 năm kinh nghiệm DevOps. Có kinh nghiệm Kubernetes, docker. Hiểu CI/CD",\n'
+            '    "benefits": "Lương tháng 13, BHXH, BHYT, BHTN. 12 ngày phép/năm. Du lịch 1 lần/năm"\n'
+            "  }\n"
+            "}\n\n"
+            "Output:\n"
+            "{\n"
+            '  "job_001": {\n'
+            '    "job_description": [\n'
+            '      "Quản lý hệ thống web/app server, Storage",\n'
+            '      "Tối ưu chi phí, performance, scaling ứng dụng",\n'
+            '      "Nghiên cứu công nghệ mới"\n'
+            '    ],\n'
+            '    "requirements": [\n'
+            '      "Từ 2 năm kinh nghiệm DevOps",\n'
+            '      "Có kinh nghiệm Kubernetes, docker",\n'
+            '      "Hiểu CI/CD"\n'
+            '    ],\n'
+            '    "benefits": [\n'
+            '      "Lương tháng 13",\n'
+            '      "BHXH, BHYT, BHTN",\n'
+            '      "12 ngày phép/năm",\n'
+            '      "Du lịch 1 lần/năm"\n'
+            '    ]\n'
+            "  }\n"
+            "}\n"
         )
         blocks = []
         for result, cache_key in pending:
@@ -363,8 +417,7 @@ class JDSearchService:
     def _text_to_bullets(text: str) -> list[str]:
         if not text or not text.strip():
             return []
-        normalized = text.strip()
-        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+        normalized = preprocess_jd_text(text)
         normalized = re.sub(r"\s*[•·●]\s*", "\n", normalized)
         normalized = re.sub(r"(?<!\S)[+*]\s+", "\n", normalized)
         normalized = re.sub(r"\s+-\s+", "\n", normalized)

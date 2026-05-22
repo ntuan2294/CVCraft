@@ -6,6 +6,9 @@ GET  /v1/cv/rag/stats     - Thống kê RAG index
 POST /v1/cv/rag/build     - Build / rebuild CV RAG index (seed | hf | kaggle)
 """
 import os
+import threading
+import time
+import uuid
 from pathlib import Path
 from urllib.parse import quote
 import httpx
@@ -91,6 +94,68 @@ async def generate_cv(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+_tasks: dict[str, dict] = {}
+_TASKS_MAX = 200
+
+
+def _evict_tasks() -> None:
+    if len(_tasks) <= _TASKS_MAX:
+        return
+    by_age = sorted(_tasks.items(), key=lambda kv: kv[1].get("created_at", 0))
+    for task_id, _ in by_age[: len(_tasks) - _TASKS_MAX]:
+        del _tasks[task_id]
+
+
+@router.post("/generate/async", status_code=202)
+async def generate_cv_async(
+    request: GenerateCVRequest,
+    service: CVService = Depends(get_cv_service),
+):
+    """Bắt đầu tạo CV ở background, trả về task_id ngay lập tức."""
+    task_id = str(uuid.uuid4())
+    _tasks[task_id] = {"status": "pending", "result": None, "error": None, "created_at": time.time()}
+    _evict_tasks()
+
+    def _run() -> None:
+        _tasks[task_id]["status"] = "running"
+        try:
+            result = service.generate_cv(
+                jd_text=request.job_description,
+                user_input=request.user_input,
+                max_revisions=request.max_revisions,
+            )
+            output_path = result.get("output_path")
+            if request.user_input.get("template_path") and not output_path:
+                renderer_msgs = [m for m in result.get("messages", []) if "[Template Renderer]" in m]
+                detail = renderer_msgs[-1] if renderer_msgs else "Không tạo được file CV từ template."
+                raise RuntimeError(detail)
+            score = result.get("quality_score")
+            _tasks[task_id].update({
+                "status": "done",
+                "result": {
+                    "status": "success",
+                    "output_path": output_path,
+                    "quality_score": score.model_dump() if score else None,
+                    "cv_draft": result.get("cv_draft").model_dump() if result.get("cv_draft") else None,
+                    "messages": result.get("messages", []),
+                },
+            })
+        except Exception as exc:
+            _tasks[task_id].update({"status": "failed", "error": str(exc)})
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"task_id": task_id}
+
+
+@router.get("/tasks/{task_id}")
+async def get_task(task_id: str):
+    """Poll trạng thái của một async CV task."""
+    task = _tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task không tồn tại")
+    return {"status": task["status"], "result": task.get("result"), "error": task.get("error")}
+
+
 @router.get("/download")
 async def download_cv(path: str):
     """Tải file CV đã tạo (.docx)."""
@@ -168,12 +233,11 @@ async def rag_stats(
 
 
 class RagBuildRequest(BaseModel):
-    source: str = Field("seed", description="Nguồn data: 'seed' | 'hf' | 'kaggle'")
+    source: str = Field("seed", description="Nguồn data: 'seed' | 'hf'")
     reset: bool = Field(False, description="Xóa và index lại từ đầu")
-    max_records: int = Field(1000, ge=1, description="Số CV tối đa (chỉ áp dụng với hf/kaggle)")
+    max_records: int = Field(1000, ge=1, description="Số CV tối đa (chỉ áp dụng với hf)")
     dataset_name: str | None = Field(None, description="HuggingFace dataset id (chỉ dùng với source=hf)")
-    csv_path: str | None = Field(None, description="Path CSV đã tải (chỉ dùng với source=kaggle)")
-    include_seed: bool = Field(True, description="Kèm tier 1 seed khi index tier 2 (hf/kaggle)")
+    include_seed: bool = Field(True, description="Kèm tier 1 seed khi index tier 2 (source=hf)")
 
 
 _build_status: dict = {"running": False, "last_result": None}
@@ -188,13 +252,6 @@ def _run_build(request: RagBuildRequest, service: RAGService):
             result = service.build_hf_index(
                 reset=request.reset,
                 dataset_name=request.dataset_name,
-                max_records=request.max_records,
-                include_seed=request.include_seed,
-            )
-        elif request.source == "kaggle":
-            result = service.build_kaggle_index(
-                reset=request.reset,
-                csv_path=request.csv_path,
                 max_records=request.max_records,
                 include_seed=request.include_seed,
             )
@@ -218,7 +275,6 @@ async def build_rag_index(
 
     - **source=seed**: index tier 1 (seed samples thủ công, ~5s)
     - **source=hf**: index từ HuggingFace dataset (~vài phút, cần OPENAI_API_KEY)
-    - **source=kaggle**: index từ Kaggle CSV (~vài phút, cần OPENAI_API_KEY)
 
     Trả về ngay 202 Accepted. Dùng GET /v1/cv/rag/stats để kiểm tra kết quả.
     """

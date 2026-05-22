@@ -114,7 +114,7 @@ export default function Dashboard() {
               ))}
               {/* Add new card */}
               <Link href="/cv/generate"
-                className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-3 hover:border-blue-300 hover:bg-blue-50/50 transition-all group min-h-[200px]">
+                className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-3 hover:border-blue-300 hover:bg-blue-50/50 transition-all group min-h-50">
                 <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
                   <span className="text-2xl">+</span>
                 </div>

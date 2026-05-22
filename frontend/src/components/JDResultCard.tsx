@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { JDCardResult, JDFormattedDetail } from '@/lib/types'
 import { api } from '@/lib/api'
 
@@ -44,6 +44,10 @@ export default function JDResultCard({ card, prefetched, onGenerate }: Props) {
   const [detail, setDetail] = useState<JDFormattedDetail | null>(prefetched ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (prefetched && !detail) setDetail(prefetched)
+  }, [prefetched])
 
   const industry = card.industry ? (INDUSTRY_VI[card.industry] ?? card.industry) : ''
   const seniority = card.seniority ? (SENIORITY_VI[card.seniority] ?? card.seniority) : ''

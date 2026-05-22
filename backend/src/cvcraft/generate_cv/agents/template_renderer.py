@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, Field
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
@@ -53,8 +54,11 @@ PLACEHOLDER_FIELD_MAP = {
     "EXPERIENCE": "experience_section",
     "WORK_EXPERIENCE": "experience_section",
     "EXPERIENCE_SECTION": "experience_section",
+    "COMPANY": "UNKNOWN",
+    "TIME": "UNKNOWN",
     "EDUCATION": "education_section",
     "EDUCATION_SECTION": "education_section",
+    "SCHOOL": "UNKNOWN",
     "SKILLS": "skills_section",
     "SKILLS_SECTION": "skills_section",
     "LANGUAGE": "language_section",
@@ -263,6 +267,10 @@ def build_reference_lines(state: CVAgentState) -> list[tuple]:
 def _date_range(start: str, end: Optional[str], state: CVAgentState) -> str:
     present = "Present" if state.user_input.get("output_language") == "en" else "Hiện tại"
     return f"{compact_text(start)} - {compact_text(end or present)}".strip(" -")
+
+
+def build_time_placeholder(start: str, end: Optional[str], state: CVAgentState) -> str:
+    return _date_range(start, end, state)
 
 
 def _experience_values(state: CVAgentState) -> list[dict]:
@@ -828,6 +836,185 @@ def insert_paragraph_after(paragraph, text: str, bold: bool = False):
     return new_para
 
 
+def clone_paragraph_after(anchor, template_paragraph):
+    new_p_xml = copy.deepcopy(template_paragraph._element)
+    anchor_element = getattr(anchor, "_element", None)
+    if anchor_element is None:
+        anchor_element = anchor._tbl
+    anchor_element.addnext(new_p_xml)
+    return template_paragraph.__class__(new_p_xml, template_paragraph._parent)
+
+
+def remove_table_borders(table):
+    tbl_pr = table._tbl.tblPr
+    borders = tbl_pr.first_child_found_in("w:tblBorders")
+    if borders is not None:
+        tbl_pr.remove(borders)
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        element = OxmlElement(f"w:{edge}")
+        element.set(qn("w:val"), "nil")
+        borders.append(element)
+    tbl_pr.append(borders)
+
+
+def clear_cell_margins(cell):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    margins = tc_pr.first_child_found_in("w:tcMar")
+    if margins is not None:
+        tc_pr.remove(margins)
+    margins = OxmlElement("w:tcMar")
+    for edge in ("top", "left", "bottom", "right"):
+        margin = OxmlElement(f"w:{edge}")
+        margin.set(qn("w:w"), "0")
+        margin.set(qn("w:type"), "dxa")
+        margins.append(margin)
+    tc_pr.append(margins)
+
+
+def set_cell_width(cell, width_twips: int):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_w = tc_pr.first_child_found_in("w:tcW")
+    if tc_w is None:
+        tc_w = OxmlElement("w:tcW")
+        tc_pr.append(tc_w)
+    tc_w.set(qn("w:w"), str(width_twips))
+    tc_w.set(qn("w:type"), "dxa")
+
+
+def insert_company_time_table_after(paragraph, company: str, time_value: str):
+    try:
+        table = paragraph._parent.add_table(rows=1, cols=2, width=Inches(6.5))
+    except TypeError:
+        table = paragraph._parent.add_table(rows=1, cols=2)
+    paragraph._element.addnext(table._tbl)
+
+    remove_table_borders(table)
+    table.autofit = False
+    left_cell, right_cell = table.rows[0].cells
+    set_cell_width(left_cell, 5200)
+    set_cell_width(right_cell, 3800)
+    clear_cell_margins(left_cell)
+    clear_cell_margins(right_cell)
+
+    left_para = left_cell.paragraphs[0]
+    left_run = left_para.add_run(compact_text(company))
+    left_run.bold = True
+
+    right_para = right_cell.paragraphs[0]
+    right_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    right_para.add_run(compact_text(time_value))
+
+    remove_paragraph(paragraph)
+    return table
+
+
+def set_company_time_paragraph(paragraph, company: str, time_value: str):
+    return insert_company_time_table_after(paragraph, company, time_value)
+
+
+def set_bullet_paragraph(paragraph, text: str):
+    value = compact_text(text).lstrip("•-–* ").strip()
+    set_paragraph_text(paragraph, f"• {value}" if value else "")
+
+
+def find_next_content_paragraph(paragraphs: list, start_index: int):
+    for index in range(start_index, len(paragraphs)):
+        if paragraphs[index].text.strip():
+            return index, paragraphs[index]
+    return None, None
+
+
+def render_experience_template_blocks(doc: Document, state: CVAgentState) -> int:
+    if not state.cv_draft:
+        return 0
+
+    rendered = 0
+    paragraphs = list(doc.paragraphs)
+    for index in range(len(paragraphs) - 1, -1, -1):
+        header_para = paragraphs[index]
+        header_text = header_para.text
+        if "{{COMPANY}}" not in header_text or "{{TIME}}" not in header_text:
+            continue
+
+        bullet_index, bullet_para = find_next_content_paragraph(paragraphs, index + 1)
+        if bullet_para is None or not (
+            "{{EXPERIENCE}}" in bullet_para.text or "{{WORK_EXPERIENCE}}" in bullet_para.text
+        ):
+            continue
+
+        experiences = state.cv_draft.experiences
+        if not experiences:
+            remove_paragraph(bullet_para)
+            remove_paragraph(header_para)
+            continue
+
+        cursor = bullet_para
+        for exp_index, exp in enumerate(experiences):
+            current_header = header_para if exp_index == 0 else clone_paragraph_after(cursor, header_para)
+            if exp_index != 0:
+                cursor = current_header
+            time_value = build_time_placeholder(exp.start_date, exp.end_date, state)
+            cursor = set_company_time_paragraph(current_header, exp.company, time_value)
+
+            bullets = compact_lines(exp.bullets or ([exp.raw_description] if exp.raw_description else []))
+            if not bullets:
+                bullets = [exp.position]
+            for bullet_index, bullet in enumerate(bullets):
+                current_bullet = bullet_para if exp_index == 0 and bullet_index == 0 else clone_paragraph_after(cursor, bullet_para)
+                set_bullet_paragraph(current_bullet, bullet)
+                cursor = current_bullet
+        rendered += 1
+
+    return rendered
+
+
+def render_education_template_blocks(doc: Document, state: CVAgentState) -> int:
+    if not state.cv_draft:
+        return 0
+
+    rendered = 0
+    paragraphs = list(doc.paragraphs)
+    for index in range(len(paragraphs) - 1, -1, -1):
+        header_para = paragraphs[index]
+        header_text = header_para.text
+        if "{{SCHOOL}}" not in header_text or "{{TIME}}" not in header_text:
+            continue
+
+        detail_index, detail_para = find_next_content_paragraph(paragraphs, index + 1)
+        if detail_para is None or "{{EDUCATION}}" not in detail_para.text:
+            continue
+
+        educations = state.cv_draft.educations
+        if not educations:
+            remove_paragraph(detail_para)
+            remove_paragraph(header_para)
+            continue
+
+        cursor = detail_para
+        for edu_index, edu in enumerate(educations):
+            current_header = header_para if edu_index == 0 else clone_paragraph_after(cursor, header_para)
+            if edu_index != 0:
+                cursor = current_header
+            time_value = build_time_placeholder(edu.start_date, edu.end_date, state)
+            cursor = set_company_time_paragraph(current_header, edu.school, time_value)
+
+            degree_parts = [compact_text(edu.degree), compact_text(edu.major)]
+            detail = " - ".join(part for part in degree_parts if part)
+            if edu.gpa:
+                detail = f"{detail} | GPA: {edu.gpa}" if detail else f"GPA: {edu.gpa}"
+            current_detail = detail_para if edu_index == 0 else clone_paragraph_after(cursor, detail_para)
+            set_paragraph_text(current_detail, detail)
+            cursor = current_detail
+            for achievement in compact_lines(edu.achievements):
+                current_achievement = clone_paragraph_after(cursor, detail_para)
+                set_bullet_paragraph(current_achievement, achievement)
+                cursor = current_achievement
+        rendered += 1
+
+    return rendered
+
+
 # =====================================================================
 # STRATEGY A: PLACEHOLDER TEMPLATE
 # =====================================================================
@@ -867,6 +1054,10 @@ Quy tắc:
 
 
 def render_placeholder_template(doc: Document, state: CVAgentState, llm) -> dict:
+    block_fills = 0
+    block_fills += render_experience_template_blocks(doc, state)
+    block_fills += render_education_template_blocks(doc, state)
+
     placeholders = set()
     all_paragraphs = list(iter_all_paragraphs(doc))
     for para in all_paragraphs:
@@ -883,7 +1074,7 @@ def render_placeholder_template(doc: Document, state: CVAgentState, llm) -> dict
         analysis = call_with_structured_output(llm, PlaceholderAnalysis, PLACEHOLDER_PROMPT, user_msg)
         mapping.update({m.placeholder: m.cv_field for m in analysis.mappings})
 
-    filled, deleted = 0, 0
+    filled, deleted = block_fills, 0
     for ph in placeholders:
         cv_field = mapping.get(ph, "UNKNOWN")
         pattern = "{{" + ph + "}}"

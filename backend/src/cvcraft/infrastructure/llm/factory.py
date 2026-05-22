@@ -10,12 +10,14 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 T = TypeVar('T', bound=BaseModel)
 
+_llm_cache: dict[str, ChatOpenAI] = {}
+
 
 class LLMFactory:
     """
     Factory để tạo LLM theo task complexity.
     - 'cheap': cho task đơn giản -> gpt-4o-mini
-    - 'strong': cho task phức tạp -> gpt-4o
+    - 'strong': cho task phức tạp -> gpt-5.5
     """
 
     @staticmethod
@@ -24,20 +26,32 @@ class LLMFactory:
         if not api_key:
             raise ValueError("OPENAI_API_KEY chưa được set trong environment")
 
+        if tier in _llm_cache:
+            return _llm_cache[tier]
+
         if tier == "cheap":
-            return ChatOpenAI(
+            llm = ChatOpenAI(
                 model="gpt-4o-mini",
                 temperature=0.3,
                 max_tokens=800,
                 api_key=api_key,
             )
+        elif tier == "cheap_large":
+            llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0.3,
+                max_tokens=3000,
+                api_key=api_key,
+            )
         else:
-            return ChatOpenAI(
-                model="gpt-4o",
+            llm = ChatOpenAI(
+                model="gpt-5.5",
                 temperature=0.7,
                 max_tokens=1500,
                 api_key=api_key,
             )
+        _llm_cache[tier] = llm
+        return llm
 
 
 def call_with_structured_output(

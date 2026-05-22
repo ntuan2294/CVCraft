@@ -13,7 +13,6 @@ import time
 from cvcraft.generate_cv.rag.vector_store import CVVectorStore
 from cvcraft.generate_cv.rag.seeds import CV_SAMPLES
 from cvcraft.generate_cv.rag.loaders.hf_cv_loader import DEFAULT_HF_CV_DATASET, load_hf_cv_samples
-from cvcraft.generate_cv.rag.loaders.kaggle_cv_loader import load_kaggle_cv_samples
 
 
 def _index_sample_batch_with_retry(
@@ -174,58 +173,6 @@ def index_hf_samples(
     return {
         **total,
         "hf_samples": len(samples),
-        "seed_included": include_seed,
-        "skipped": False,
-        "dry_run": False,
-    }
-
-
-def index_kaggle_samples(
-    reset: bool = False,
-    csv_path: str | None = None,
-    max_records: int = 1000,
-    include_seed: bool = True,
-    dry_run: bool = False,
-) -> dict:
-    print("\n[1/3] Load CV Tier 2 từ Kaggle (snehaanbhawal/resume-dataset)...")
-    samples = load_kaggle_cv_samples(csv_path=csv_path, max_records=max_records)
-
-    if dry_run:
-        return {
-            "summaries_indexed": 0,
-            "bullets_indexed": 0,
-            "kaggle_samples": len(samples),
-            "skipped": False,
-            "dry_run": True,
-        }
-
-    store = CVVectorStore()
-
-    if not reset and not store.is_empty():
-        print("✓ DB đã có data. Skip indexing. Dùng --reset để re-index.")
-        return {"summaries_indexed": 0, "bullets_indexed": 0, "skipped": True}
-
-    if reset:
-        print("\n[2/3] Reset DB...")
-        store.reset()
-    else:
-        print("\n[2/3] Ghi thêm vào DB hiện tại...")
-
-    print("\n[3/3] Index samples...")
-    total = {"summaries_indexed": 0, "bullets_indexed": 0}
-
-    if include_seed:
-        seed_counts = _index_sample_batch(store, CV_SAMPLES, source="tier1_seed")
-        total["summaries_indexed"] += seed_counts["summaries_indexed"]
-        total["bullets_indexed"] += seed_counts["bullets_indexed"]
-
-    kaggle_counts = _index_sample_batch_with_retry(store, samples, source="tier2_kaggle")
-    total["summaries_indexed"] += kaggle_counts["summaries_indexed"]
-    total["bullets_indexed"] += kaggle_counts["bullets_indexed"]
-
-    return {
-        **total,
-        "kaggle_samples": len(samples),
         "seed_included": include_seed,
         "skipped": False,
         "dry_run": False,

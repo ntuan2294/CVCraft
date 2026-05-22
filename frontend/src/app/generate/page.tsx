@@ -13,8 +13,7 @@ export default function GenerateCVPage() {
     <div className="space-y-8">
       <GenerateCvHeader onLoadSample={model.loadSampleProfile} />
 
-      <div className={model.result ? 'block' : 'grid grid-cols-1 gap-8 xl:grid-cols-2'}>
-        {!model.result && <GenerateCvForm model={model} />}
+      {model.result ? (
         <GenerateCvResult
           result={model.result}
           onDownloadDocx={() => downloadGeneratedDocx(model.result)}
@@ -23,7 +22,11 @@ export default function GenerateCVPage() {
           jdText={model.jdText}
           templateId={model.templateId}
         />
-      </div>
+      ) : (
+        <div className="mx-auto max-w-2xl">
+          <GenerateCvForm model={model} />
+        </div>
+      )}
     </div>
   )
 }

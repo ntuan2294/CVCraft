@@ -1,5 +1,12 @@
 import type { JDSearchCardResponse, JDFormattedDetail, UserInput, GenerateCVResponse } from './types'
 
+export type TaskStatus = 'pending' | 'running' | 'done' | 'failed'
+export interface TaskResult {
+  status: TaskStatus
+  result?: GenerateCVResponse
+  error?: string
+}
+
 function formatApiError(error: unknown, fallback: string) {
   if (!error || typeof error !== 'object') return fallback
 
@@ -42,10 +49,12 @@ export const api = {
   },
   cv: {
     generate: (job_description: string, user_input: UserInput, max_revisions = 2) =>
-      post<GenerateCVResponse>('/api/cv/generate', {
-        job_description,
-        user_input,
-        max_revisions,
-      }),
+      post<GenerateCVResponse>('/api/cv/generate', { job_description, user_input, max_revisions }),
+
+    generateAsync: (job_description: string, user_input: UserInput, max_revisions = 2) =>
+      post<{ task_id: string }>('/api/cv/generate/async', { job_description, user_input, max_revisions }),
+
+    getTask: (taskId: string): Promise<TaskResult> =>
+      fetch(`/api/cv/tasks/${taskId}`).then((r) => r.json()),
   },
 }

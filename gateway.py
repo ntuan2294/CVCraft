@@ -20,20 +20,21 @@ logger = logging.getLogger(__name__)
 
 
 async def _auto_seed_cv_rag():
-    """Build CV RAG seed index if store is empty (runs in background on startup)."""
+    """Build CV RAG index on startup: Kaggle if credentials available, else seed-only."""
     try:
         from cvcraft.generate_cv.services.rag_service import RAGService
 
         service = RAGService()
-        result = service.ensure_seed_index()
-        if result.get("skipped"):
-            print("[CVCraft] CV RAG: data already indexed, skipping auto-seed.")
-        else:
-            print(
-                f"[CVCraft] CV RAG auto-seed: "
-                f"{result['summaries_indexed']} summaries, "
-                f"{result['bullets_indexed']} bullets indexed."
-            )
+        if not service.store.is_empty():
+            print("[CVCraft] CV RAG: data already indexed, skipping.")
+            return
+
+        result = service.build_hf_index(reset=False, include_seed=True)
+        print(
+            f"[CVCraft] CV RAG (HuggingFace): "
+            f"{result['summaries_indexed']} summaries, "
+            f"{result['bullets_indexed']} bullets indexed."
+        )
     except Exception as e:
         print(f"[CVCraft] CV RAG auto-seed failed: {e}")
 
@@ -48,8 +49,8 @@ async def _auto_seed_jd_rag():
         if not stats.get("is_empty"):
             print(f"[CVCraft] JD index: {stats['job_descriptions']} JDs already indexed, skipping.")
             return
-        result = service.build_seed_index(reset=False)
-        print(f"[CVCraft] JD auto-seed: {result.get('indexed', 0)} JDs indexed.")
+        result = service.build_hf_index(reset=False)
+        print(f"[CVCraft] JD auto-index: {result.get('indexed', 0)} JDs indexed from HuggingFace.")
     except Exception as e:
         print(f"[CVCraft] JD auto-seed failed: {e}")
 
@@ -99,17 +100,10 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        from cvcraft.infrastructure.cache.redis_cache import get_cache
-
-        cache = get_cache()
         return {
             "status": "ok",
             "service": "cvcraft",
             "version": "0.1.0",
-            "cache": {
-                "backend": "redis" if cache.is_available else "memory",
-                "available": cache.is_available,
-            },
         }
 
     return app

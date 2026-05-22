@@ -5,6 +5,10 @@ Các agent gọi qua đây thay vì gọi trực tiếp vector_store.
 from typing import Optional
 from cvcraft.generate_cv.rag.vector_store import CVVectorStore
 
+# Process-level cache: (collection, query_text, n_results) -> results
+# RAG index is static during a server session so no TTL needed.
+_rag_cache: dict[tuple, list[dict]] = {}
+
 
 class RAGRetriever:
     """Wrapper cao cấp cho retrieval logic."""
@@ -27,18 +31,24 @@ class RAGRetriever:
 
         filter_dict = self._build_filter(industry, seniority)
         if filter_dict:
-            results = self.store.query_summaries(
+            key = ("summary", query_text, n_results, str(filter_dict))
+            if key not in _rag_cache:
+                results = self.store.query_summaries(
+                    query_text=query_text,
+                    n_results=n_results,
+                    filter_metadata=filter_dict,
+                )
+                _rag_cache[key] = results
+            if _rag_cache[key]:
+                return _rag_cache[key]
+
+        key = ("summary", query_text, n_results, None)
+        if key not in _rag_cache:
+            _rag_cache[key] = self.store.query_summaries(
                 query_text=query_text,
                 n_results=n_results,
-                filter_metadata=filter_dict,
             )
-            if results:
-                return results
-
-        return self.store.query_summaries(
-            query_text=query_text,
-            n_results=n_results,
-        )
+        return _rag_cache[key]
 
     def retrieve_bullet_examples(
         self,
@@ -55,18 +65,24 @@ class RAGRetriever:
 
         filter_dict = self._build_filter(industry, seniority)
         if filter_dict:
-            results = self.store.query_bullets(
+            key = ("bullet", query_text, n_results, str(filter_dict))
+            if key not in _rag_cache:
+                results = self.store.query_bullets(
+                    query_text=query_text,
+                    n_results=n_results,
+                    filter_metadata=filter_dict,
+                )
+                _rag_cache[key] = results
+            if len(_rag_cache[key]) >= 2:
+                return _rag_cache[key]
+
+        key = ("bullet", query_text, n_results, None)
+        if key not in _rag_cache:
+            _rag_cache[key] = self.store.query_bullets(
                 query_text=query_text,
                 n_results=n_results,
-                filter_metadata=filter_dict,
             )
-            if len(results) >= 2:
-                return results
-
-        return self.store.query_bullets(
-            query_text=query_text,
-            n_results=n_results,
-        )
+        return _rag_cache[key]
 
     @staticmethod
     def _build_filter(industry: Optional[str], seniority: Optional[str]) -> Optional[dict]:

@@ -6,12 +6,13 @@
 2. [Cấu trúc dự án](#2-cấu-trúc-dự-án)
 3. [Cài đặt lần đầu](#3-cài-đặt-lần-đầu)
 4. [Cấu hình biến môi trường](#4-cấu-hình-biến-môi-trường)
-5. [Chạy dự án](#5-chạy-dự-án)
-6. [Các URL quan trọng](#6-các-url-quan-trọng)
-7. [API Reference](#7-api-reference)
-8. [Tính năng nâng cao](#8-tính-năng-nâng-cao)
-9. [Lệnh thường dùng](#9-lệnh-thường-dùng)
-10. [Xử lý lỗi thường gặp](#10-xử-lý-lỗi-thường-gặp)
+5. [Tải dữ liệu ban đầu](#5-tải-dữ-liệu-ban-đầu)
+6. [Chạy dự án](#6-chạy-dự-án)
+7. [Các URL quan trọng](#7-các-url-quan-trọng)
+8. [API Reference](#8-api-reference)
+9. [Tính năng nâng cao](#9-tính-năng-nâng-cao)
+10. [Lệnh thường dùng](#10-lệnh-thường-dùng)
+11. [Xử lý lỗi thường gặp](#11-xử-lý-lỗi-thường-gặp)
 
 ---
 
@@ -28,7 +29,8 @@
 | Git     | Bất kỳ              | `git --version` |
 
 > **Redis** là tuỳ chọn — app chạy bình thường không có Redis (dùng in-memory cache).  
-> **Java backend** là tuỳ chọn nếu chỉ muốn test AI generation (không cần Auth/Profile/CV Library).
+> **Java backend** là tuỳ chọn nếu chỉ muốn test AI generation (không cần Auth/Profile/CV Library).  
+> **Kaggle credentials** là tuỳ chọn — thiếu thì CV RAG dùng seed samples thay thế.
 
 ---
 
@@ -46,11 +48,11 @@ CVCraft/
 │   │   ├── generate_cv/        ← Pipeline tạo CV (LangGraph 6-agent)
 │   │   │   ├── agents/         ← jd_analyzer, summary, experience, skills, qc, renderer
 │   │   │   ├── pipeline/       ← Orchestration graph
-│   │   │   ├── rag/            ← Vector store + CV examples
+│   │   │   ├── rag/            ← Vector store + CV examples (ChromaDB)
 │   │   │   ├── services/       ← CVService, RAGService, CVTaskService
 │   │   │   └── api/v1/cv.py    ← REST endpoints /v1/cv/*
 │   │   └── jd_search/          ← Tìm kiếm JD semantic
-│   │       ├── rag/            ← ChromaDB + loaders
+│   │       ├── rag/            ← ChromaDB + HuggingFace loader
 │   │       ├── services/       ← JDSearchService (Redis cache)
 │   │       └── api/v1/jd.py    ← REST endpoints /v1/jd/*
 │   ├── data/vectordb/          ← ChromaDB local (tự động tạo, không commit)
@@ -69,6 +71,9 @@ CVCraft/
 │       └── lib/                ← API clients, types, i18n
 ├── docs/                       ← Tài liệu dự án
 ├── gateway.py                  ← FastAPI entry point
+├── scripts/
+│   ├── dev.py                  ← Chạy tất cả services
+│   └── download_data.py        ← Tải dữ liệu ban đầu (JD + CV)
 ├── pyproject.toml              ← Python dependencies
 ├── Makefile                    ← Lệnh tắt
 └── .env                        ← Biến môi trường (không commit)
@@ -122,7 +127,7 @@ npm install
 cd ..
 ```
 
-### Bước 5 — Cài đặt Java Backend
+### Bước 5 — Cài đặt Java Backend (tuỳ chọn)
 
 ```powershell
 # Tạo PostgreSQL database
@@ -140,13 +145,13 @@ cd ..
 copy .env.example .env
 ```
 
-Mở `.env` và điền API key (xem [Mục 4](#4-cấu-hình-biến-môi-trường)).
+Mở `.env` và điền API keys (xem [Mục 4](#4-cấu-hình-biến-môi-trường)).
 
 ---
 
 ## 4. Cấu hình biến môi trường
 
-### File `.env` — Python AI + Frontend
+### File `.env`
 
 ```env
 # Bắt buộc
@@ -158,6 +163,18 @@ GENERATE_CV_URL=http://localhost:8000
 PUBLIC_API_URL=http://localhost:8000
 ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:8080
 ```
+
+### Bảng tóm tắt
+
+| Biến | Bắt buộc | Mô tả | Mặc định |
+|------|----------|-------|----------|
+| `OPENAI_API_KEY` | ✅ | API key OpenAI | — |
+| `REDIS_URL` | ❌ | URL Redis server | `redis://localhost:6379/0` |
+| `GENERATE_CV_URL` | ❌ | URL Python AI cho Frontend | `http://localhost:8000` |
+| `PUBLIC_API_URL` | ❌ | URL backend công khai (OnlyOffice) | `http://localhost:8000` |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | ❌ | URL OnlyOffice server | (tắt) |
+
+> **Kaggle credentials** lấy tại: kaggle.com → Account → API → Create New Token.
 
 ### File `cvcraft-backend/src/main/resources/application.yml` — Java Backend
 
@@ -174,28 +191,51 @@ jwt:
   refresh-expiration: 86400000
 ```
 
-Hoặc dùng biến môi trường:
+---
+
+## 5. Tải dữ liệu ban đầu
+
+Trước lần chạy đầu tiên, cần tải data vào ChromaDB. Một lệnh duy nhất cho cả hai nguồn:
 
 ```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/cvcraft_db"
-$env:DB_USERNAME = "postgres"
-$env:DB_PASSWORD = "your_password"
-$env:JWT_SECRET = "your_secret_key_at_least_32_characters"
+python scripts/download_data.py
 ```
 
-### Bảng tóm tắt
+Lệnh này thực hiện song song:
 
-| Biến | Bắt buộc | Mô tả | Mặc định |
-|------|----------|-------|----------|
-| `OPENAI_API_KEY` | ✅ | API key OpenAI | — |
-| `REDIS_URL` | ❌ | URL Redis server | `redis://localhost:6379/0` |
-| `GENERATE_CV_URL` | ❌ | URL Python AI cho FE | `http://localhost:8000` |
-| `PUBLIC_API_URL` | ❌ | URL backend công khai (OnlyOffice) | `http://localhost:8000` |
-| `ONLYOFFICE_DOCUMENT_SERVER_URL` | ❌ | URL OnlyOffice server | (tắt) |
+| Nguồn | Dữ liệu | Yêu cầu |
+|-------|---------|---------|
+| HuggingFace `tinixai/vietnamese-job-descriptions` | ~3000 JD tiếng Việt → JD Search | Internet |
+| HuggingFace `C0ldSmi1e/resume-dataset` | ~1000 CV mẫu → Generate CV RAG | Internet |
+
+### Các tuỳ chọn
+
+```powershell
+# Tải lại toàn bộ (reset ChromaDB)
+python scripts/download_data.py --reset
+
+# Chỉ tải JD data
+python scripts/download_data.py --jd-only
+
+# Chỉ tải CV data
+python scripts/download_data.py --cv-only
+
+# Giới hạn số lượng
+python scripts/download_data.py --max-jd 2000 --max-cv 500
+```
+
+Hoặc dùng Makefile:
+
+```powershell
+make download-data        # Tải lần đầu
+make download-data-reset  # Xóa và tải lại
+```
+
+> **Thời gian ước tính:** JD ~5-10 phút, CV ~3-5 phút (tuỳ tốc độ mạng).
 
 ---
 
-## 5. Chạy dự án
+## 6. Chạy dự án
 
 ### Service nào cần thiết?
 
@@ -217,8 +257,8 @@ python scripts/dev.py
 Khi thấy:
 
 ```
-[dev] Frontend: http://localhost:3000
-[dev] Backend:  http://localhost:8000/docs
+[dev] Frontend:  http://localhost:3000
+[dev] Py API:    http://localhost:8000/docs
 [dev] Press Ctrl+C to stop all services.
 ```
 
@@ -251,22 +291,6 @@ npm run dev
 
 ---
 
-### Cách 3 — Chạy riêng từng service
-
-```powershell
-# Python AI (port 8000)
-.venv\Scripts\Activate.ps1
-uvicorn gateway:app --reload --port 8000
-
-# Frontend (port 3000)
-cd frontend && npm run dev
-
-# Java (port 8080)
-cd cvcraft-backend && mvn spring-boot:run
-```
-
----
-
 ### Đổi port
 
 ```powershell
@@ -275,7 +299,7 @@ python scripts/dev.py --backend-port 8010 --frontend-port 3001
 
 ---
 
-## 6. Các URL quan trọng
+## 7. Các URL quan trọng
 
 | Service | URL | Mô tả |
 |---------|-----|-------|
@@ -286,11 +310,10 @@ python scripts/dev.py --backend-port 8010 --frontend-port 3001
 | **Python Swagger** | http://localhost:8000/docs | API docs AI |
 | **Java Swagger** | http://localhost:8080/api/swagger-ui.html | API docs Java |
 | **Health check** | http://localhost:8000/health | Trạng thái Python server |
-| **Cache stats** | http://localhost:8000/v1/cv/cache/stats | Thống kê Redis |
 
 ---
 
-## 7. API Reference
+## 8. API Reference
 
 ### CV Generation (Python, port 8000)
 
@@ -356,7 +379,7 @@ Client                          Backend
 
 ---
 
-## 8. Tính năng nâng cao
+## 9. Tính năng nâng cao
 
 ### Redis Cache
 
@@ -399,52 +422,51 @@ ONLYOFFICE_DOCUMENT_SERVER_URL=http://localhost:80
 
 ---
 
-### Build RAG Index
-
-RAG giúp AI tạo CV chất lượng hơn bằng cách học từ ví dụ:
+### Re-index dữ liệu
 
 ```powershell
-# Build CV RAG từ seed samples (~5 giây)
-make build-index
+# Tải lại toàn bộ (JD + CV)
+python scripts/download_data.py --reset
 
-# Build JD search index
-make jd-build-seed-index
+# Chỉ re-index JD
+python scripts/download_data.py --jd-only --reset
 
-# Build từ HuggingFace dataset (cần internet)
-curl -X POST http://localhost:8000/v1/cv/rag/build \
-  -H "Content-Type: application/json" \
-  -d '{"source": "hf", "max_records": 500}'
+# Chỉ re-index CV
+python scripts/download_data.py --cv-only --reset
 ```
 
 ---
 
-## 9. Lệnh thường dùng
+## 10. Lệnh thường dùng
 
 ```powershell
+# Setup lần đầu
+make install              # Cài Python packages
+make frontend-install     # Cài npm packages
+make download-data        # Tải dữ liệu ban đầu (JD + CV)
+
 # Chạy
 make dev                  # Python AI + Frontend cùng lúc
-make api                  # Python AI riêng
-make frontend             # Frontend riêng
+make api                  # Python AI riêng (port 8000)
+make frontend             # Frontend riêng (port 3000)
 
 # Java backend
 cd cvcraft-backend && mvn spring-boot:run
 
-# RAG
-make build-index          # Build CV RAG index (seed)
-make jd-build-seed-index  # Build JD index (seed)
-make rag-stats            # Xem thống kê RAG
+# Data
+make download-data        # Tải JD (HuggingFace) + CV (Kaggle/seed)
+make download-data-reset  # Xóa ChromaDB và tải lại toàn bộ
+make rag-stats            # Xem thống kê CV RAG
 make jd-stats             # Xem thống kê JD index
 
 # Dev
 make test                 # Chạy test suite
 make lint                 # Kiểm tra code style (ruff)
-make install              # Cài Python packages
-make frontend-install     # Cài npm packages
 ```
 
 ---
 
-## 10. Xử lý lỗi thường gặp
+## 11. Xử lý lỗi thường gặp
 
 ### Lỗi Python
 
@@ -453,13 +475,15 @@ make frontend-install     # Cài npm packages
 | `ModuleNotFoundError: No module named 'cvcraft'` | Chưa activate venv hoặc chưa install | Activate venv rồi `pip install -e ".[api,dev]"` |
 | `AuthenticationError` / `Incorrect API key` | Sai OPENAI_API_KEY | Kiểm tra file `.env` |
 | `Address already in use` | Port đang bị chiếm | `python scripts/dev.py --backend-port 8010` |
+| `No module named 'kagglehub'` | Chưa cài Kaggle extra | `pip install -e ".[kaggle]"` |
+| `401 Unauthorized` (Kaggle) | Sai credentials | Kiểm tra `KAGGLE_USERNAME` + `KAGGLE_KEY` trong `.env` |
 
 ### Lỗi Frontend
 
 | Lỗi | Nguyên nhân | Cách sửa |
 |-----|-------------|----------|
 | `Cannot find module 'next'` | Chưa cài npm packages | `cd frontend && npm install` |
-| `Error: Cannot find module` | npm install chưa xong | Chạy lại `npm install` |
+| `ECONNREFUSED` khi search | URL backend sai | Kiểm tra `JD_SEARCH_URL` trong `frontend/.env.local` |
 
 ### Lỗi Java Backend
 
@@ -482,19 +506,18 @@ make frontend-install     # Cài npm packages
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Reset dữ liệu RAG
+### Reset dữ liệu ChromaDB
 
 ```powershell
 Remove-Item -Recurse -Force backend\data\vectordb
-make build-index
-make jd-build-seed-index
+python scripts/download_data.py
 ```
 
 ---
 
 ## Lưu ý bảo mật
 
-- File `.env` chứa API key — **không bao giờ commit lên Git**
+- File `.env` chứa API keys — **không bao giờ commit lên Git**
 - `.env.example` là template an toàn để commit
 - Rate limiting: 10 req/phút/IP cho CV generation, 30 req/phút/IP cho JD search
 - JWT secret phải dài ít nhất 32 ký tự

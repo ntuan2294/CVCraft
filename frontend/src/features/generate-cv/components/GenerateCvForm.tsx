@@ -31,7 +31,7 @@ export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
         {model.loading ? (
           <span className="flex items-center justify-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Đang tạo CV (có thể mất vài phút)…
+            {model.loadingMsg || 'Đang tạo CV...'}
           </span>
         ) : (
           'Tạo CV'
@@ -71,7 +71,7 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
               alt={selectedTemplate.name}
               width={72}
               height={96}
-              className="h-24 w-[72px] shrink-0 rounded-md border border-gray-200 object-cover object-top"
+              className="h-24 w-18 shrink-0 rounded-md border border-gray-200 object-cover object-top"
             />
           )}
           <div className="min-w-0">

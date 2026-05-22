@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import DocxOutputEditor from '@/components/DocxOutputEditor'
+import dynamic from 'next/dynamic'
 import type { GenerateCVResponse } from '@/lib/types'
 import { cvDocumentApi } from '@/lib/backendApi'
+
+const DocxOutputEditor = dynamic(() => import('@/components/DocxOutputEditor'), { ssr: false })
 
 export function GenerateCvResult({
   result,
@@ -61,15 +63,9 @@ export function GenerateCvResult({
   }
 
   return (
-    <div className={result ? 'space-y-4' : 'self-start space-y-4 xl:sticky xl:top-20'}>
-      {!result ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-24 text-gray-400">
-          <p className="mb-3 text-4xl">📄</p>
-          <p className="font-medium">Kết quả sẽ hiển thị ở đây</p>
-          <p className="mt-1 text-sm">Điền thông tin và nhấn Tạo CV</p>
-        </div>
-      ) : (
-        <section className="space-y-3 rounded-2xl border border-gray-200 bg-slate-100 p-4">
+    <div className="space-y-4">
+      {result && (
+        <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold text-gray-900">CV editor</h2>

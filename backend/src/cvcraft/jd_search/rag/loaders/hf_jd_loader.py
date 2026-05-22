@@ -7,6 +7,8 @@ import re
 from collections import Counter
 from typing import Optional
 
+from cvcraft.jd_search.text_preprocessing import preprocess_jd_text
+
 
 # ── Mapping seniority ────────────────────────────────────────────────────────
 
@@ -171,9 +173,9 @@ def parse_jd_row(row: dict, idx: int) -> Optional[dict]:
     salary          = (row.get("salary") or "").strip()
     location        = (row.get("location") or "").strip()
     job_type        = (row.get("job_type") or "").strip()
-    job_description = (row.get("job_description") or "").strip()
-    benefits        = (row.get("benefits") or "").strip()
-    requirements    = (row.get("requirements") or "").strip()
+    job_description = preprocess_jd_text((row.get("job_description") or "").strip())
+    benefits        = preprocess_jd_text((row.get("benefits") or "").strip())
+    requirements    = preprocess_jd_text((row.get("requirements") or "").strip())
     year            = row.get("year")
 
     # Trường phái sinh

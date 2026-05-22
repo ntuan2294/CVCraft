@@ -58,26 +58,6 @@ def build_jd_index(
         typer.echo(f"Indexed {result['indexed']} job descriptions.")
 
 
-@app.command("build-seed-index")
-def build_seed_index(
-    reset: bool = typer.Option(False, "--reset", help="Xóa và re-index"),
-):
-    """Build JD index từ 30 seed samples (không cần HuggingFace)."""
-    if not os.getenv("OPENAI_API_KEY"):
-        typer.echo("⚠️  Cần set OPENAI_API_KEY", err=True)
-        raise typer.Exit(1)
-
-    from cvcraft.jd_search.services.jd_search_service import JDSearchService
-
-    service = JDSearchService()
-    result = service.build_seed_index(reset=reset)
-
-    if result.get("skipped"):
-        typer.echo("✓ JD index đã có data. Dùng --reset để re-index.")
-    else:
-        typer.echo(f"✅ Indexed {result['indexed']} seed job descriptions.")
-
-
 @app.command("jd-search")
 def jd_search(
     query: str = typer.Argument(..., help="Mô tả công việc hoặc kỹ năng mong muốn"),

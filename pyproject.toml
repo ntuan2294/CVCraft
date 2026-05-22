@@ -32,9 +32,6 @@ cache = [
 ratelimit = [
     "slowapi>=0.1.9",          # Rate limiting cho FastAPI (dựa trên limits)
 ]
-kaggle = [
-    "kagglehub>=0.3.0",
-]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

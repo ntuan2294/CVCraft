@@ -12,6 +12,7 @@ import sys
 import time
 from cvcraft.jd_search.rag.vector_store import JDVectorStore
 from cvcraft.jd_search.rag.loaders.hf_jd_loader import load_hf_jd_samples
+from cvcraft.jd_search.text_preprocessing import preprocess_jd_text
 
 
 def _upsert_with_retry(store: JDVectorStore, ids, texts, metadatas, max_retries: int = 5):
@@ -44,7 +45,7 @@ def _metadata_value(value) -> str:
 
 def _build_metadata(jd: dict, title_key: str, company_key: str | None = None) -> dict:
     metadata = {
-        key: _metadata_value(value)
+        key: preprocess_jd_text(_metadata_value(value)) if key in {"description", "job_description", "requirements", "benefits"} else _metadata_value(value)
         for key, value in jd.items()
         if key not in _SKIP_KEYS
     }
@@ -54,7 +55,7 @@ def _build_metadata(jd: dict, title_key: str, company_key: str | None = None) ->
     metadata["seniority"] = _metadata_value(jd.get("seniority"))
     metadata["required_skills"] = _metadata_value(jd.get("required_skills", []))
     metadata["keywords"] = _metadata_value(jd.get("keywords", []))
-    metadata["description"] = _metadata_value(jd.get("description"))[:2000]
+    metadata["description"] = preprocess_jd_text(_metadata_value(jd.get("description")))[:2000]
     return metadata
 
 
@@ -68,7 +69,8 @@ def _build_searchable_text(jd: dict, skip_keys: set = _SKIP_KEYS) -> str:
             if joined:
                 parts.append(joined)
         elif val:
-            parts.append(str(val))
+            value = preprocess_jd_text(str(val)) if key in {"description", "job_description", "requirements", "benefits"} else str(val)
+            parts.append(value)
     return " | ".join(parts)
 
 
@@ -125,29 +127,6 @@ def index_jd_samples(
 
     return {"skipped": False, "indexed": total_indexed}
 
-
-def index_seed_samples(reset: bool = False) -> dict:
-    """Index JD seed samples (không cần HuggingFace)."""
-    from cvcraft.jd_search.rag.seeds import JD_SEEDS
-
-    store = JDVectorStore()
-
-    if not reset and not store.is_empty():
-        return {"skipped": True, "indexed": 0}
-
-    if reset:
-        store.reset()
-
-    ids, texts, metadatas = [], [], []
-    for jd in JD_SEEDS:
-        searchable_text = _build_searchable_text(jd, skip_keys={"id"})
-        metadata = _build_metadata(jd, title_key="title")
-        ids.append(jd["id"])
-        texts.append(searchable_text)
-        metadatas.append(metadata)
-
-    store.add_jds_batch(ids, texts, metadatas)
-    return {"skipped": False, "indexed": len(ids)}
 
 
 if __name__ == "__main__":
