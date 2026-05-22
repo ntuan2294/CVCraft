@@ -77,3 +77,9 @@ coverage/
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# -- Local config files (chua secrets, khong commit) --------------------------
+# Spring Boot: DB credentials, JWT secret, v.v.
+cvcraft-backend/src/main/resources/application.yml
+cvcraft-backend/src/main/resources/application-*.yml
+!cvcraft-backend/src/main/resources/application.yml.example

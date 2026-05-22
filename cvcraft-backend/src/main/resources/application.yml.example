@@ -3,9 +3,9 @@ spring:
     name: cvcraft-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:cvcraft_db}?sslmode=${PGSSLMODE:prefer}}
-    username: ${DB_USERNAME:${PGUSER:postgres}}
-    password: ${DB_PASSWORD:${PGPASSWORD:040104}}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cvcraft_db?sslmode=prefer}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:your_db_password_here}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -43,7 +43,7 @@ server:
     context-path: /api
 
 jwt:
-  secret: ${JWT_SECRET:cvcraft_super_secret_key_2024_must_be_256_bits_long_for_security}
+  secret: ${JWT_SECRET:your_jwt_secret_at_least_256_bits_long}
   expiration: 86400000       # 24 hours in ms
   refresh-expiration: 604800000  # 7 days in ms
 
