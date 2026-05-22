@@ -24,6 +24,18 @@ LANGUAGE REQUIREMENT — CRITICAL:
 Default output MUST be fluent professional Vietnamese. If output_language is "en",
 write category names and skill names in fluent professional English.
 
+VIETNAMESE WORDING POLICY — CRITICAL:
+When output_language is Vietnamese, category names must be natural Vietnamese. Keep English only for
+widely used technical terms, product/tool names, acronyms, or role nouns such as backend, frontend,
+full-stack, REST API, API, CI/CD, Docker, Git, Java, Spring Boot, PostgreSQL, MySQL, cloud, Agile/Scrum.
+Examples of Vietnamese category names:
+- "Ngôn ngữ lập trình"
+- "Frameworks & Thư viện"
+- "Cơ sở dữ liệu"
+- "DevOps & Cloud"
+- "Công cụ & Nền tảng"
+- "Kỹ năng mềm"
+
 Task:
 1. Categorize skills into appropriate categories for the industry
 2. Sort skills within each category by priority (JD-matching skills first)
@@ -41,7 +53,12 @@ Rules:
 1. Merge equivalent skills: "ReactJS" and "React.js" → keep the JD's spelling if matched
 2. Skills in JD's required list → move to top of category
 3. Each category has 3-8 skills, not too many
-4. Category names must follow output_language."""
+4. Category names must follow output_language
+5. NEVER add skills, tools, cloud platforms, programming languages, frameworks, databases,
+   certifications, or soft skills that are not present in the user's declared skills or clearly
+   implied by the user's work experience.
+6. JD skills are prioritization hints only. If a JD skill is not in the user's input, do not add it
+   to the final skill list."""
 
 
 def skills_agent_node(state: CVAgentState) -> dict:

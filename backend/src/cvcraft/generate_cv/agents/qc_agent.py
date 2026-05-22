@@ -22,15 +22,27 @@ Chấm 3 tiêu chí trên thang 0-10:
    - Level seniority phù hợp (10%)
 
 3. LINGUISTIC_SCORE (chất lượng ngôn ngữ):
-   - Bullets có dùng STAR + lượng hóa (40%)
+   - Bullets có dùng STAR và nêu kết quả phù hợp dữ liệu đầu vào (40%)
    - Động từ mạnh ở đầu bullet (20%)
-   - Ngữ pháp, chính tả (20%)
+   - Ngữ pháp, chính tả, dùng tiếng Việt tự nhiên khi output là tiếng Việt (20%)
    - Không có cliché, fluff word (20%)
 
 OVERALL_SCORE = average của 3 điểm trên.
 
 FEEDBACK: Liệt kê 3-5 điểm CỤ THỂ cần cải thiện. Format:
 - "[Section] vấn đề cụ thể -> hướng sửa"
+
+ANTI-FABRICATION RULES:
+- Không yêu cầu thêm số liệu, %, tiền, thời gian tiết kiệm, quy mô team/user, latency,
+  test coverage, daily requests, cloud scale, giải thưởng hoặc business impact nếu CV/input
+  không cung cấp dữ liệu đó.
+- Nếu phát hiện bullet tự thêm metric hoặc công nghệ không có trong input, phải feedback yêu cầu
+  xóa hoặc chuyển thành kết quả định tính.
+- Không trừ điểm chỉ vì bullet không có số liệu khi user không cung cấp số liệu.
+- Nếu CV tiếng Việt dùng động từ/tính từ tiếng Anh không cần thiết như delivered, optimized,
+  implemented, designed, built, scaled, migrated, improved, maintained, phải feedback yêu cầu
+  chuyển sang tiếng Việt tự nhiên. Vẫn cho phép thuật ngữ kỹ thuật như backend, frontend,
+  REST API, CI/CD, Docker, Git, Java, Spring Boot, PostgreSQL, MySQL.
 
 NEEDS_REVISION = True nếu overall_score < 7.0, ngược lại False."""
 

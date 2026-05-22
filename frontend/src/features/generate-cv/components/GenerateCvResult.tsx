@@ -5,6 +5,7 @@ import { cvDocumentApi } from '@/lib/backendApi'
 import { useI18n } from '@/lib/i18n'
 
 const DocxOutputEditor = dynamic(() => import('@/components/DocxOutputEditor'), { ssr: false })
+const HtmlOutputEditor = dynamic(() => import('@/components/HtmlOutputEditor'), { ssr: false })
 
 export function GenerateCvResult({
   result,
@@ -25,6 +26,7 @@ export function GenerateCvResult({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const isHtml = Boolean(result?.output_path?.toLowerCase().endsWith('.html'))
 
   const handleSave = async () => {
     if (!result) return
@@ -117,7 +119,11 @@ export function GenerateCvResult({
             </div>
           )}
 
-          <DocxOutputEditor outputPath={result.output_path} />
+          {isHtml ? (
+            <HtmlOutputEditor outputPath={result.output_path} />
+          ) : (
+            <DocxOutputEditor outputPath={result.output_path} />
+          )}
         </section>
       )}
     </div>

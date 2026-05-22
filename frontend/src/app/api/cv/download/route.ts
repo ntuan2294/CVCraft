@@ -11,11 +11,14 @@ export async function GET(request: Request) {
   if (!upstream.ok) return Response.json({ error: 'File không tìm thấy' }, { status: 404 })
 
   const buffer = await upstream.arrayBuffer()
+  const contentType = upstream.headers.get('content-type') ?? ''
+  const isHtml = contentType.includes('text/html') || path.toLowerCase().endsWith('.html')
   return new Response(buffer, {
     headers: {
-      'Content-Type':
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': 'attachment; filename="cv.docx"',
+      'Content-Type': isHtml
+        ? 'text/html; charset=utf-8'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${isHtml ? 'cv.html' : 'cv.docx'}"`,
     },
   })
 }

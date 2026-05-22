@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{FULL_NAME}} — CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CV Template — recreated 1:1 from the reference PDF.
+     Placeholder syntax kept as {{TOKEN}} so it can be filled in
+     by Jinja, Mustache, Handlebars, etc.
+     A4 layout, optimised for print.
+     ============================================================ */
+
+  :root {
+    --bg-page:        #ffffff;
+    --bg-sidebar:     #e8e8e8;
+    --bg-header:      #1a1a1a;
+    --text-primary:   #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted:     #8a8a8a;
+    --line:           #1a1a1a;
+    --accent-line:    #c8c8c8;
+
+    --font-display:   'Poppins', sans-serif;
+    --font-body:      'Inter', 'Poppins', sans-serif;
+
+    --page-w: 210mm;
+    --page-h: 297mm;
+    --sidebar-w: 32%;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #ffffff;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* -------- the page itself -------- */
+  .page {
+    width: var(--page-w);
+    min-height: var(--page-h);
+    margin: 0 auto;
+    background: var(--bg-page);
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-rows: auto 1fr;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  /* sidebar spans BOTH rows on the left; header is row 1 / col 2; main is row 2 / col 2 */
+  .sidebar { grid-row: 1 / span 2; grid-column: 1; }
+  .header  { grid-row: 1;          grid-column: 2; }
+  .main    { grid-row: 2;          grid-column: 2; }
+
+  /* ============================================================
+     SIDEBAR
+     ============================================================ */
+  .sidebar {
+    background: var(--bg-sidebar);
+    padding: 230px 28px 40px 32px;   /* top padding leaves room for the avatar/header overlap */
+    position: relative;
+  }
+
+  .sidebar-section + .sidebar-section { margin-top: 70px; }
+
+  .sidebar-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .sidebar-heading::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .sidebar-body {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+  }
+
+  /* ============================================================
+     HEADER (black bar with name + circular avatar overlapping)
+     ============================================================ */
+  .header {
+    background: var(--bg-header);
+    color: #fff;
+    padding: 48px 56px 48px 110px;   /* extra left padding to clear the avatar */
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+
+  .header-name {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    letter-spacing: 0.035em;
+    line-height: 1.05;
+    text-transform: uppercase;
+    color: #fff;
+    white-space: nowrap;
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 15px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    margin-top: 8px;
+    color: #fff;
+  }
+
+  /* Avatar overlapping the sidebar/header seam */
+  .avatar {
+    position: absolute;
+    top: 34px;
+    left: 46px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 6px solid #ffffff;
+    background: #cfd6da center/cover no-repeat;
+    overflow: hidden;
+    z-index: 5;
+    box-shadow: 0 4px 18px rgba(0,0,0,.15);
+  }
+  .avatar img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .avatar-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: #6a7378;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #d4dade 0%, #b8c0c5 100%);
+  }
+
+  /* ============================================================
+     MAIN content (right column)
+     ============================================================ */
+  .main {
+    padding: 34px 56px 40px 56px;
+  }
+
+  /* contact grid: 2 columns × 2 rows */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 28px;
+    margin-bottom: 38px;
+  }
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+  }
+  .contact-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    background: var(--text-primary);
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .contact-icon svg { width: 13px; height: 13px; display: block; }
+
+  /* section headings on the right column */
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .section-heading::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* ---- experience block w/ vertical timeline ---- */
+  .experience {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 48px;
+  }
+  /* the vertical line */
+  .experience::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    bottom: -10px;
+    width: 1.5px;
+    background: var(--text-primary);
+  }
+  .exp-entry { position: relative; }
+  .exp-entry::before {
+    content: "";
+    position: absolute;
+    left: -28px;
+    top: 4px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-primary);
+    background: #fff;
+  }
+
+  .exp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .exp-company {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+  .exp-time {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .exp-role {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+  .exp-bullets {
+    list-style: none;
+    margin-top: 8px;
+  }
+  .exp-bullets li {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+    padding-left: 14px;
+    position: relative;
+  }
+  .exp-bullets li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--text-primary);
+  }
+
+  /* ---- education ---- */
+  .education-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .edu-school {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+  .edu-time {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  /* ============================================================
+     PRINT — A4, no UI chrome
+     ============================================================ */
+  @page { size: A4; margin: 12mm 0 10mm 0; }
+  @media print {
+    html, body { background: #fff; }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .main {
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    .section-heading,
+    .education-entry,
+    .exp-entry {
+      break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+
+  <!-- ============================================================
+       SIDEBAR (left)
+       ============================================================ -->
+  <aside class="sidebar">
+
+    <section class="sidebar-section">
+      <h2 class="sidebar-heading">About Me</h2>
+      <p class="sidebar-body">{{ABOUT_ME}}</p>
+    </section>
+
+    <section class="sidebar-section">
+      <h2 class="sidebar-heading">Skills</h2>
+      <p class="sidebar-body">{{SKILLS}}</p>
+    </section>
+
+    <section class="sidebar-section">
+      <h2 class="sidebar-heading">Language</h2>
+      <p class="sidebar-body">{{LANGUAGES}}</p>
+    </section>
+
+  </aside>
+
+  <!-- ============================================================
+       HEADER (top of right column)
+       ============================================================ -->
+  <header class="header">
+    <h1 class="header-name">{{FULL_NAME}}</h1>
+    <p class="header-title">{{JOB_TITLE}}</p>
+  </header>
+
+  <!-- Circular avatar — overlaps sidebar + header seam -->
+  <div class="avatar" aria-label="Profile photo">
+    <!-- Replace this block with <img src="{{PHOTO_URL}}" alt=""> when filling in data -->
+    <div class="avatar-placeholder">{{PHOTO}}</div>
+  </div>
+
+  <!-- ============================================================
+       MAIN content (right column)
+       ============================================================ -->
+  <section class="main">
+
+    <!-- contact info, 2x2 grid -->
+    <div class="contact-grid">
+      <div class="contact-item">
+        <span class="contact-icon" aria-hidden="true">
+          <!-- phone icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.24 1.02l-2.21 2.2z"/></svg>
+        </span>
+        <span>{{PHONE_NUMBER}}</span>
+      </div>
+
+      <div class="contact-item">
+        <span class="contact-icon" aria-hidden="true">
+          <!-- monitor / linkedin icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h6v2H7v2h10v-2h-3v-2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 13H4V5h16v11z"/></svg>
+        </span>
+        <span>{{LINKED_IN}}</span>
+      </div>
+
+      <div class="contact-item">
+        <span class="contact-icon" aria-hidden="true">
+          <!-- email icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </span>
+        <span>{{GMAIL}}</span>
+      </div>
+
+      <div class="contact-item">
+        <span class="contact-icon" aria-hidden="true">
+          <!-- map pin icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+        </span>
+        <span>{{ADDRESS}}</span>
+      </div>
+    </div>
+
+    <!-- experience -->
+    <h2 class="section-heading">Experience</h2>
+    <div class="experience">
+      <div class="exp-entry">
+        <div class="exp-head">
+          <span class="exp-company">{{COMPANY}}</span>
+          <span class="exp-time">{{TIME}}</span>
+        </div>
+        <div class="exp-role">{{JOB_TITLE}}</div>
+        <ul class="exp-bullets">
+          <li>{{EXPERIENCE}}</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- education -->
+    <h2 class="section-heading">Education</h2>
+    <div class="education-entry">
+      <span class="edu-school">{{SCHOOL}}</span>
+      <span class="edu-time">{{TIME}}</span>
+    </div>
+
+  </section>
+
+</main>
+
+</body>
+</html>
