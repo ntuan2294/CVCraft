@@ -35,20 +35,11 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">{t('footer.resources')}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/about" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
-              <li><Link href="/blog" className="hover:text-white transition-colors">{t('footer.careerBlog')}</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</Link></li>
-              <li><Link href="/terms" className="hover:text-white transition-colors">{t('footer.termsOfService')}</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">{t('footer.careerBlog')}</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors">{t('footer.termsOfService')}</Link></li>
             </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">{t('footer.copyright')}</p>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">{t('footer.poweredBy')}</span>
-            <span className="w-1 h-1 bg-gray-600 rounded-full" />
-            <span className="text-xs text-gray-500">Spring Boot + Next.js</span>
           </div>
         </div>
       </div>

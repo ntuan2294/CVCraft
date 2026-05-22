@@ -2,7 +2,7 @@
 
 CVCraft là công cụ **tạo và quản lý CV bằng AI** — không phải nền tảng tìm kiếm việc làm.
 
-Người dùng nhập thông tin cá nhân + mô tả công việc (JD), hệ thống AI đa tác tử phân tích JD và tạo ra CV được cá nhân hóa, tối ưu ATS, xuất ra file `.docx`.
+Người dùng nhập thông tin cá nhân + mô tả công việc (JD), hệ thống Multi-Agent AI phân tích JD và tạo ra CV được cá nhân hóa, tối ưu ATS, xuất ra file `.docx`.
 
 ## Cấu trúc dự án
 

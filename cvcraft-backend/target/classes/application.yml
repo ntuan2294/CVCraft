@@ -5,7 +5,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:cvcraft_db}?sslmode=${PGSSLMODE:prefer}}
     username: ${DB_USERNAME:${PGUSER:postgres}}
-    password: ${DB_PASSWORD:${PGPASSWORD:040104}}
+    password: ${DB_PASSWORD:${PGPASSWORD:135790}}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useAuth } from '@/lib/authContext'
 import { useI18n } from '@/lib/i18n'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -11,6 +11,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropOpen, setDropOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleLogout = () => {
     logout()
@@ -50,7 +51,6 @@ export default function Navbar() {
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors"
               title={locale === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
             >
-              <span>{locale === 'en' ? '🇻🇳' : '🇬🇧'}</span>
               <span>{t('lang.toggle')}</span>
             </button>
 
@@ -119,16 +119,22 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-          {navLinks.map(([label, href]) => (
-            <Link key={href} href={href} className="block px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50"
-              onClick={() => setMenuOpen(false)}>{label}</Link>
-          ))}
+          {navLinks.map(([label, href]) => {
+            const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+            return (
+              <Link key={href} href={href} className={`block px-3 py-2 text-sm font-medium rounded-lg ${
+                isActive 
+                  ? 'text-blue-600 bg-blue-50 font-semibold' 
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+                onClick={() => setMenuOpen(false)}>{label}</Link>
+            )
+          })}
           <div className="pt-2 border-t border-gray-100 flex gap-2 items-center">
             <button
               onClick={() => setLocale(locale === 'en' ? 'vi' : 'en')}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600"
             >
-              <span>{locale === 'en' ? '🇻🇳' : '🇬🇧'}</span>
               <span>{t('lang.toggle')}</span>
             </button>
             {user ? (
@@ -153,8 +159,15 @@ export default function Navbar() {
 }
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+
   return (
-    <Link href={href} className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+    <Link href={href} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+      isActive 
+        ? 'text-blue-600 bg-blue-50/80 font-semibold' 
+        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+    }`}>
       {children}
     </Link>
   )

@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { cvDocumentApi, profileApi } from '@/lib/backendApi'
 import { useAuth } from '@/lib/authContext'
+import { useI18n } from '@/lib/i18n'
 import type { CvDocument, UserProfile, PageResponse } from '@/lib/types'
 
 export default function Dashboard() {
+  const { t } = useI18n()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -20,8 +22,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return
-    profileApi.getMe().then(setProfile).catch(() => {})
-    cvDocumentApi.getMyCvs().then(setCvDocs).catch(() => {})
+    profileApi.getMe().then(setProfile).catch(() => { })
+    cvDocumentApi.getMyCvs().then(setCvDocs).catch(() => { })
   }, [user])
 
   if (authLoading || !user) return (
@@ -31,7 +33,7 @@ export default function Dashboard() {
   )
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this CV?')) return
+    if (!confirm(t('dash.confirmDelete'))) return
     setDeleting(id)
     try {
       await cvDocumentApi.deleteCv(id)
@@ -40,7 +42,7 @@ export default function Dashboard() {
         content: prev.content.filter(c => c.id !== id),
         totalElements: prev.totalElements - 1,
       } : prev)
-    } catch {}
+    } catch { }
     setDeleting(null)
   }
 
@@ -51,7 +53,7 @@ export default function Dashboard() {
         ...prev,
         content: prev.content.map(c => ({ ...c, isPrimary: c.id === updated.id }))
       } : prev)
-    } catch {}
+    } catch { }
   }
 
   return (
@@ -59,21 +61,21 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Welcome back, {user.fullName.split(' ')[0]}!</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dash.title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('dash.welcome', { name: user.fullName.split(' ')[0] })}</p>
         </div>
         <Link href="/cv/generate" className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
-          <span>✨</span> Build New CV
+          <span>✨</span> {t('dash.buildNewCv')}
         </Link>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Saved CVs', value: cvDocs?.totalElements ?? 0, icon: '📄' },
-          { label: 'Best ATS Score', value: cvDocs?.content.reduce((max, c) => Math.max(max, c.atsScore ?? 0), 0) ?? 0, icon: '🎯' },
-          { label: 'Skills Listed', value: profile?.skills?.length ?? 0, icon: '🛠' },
-          { label: 'Profile Complete', value: profile ? `${calcCompletion(profile)}%` : '0%', icon: '✅' },
+          { label: t('dash.savedCvs'), value: cvDocs?.totalElements ?? 0, icon: '📄' },
+          { label: t('dash.bestAtsScore'), value: cvDocs?.content.reduce((max, c) => Math.max(max, c.atsScore ?? 0), 0) ?? 0, icon: '🎯' },
+          { label: t('dash.skillsListed'), value: profile?.skills?.length ?? 0, icon: '🛠' },
+          { label: t('dash.profileComplete'), value: profile ? `${calcCompletion(profile)}%` : '0%', icon: '✅' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="text-2xl mb-1">{s.icon}</div>
@@ -85,12 +87,11 @@ export default function Dashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
-        {(['cvs', 'profile'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-              tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            {t === 'cvs' ? 'My CVs' : 'Profile'}
+        {(['cvs', 'profile'] as const).map(tName => (
+          <button key={tName} onClick={() => setTab(tName)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${tab === tName ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}>
+            {tName === 'cvs' ? t('dash.myCvs') : t('dash.profile')}
           </button>
         ))}
       </div>
@@ -100,10 +101,10 @@ export default function Dashboard() {
           {!cvDocs || cvDocs.content.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
               <div className="text-5xl mb-4">📄</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No CVs yet</h3>
-              <p className="text-gray-500 text-sm mb-6">Generate your first AI-powered CV tailored to a job description</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('dash.noCvsYet')}</h3>
+              <p className="text-gray-500 text-sm mb-6">{t('dash.noCvsDesc')}</p>
               <Link href="/cv/generate" className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-xl hover:bg-blue-700 transition-colors inline-block">
-                ✨ Build My First CV
+                {t('dash.buildFirstCv')}
               </Link>
             </div>
           ) : (
@@ -117,7 +118,7 @@ export default function Dashboard() {
                 <div className="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
                   <span className="text-2xl">+</span>
                 </div>
-                <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600 transition-colors">Create New CV</span>
+                <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600 transition-colors">{t('dash.createNewCv')}</span>
               </Link>
             </div>
           )}
@@ -127,8 +128,8 @@ export default function Dashboard() {
       {tab === 'profile' && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-gray-900">CV Profile</h3>
-            <span className="text-sm text-gray-500">Used to pre-fill CV forms</span>
+            <h3 className="font-semibold text-gray-900">{t('dash.cvProfile')}</h3>
+            <span className="text-sm text-gray-500">{t('dash.prefillHint')}</span>
           </div>
           {profile ? (
             <div className="space-y-4">
@@ -143,7 +144,7 @@ export default function Dashboard() {
             <p className="text-gray-500 text-sm">Loading profile...</p>
           )}
           <Link href="/profile" className="mt-6 inline-block bg-blue-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-            Edit Full Profile →
+            {t('dash.editFullProfile')}
           </Link>
         </div>
       )}
@@ -157,6 +158,7 @@ function CvCard({ cv, onDelete, onSetPrimary, deleting }: {
   onSetPrimary: (id: number) => void
   deleting: boolean
 }) {
+  const { t } = useI18n()
   const scoreColor = (score?: number) => {
     if (!score) return 'text-gray-400'
     if (score >= 80) return 'text-green-600'
@@ -171,7 +173,7 @@ function CvCard({ cv, onDelete, onSetPrimary, deleting }: {
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900 truncate">{cv.title}</h3>
             {cv.isPrimary && (
-              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium shrink-0">Primary</span>
+              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium shrink-0">{t('dash.primary')}</span>
             )}
           </div>
           {cv.jdTitle && <p className="text-xs text-gray-500 mt-0.5 truncate">For: {cv.jdTitle}</p>}
@@ -185,7 +187,7 @@ function CvCard({ cv, onDelete, onSetPrimary, deleting }: {
       </div>
 
       <div className="text-xs text-gray-400">
-        {cv.templateId && <span className="mr-3">Template: {cv.templateId}</span>}
+        {cv.templateId && <span className="mr-3">{t('dash.template', { id: cv.templateId })}</span>}
         <span>{new Date(cv.createdAt).toLocaleDateString()}</span>
       </div>
 
@@ -193,18 +195,18 @@ function CvCard({ cv, onDelete, onSetPrimary, deleting }: {
         {cv.downloadUrl && (
           <a href={cv.downloadUrl} target="_blank" rel="noopener noreferrer"
             className="flex-1 text-center text-xs font-medium text-blue-600 border border-blue-200 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-            Download
+            {t('dash.download')}
           </a>
         )}
         {!cv.isPrimary && (
           <button onClick={() => onSetPrimary(cv.id)}
             className="flex-1 text-center text-xs font-medium text-gray-600 border border-gray-200 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-            Set Primary
+            {t('dash.setPrimary')}
           </button>
         )}
         <button onClick={() => onDelete(cv.id)} disabled={deleting}
           className="text-xs font-medium text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40">
-          {deleting ? '...' : 'Delete'}
+          {deleting ? t('dash.deleting') : t('dash.delete')}
         </button>
       </div>
     </div>

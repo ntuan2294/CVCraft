@@ -82,8 +82,8 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 -mt-2">
           {[
-            { label: t('home.stat1Label'), value: '25,000+', icon: '📄' },
-            { label: t('home.stat2Label'), value: '4.9/5', icon: '⭐' },
+            { label: t('home.stat1Label'), value: '5+', icon: '📄' },
+            { label: t('home.stat2Label'), value: '100%', icon: '🔒' },
             { label: t('home.stat3Label'), value: '< 2 min', icon: '⚡' },
             { label: t('home.stat4Label'), value: '95%+', icon: '🎯' },
           ].map(s => (

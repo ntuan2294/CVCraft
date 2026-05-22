@@ -57,11 +57,7 @@ class JDSearchService:
         score_threshold = self._score_threshold_for_query(query)
         filtered_results = []
         for raw in raw_results:
-            meta = raw.get("metadata", {})
-            distance = raw.get("distance")
-            semantic_score = 1 - distance if distance is not None else 0.0
-            title_score = self._title_match_score(query, meta.get("title", ""))
-            similarity_score = round(max(semantic_score, title_score), 4)
+            similarity_score = self._calc_similarity_score(query, raw)
             raw["similarity_score"] = similarity_score
             if similarity_score >= score_threshold:
                 filtered_results.append(raw)
@@ -94,11 +90,7 @@ class JDSearchService:
         score_threshold = self._score_threshold_for_query(query)
         filtered = []
         for raw in raw_results:
-            meta = raw.get("metadata", {})
-            distance = raw.get("distance")
-            semantic_score = 1 - distance if distance is not None else 0.0
-            title_score = self._title_match_score(query, meta.get("title", ""))
-            similarity_score = round(max(semantic_score, title_score), 4)
+            similarity_score = self._calc_similarity_score(query, raw)
             raw["similarity_score"] = similarity_score
             if similarity_score >= score_threshold:
                 filtered.append(raw)
@@ -430,9 +422,35 @@ class JDSearchService:
         return 0.5 + (0.4 * overlap) if overlap >= 0.75 else 0.0
 
     @classmethod
+    def _calc_similarity_score(cls, query: str, raw: dict) -> float:
+        meta = raw.get("metadata", {})
+        distance = raw.get("distance")
+        semantic_score = 1 - distance if distance is not None else 0.0
+        title_score = cls._title_match_score(query, meta.get("title", ""))
+
+        # Skill and keyword match score
+        skill_score = 0.0
+        normalized_query = cls._normalize_text(query)
+        if normalized_query:
+            skills_list = [cls._normalize_text(s) for s in meta.get("required_skills", "").split(",") if s.strip()]
+            keywords_list = [cls._normalize_text(k) for k in meta.get("keywords", "").split(",") if k.strip()]
+            if normalized_query in skills_list or normalized_query in keywords_list:
+                skill_score = 0.90
+            else:
+                query_tokens = set(re.findall(r"[\w]+", normalized_query))
+                for skill in skills_list:
+                    skill_tokens = set(re.findall(r"[\w]+", skill))
+                    if query_tokens and skill_tokens and query_tokens.issubset(skill_tokens):
+                        skill_score = 0.80
+                        break
+
+        return round(max(semantic_score, title_score, skill_score), 4)
+
+    @classmethod
     def _score_threshold_for_query(cls, query: str) -> float:
         return cls.SHORT_QUERY_SCORE_THRESHOLD if cls._is_short_query(query) else cls.DEFAULT_SCORE_THRESHOLD
 
     @classmethod
     def _is_short_query(cls, query: str) -> bool:
-        return len(cls._normalize_text(query)) <= 2
+        normalized = cls._normalize_text(query)
+        return len(normalized.split()) <= 1 or len(normalized) <= 10

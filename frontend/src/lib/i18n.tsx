@@ -41,10 +41,10 @@ const translations = {
     'home.heroNoLogin': 'No account needed to try. Free forever for basic use.',
 
     // Home - Stats
-    'home.stat1Label': 'CVs Generated',
-    'home.stat2Label': 'User Rating',
+    'home.stat1Label': 'Professional Templates',
+    'home.stat2Label': 'Data Privacy',
     'home.stat3Label': 'Generation Time',
-    'home.stat4Label': 'ATS Pass Rate',
+    'home.stat4Label': 'ATS Match Rate',
 
     // Home - Features
     'home.featuresTitle': 'Everything You Need to Land the Job',
@@ -118,6 +118,31 @@ const translations = {
 
     // Language toggle
     'lang.toggle': 'VI',
+
+    // Dashboard
+    'dash.title': 'My Dashboard',
+    'dash.welcome': 'Welcome back, {name}!',
+    'dash.buildNewCv': 'Build New CV',
+    'dash.savedCvs': 'Saved CVs',
+    'dash.bestAtsScore': 'Best ATS Score',
+    'dash.skillsListed': 'Skills Listed',
+    'dash.profileComplete': 'Profile Complete',
+    'dash.myCvs': 'My CVs',
+    'dash.profile': 'Profile',
+    'dash.noCvsYet': 'No CVs yet',
+    'dash.noCvsDesc': 'Generate your first AI-powered CV tailored to a job description',
+    'dash.buildFirstCv': '✨ Build My First CV',
+    'dash.createNewCv': 'Create New CV',
+    'dash.cvProfile': 'CV Profile',
+    'dash.prefillHint': 'Used to pre-fill CV forms',
+    'dash.editFullProfile': 'Edit Full Profile →',
+    'dash.primary': 'Primary',
+    'dash.template': 'Template: {id}',
+    'dash.download': 'Download',
+    'dash.setPrimary': 'Set Primary',
+    'dash.delete': 'Delete',
+    'dash.deleting': '...',
+    'dash.confirmDelete': 'Delete this CV?',
   },
 
   vi: {
@@ -148,7 +173,7 @@ const translations = {
     'footer.poweredBy': 'Hỗ trợ bởi AI',
 
     // Home - Hero
-    'home.heroBadge': 'Tạo CV bằng AI đa tác tử',
+    'home.heroBadge': 'Tạo CV bằng Multi-Agent AI',
     'home.heroTitle1': 'Tạo CV Chuyên Nghiệp',
     'home.heroTitle2': 'Chỉ Trong Vài Phút',
     'home.heroDesc': 'Nhập vị trí công việc, AI của chúng tôi sẽ phân tích yêu cầu và tạo ra CV được cá nhân hóa, tối ưu ATS giúp bạn được phỏng vấn.',
@@ -157,15 +182,15 @@ const translations = {
     'home.heroNoLogin': 'Không cần tài khoản để thử. Miễn phí mãi mãi cho sử dụng cơ bản.',
 
     // Home - Stats
-    'home.stat1Label': 'CV đã tạo',
-    'home.stat2Label': 'Đánh giá người dùng',
+    'home.stat1Label': 'Mẫu CV chuyên nghiệp',
+    'home.stat2Label': 'Bảo mật thông tin',
     'home.stat3Label': 'Thời gian tạo CV',
-    'home.stat4Label': 'Tỷ lệ qua ATS',
+    'home.stat4Label': 'Tỷ lệ khớp ATS',
 
     // Home - Features
     'home.featuresTitle': 'Tất Cả Công Cụ Bạn Cần',
     'home.featuresDesc': 'Các công cụ AI giúp bạn tạo CV nổi bật cho bất kỳ vị trí nào',
-    'home.feat1Title': 'AI Đa Tác Tử',
+    'home.feat1Title': 'Multi-Agent AI',
     'home.feat1Desc': 'Các AI chuyên biệt phân tích JD, trích xuất kỹ năng, và tạo từng phần CV để tối đa hóa hiệu quả.',
     'home.feat2Title': 'Tối Ưu ATS',
     'home.feat2Desc': 'Chấm điểm ATS tích hợp đảm bảo CV vượt qua hệ thống sàng lọc tự động trước khi đến tay nhà tuyển dụng.',
@@ -185,7 +210,7 @@ const translations = {
     'home.step1Title': 'Nhập Thông Tin & JD',
     'home.step1Desc': 'Điền thông tin kinh nghiệm, kỹ năng và dán mô tả công việc bạn đang nhắm tới.',
     'home.step2Title': 'AI Tạo CV',
-    'home.step2Desc': 'AI đa tác tử phân tích JD, tùy chỉnh nội dung và kiểm tra chất lượng kết quả.',
+    'home.step2Desc': 'Multi-Agent AI phân tích JD, tùy chỉnh nội dung và kiểm tra chất lượng kết quả.',
     'home.step3Title': 'Tải Xuống & Ứng Tuyển',
     'home.step3Desc': 'Xuất DOCX hoặc PDF, lưu vào thư viện, và ứng tuyển với sự tự tin.',
 
@@ -234,6 +259,31 @@ const translations = {
 
     // Language toggle
     'lang.toggle': 'EN',
+
+    // Dashboard
+    'dash.title': 'Bảng điều khiển',
+    'dash.welcome': 'Chào mừng trở lại, {name}!',
+    'dash.buildNewCv': 'Tạo CV mới',
+    'dash.savedCvs': 'CV đã lưu',
+    'dash.bestAtsScore': 'Điểm ATS cao nhất',
+    'dash.skillsListed': 'Kỹ năng đã liệt kê',
+    'dash.profileComplete': 'Hoàn thiện hồ sơ',
+    'dash.myCvs': 'CV của tôi',
+    'dash.profile': 'Hồ sơ',
+    'dash.noCvsYet': 'Chưa có CV nào',
+    'dash.noCvsDesc': 'Tạo CV đầu tiên được hỗ trợ bởi AI và tùy chỉnh theo mô tả công việc',
+    'dash.buildFirstCv': '✨ Tạo CV đầu tiên của tôi',
+    'dash.createNewCv': 'Tạo CV mới',
+    'dash.cvProfile': 'Thông tin CV',
+    'dash.prefillHint': 'Được dùng để tự động điền các biểu mẫu CV',
+    'dash.editFullProfile': 'Chỉnh sửa toàn bộ hồ sơ →',
+    'dash.primary': 'Mặc định',
+    'dash.template': 'Mẫu: {id}',
+    'dash.download': 'Tải xuống',
+    'dash.setPrimary': 'Đặt làm mặc định',
+    'dash.delete': 'Xóa',
+    'dash.deleting': '...',
+    'dash.confirmDelete': 'Bạn có chắc chắn muốn xóa CV này không?',
   },
 } as const
 
