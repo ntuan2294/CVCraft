@@ -10,13 +10,15 @@ const HtmlOutputEditor = dynamic(() => import('@/components/HtmlOutputEditor'), 
 export function GenerateCvResult({
   result,
   onDownloadDocx,
+  onDownloadImage,
   onExportPdf,
   jobTitle,
   jdText,
   templateId,
 }: {
   result: GenerateCVResponse | null
-  onDownloadDocx: () => void
+  onDownloadDocx: () => void | Promise<void>
+  onDownloadImage: () => void | Promise<void>
   onExportPdf: () => void
   jobTitle?: string
   jdText?: string
@@ -76,14 +78,25 @@ export function GenerateCvResult({
               <p className="text-xs text-gray-500">{t('gen.cvEditorDesc')}</p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              <button
-                type="button"
-                onClick={onDownloadDocx}
-                className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
-                disabled={!result.output_path}
-              >
-                {t('gen.downloadDocx')}
-              </button>
+              {isHtml ? (
+                <button
+                  type="button"
+                  onClick={onDownloadImage}
+                  className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+                  disabled={!result.output_path}
+                >
+                  {t('gen.downloadImage')}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onDownloadDocx}
+                  className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
+                  disabled={!result.output_path}
+                >
+                  {t('gen.downloadDocx')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onExportPdf}
