@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 export type Locale = 'en' | 'vi'
 
@@ -299,10 +299,12 @@ const I18nContext = createContext<I18nContextType | null>(null)
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('vi')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('cvcraft_locale') as Locale | null
     if (saved === 'en' || saved === 'vi') setLocaleState(saved)
+    setMounted(true)
   }, [])
 
   const setLocale = useCallback((l: Locale) => {
@@ -310,8 +312,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('cvcraft_locale', l)
   }, [])
 
+  // Before mount, always use 'vi' so server and first client render match
+  const activeLocale: Locale = mounted ? locale : 'vi'
+
   const t = useCallback((key: TranslationKey, vars?: Record<string, string | number>): string => {
-    const dict = translations[locale] as Record<string, string>
+    const dict = translations[activeLocale] as Record<string, string>
     let str = dict[key] ?? (translations.en as Record<string, string>)[key] ?? key
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
@@ -319,9 +324,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       })
     }
     return str
-  }, [locale])
+  }, [activeLocale])
 
-  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>
+  const value = useMemo(
+    () => ({ locale: activeLocale, setLocale, t }),
+    [activeLocale, setLocale, t]
+  )
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
 export function useI18n() {
