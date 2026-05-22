@@ -84,8 +84,15 @@ def create_app() -> FastAPI:
     try:
         from slowapi.errors import RateLimitExceeded  # type: ignore
         from slowapi.middleware import SlowAPIMiddleware  # type: ignore
+        import importlib
 
-        from cvcraft.infrastructure.rate_limit.limiter import limiter, rate_limit_handler
+        try:
+            limiter_mod = importlib.import_module("cvcraft.infrastructure.rate_limit.limiter")
+            limiter = getattr(limiter_mod, "limiter", None)
+            rate_limit_handler = getattr(limiter_mod, "rate_limit_handler", None)
+        except ImportError:
+            limiter = None
+            rate_limit_handler = None
 
         if limiter is not None:
             app.state.limiter = limiter

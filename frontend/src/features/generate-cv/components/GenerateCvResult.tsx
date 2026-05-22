@@ -2,6 +2,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { GenerateCVResponse } from '@/lib/types'
 import { cvDocumentApi } from '@/lib/backendApi'
+import { useI18n } from '@/lib/i18n'
 
 const DocxOutputEditor = dynamic(() => import('@/components/DocxOutputEditor'), { ssr: false })
 
@@ -20,6 +21,7 @@ export function GenerateCvResult({
   jdText?: string
   templateId?: string
 }) {
+  const { t } = useI18n()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -68,8 +70,8 @@ export function GenerateCvResult({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-gray-900">CV editor</h2>
-              <p className="text-xs text-gray-500">Chỉnh trực tiếp trên CV đã được sinh.</p>
+              <h2 className="font-semibold text-gray-900">{t('gen.cvEditor')}</h2>
+              <p className="text-xs text-gray-500">{t('gen.cvEditorDesc')}</p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
               <button
@@ -78,19 +80,19 @@ export function GenerateCvResult({
                 className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
                 disabled={!result.output_path}
               >
-                Tải DOCX
+                {t('gen.downloadDocx')}
               </button>
               <button
                 type="button"
                 onClick={onExportPdf}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
               >
-                Xuất PDF
+                {t('gen.exportPdf')}
               </button>
               {/* Save to library button */}
               {saved ? (
                 <span className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-700 flex items-center gap-1">
-                  ✓ Đã lưu
+                  ✓ {t('gen.saved')}
                 </span>
               ) : (
                 <button
@@ -99,7 +101,7 @@ export function GenerateCvResult({
                   disabled={saving}
                   className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
                 >
-                  {saving ? 'Đang lưu...' : '💾 Lưu vào thư viện'}
+                  {saving ? t('gen.saving') : `💾 ${t('gen.saveLibrary')}`}
                 </button>
               )}
             </div>

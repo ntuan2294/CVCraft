@@ -264,6 +264,7 @@ export function useGenerateCvForm() {
     loadingMsg,
     error,
     result,
+    setResult,
     loadSampleProfile,
     updateExp,
     addExp,

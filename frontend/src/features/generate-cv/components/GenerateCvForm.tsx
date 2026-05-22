@@ -3,10 +3,13 @@ import TemplatePickerModal from '@/components/TemplatePickerModal'
 import { CV_TEMPLATES } from '../constants'
 import type { useGenerateCvForm } from '../hooks/useGenerateCvForm'
 import { FormField, inputClass } from './FormField'
+import { useI18n } from '@/lib/i18n'
 
 type GenerateCvFormModel = ReturnType<typeof useGenerateCvForm>
 
 export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <form onSubmit={model.handleSubmit} className="space-y-6">
       <JobDescriptionSection model={model} />
@@ -31,10 +34,10 @@ export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
         {model.loading ? (
           <span className="flex items-center justify-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            {model.loadingMsg || 'Đang tạo CV...'}
+            {model.loadingMsg || t('gen.submitting')}
           </span>
         ) : (
-          'Tạo CV'
+          t('gen.submit')
         )}
       </button>
     </form>
@@ -42,15 +45,17 @@ export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
 }
 
 function JobDescriptionSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">Mô tả công việc</h2>
-      <FormField label="Dán mô tả công việc vào đây" required>
+      <h2 className="font-semibold text-gray-900">{t('gen.jdTitle')}</h2>
+      <FormField label={t('gen.jdLabel')} required>
         <textarea
           value={model.jdText}
           onChange={(event) => model.setJdText(event.target.value)}
           rows={6}
-          placeholder="Dán nội dung JD đầy đủ vào đây…"
+          placeholder={t('gen.jdPlaceholder')}
           className={inputClass}
         />
       </FormField>
@@ -60,6 +65,8 @@ function JobDescriptionSection({ model }: { model: GenerateCvFormModel }) {
 
 function TemplateSection({ model }: { model: GenerateCvFormModel }) {
   const { selectedTemplate } = model
+  const { t } = useI18n()
+  const localizedTemplateName = t(`tpl.${selectedTemplate.id}.name` as any) || selectedTemplate.name
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -68,18 +75,20 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
           {selectedTemplate.thumbnail && (
             <Image
               src={selectedTemplate.thumbnail}
-              alt={selectedTemplate.name}
+              alt={localizedTemplateName}
               width={72}
               height={96}
               className="h-24 w-18 shrink-0 rounded-md border border-gray-200 object-cover object-top"
             />
           )}
           <div className="min-w-0">
-            <h2 className="font-semibold text-gray-900">Mẫu CV</h2>
+            <h2 className="font-semibold text-gray-900">{t('gen.template')}</h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              Đang dùng: <span className="font-medium text-indigo-600">{selectedTemplate.name}</span>
+              {t('gen.activeTemplate', { name: localizedTemplateName })}
             </p>
-            <p className="mt-1 text-xs text-gray-500">Field: {selectedTemplate.fields.join(', ')}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              {t('gen.fields', { fields: selectedTemplate.fields.join(', ') })}
+            </p>
           </div>
         </div>
         <button
@@ -94,7 +103,7 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
               clipRule="evenodd"
             />
           </svg>
-          Chọn mẫu
+          {t('gen.selectTemplate')}
         </button>
       </div>
 
@@ -111,20 +120,22 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
 }
 
 function OutputLanguageSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 font-semibold text-gray-900">Ngôn ngữ CV</h2>
+      <h2 className="mb-3 font-semibold text-gray-900">{t('gen.cvLang')}</h2>
       <div className="flex gap-3">
         <LanguageButton
           active={model.outputLanguage === 'vi'}
-          title="Tiếng Việt"
-          description="Toàn bộ CV bằng tiếng Việt"
+          title={t('gen.langVi')}
+          description={t('gen.langViDesc')}
           onClick={() => model.setOutputLanguage('vi')}
         />
         <LanguageButton
           active={model.outputLanguage === 'en'}
-          title="English"
-          description="All CV content strictly in English"
+          title={t('gen.langEn')}
+          description={t('gen.langEnDesc')}
           onClick={() => model.setOutputLanguage('en')}
         />
       </div>
@@ -149,40 +160,41 @@ function LanguageButton({ active, title, description, onClick }: { active: boole
 
 function PersonalInfoSection({ model }: { model: GenerateCvFormModel }) {
   const { form } = model
+  const { t } = useI18n()
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">Thông tin cá nhân</h2>
+      <h2 className="font-semibold text-gray-900">{t('gen.personal')}</h2>
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Họ và tên" required>
+        <FormField label={t('gen.fullName')} required>
           <input className={inputClass} value={form.full_name} onChange={(event) => model.setField('full_name', event.target.value)} placeholder="Nguyễn Văn A" />
         </FormField>
-        <FormField label="Chức danh ứng tuyển">
+        <FormField label={t('gen.jobTitle')}>
           <input className={inputClass} value={form.job_title ?? ''} onChange={(event) => model.setField('job_title', event.target.value)} placeholder="Java Software Engineer" />
         </FormField>
-        <FormField label="Email" required>
+        <FormField label={t('gen.email')} required>
           <input className={inputClass} type="email" value={form.email} onChange={(event) => model.setField('email', event.target.value)} placeholder="ban@example.com" />
         </FormField>
-        <FormField label="Số điện thoại">
+        <FormField label={t('gen.phone')}>
           <input className={inputClass} value={form.phone ?? ''} onChange={(event) => model.setField('phone', event.target.value)} placeholder="+84 90 000 0000" />
         </FormField>
-        <FormField label="Địa chỉ">
+        <FormField label={t('gen.address')}>
           <input className={inputClass} value={form.location ?? ''} onChange={(event) => model.setField('location', event.target.value)} placeholder="TP. Hồ Chí Minh" />
         </FormField>
-        <FormField label="LinkedIn (không bắt buộc)">
+        <FormField label={t('gen.linkedin')}>
           <input className={inputClass} value={form.linkedin ?? ''} onChange={(event) => model.setField('linkedin', event.target.value)} placeholder="linkedin.com/in/..." />
         </FormField>
-        <FormField label="GitHub (không bắt buộc)">
+        <FormField label={t('gen.github')}>
           <input className={inputClass} value={form.github ?? ''} onChange={(event) => model.setField('github', event.target.value)} placeholder="github.com/username" />
         </FormField>
       </div>
-      <FormField label="Giới thiệu bản thân">
+      <FormField label={t('gen.summary')}>
         <textarea
           className={inputClass}
           rows={3}
           value={form.summary ?? ''}
           onChange={(event) => model.setField('summary', event.target.value)}
-          placeholder="Tóm tắt ngắn về bản thân, kinh nghiệm và mục tiêu nghề nghiệp…"
+          placeholder={t('gen.summaryPlaceholder')}
         />
       </FormField>
     </section>
@@ -190,28 +202,30 @@ function PersonalInfoSection({ model }: { model: GenerateCvFormModel }) {
 }
 
 function WorkExperienceSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <SectionHeader title="Kinh nghiệm làm việc" onAdd={model.addExp} />
+      <SectionHeader title={t('gen.experience')} onAdd={model.addExp} />
       {model.form.work_experiences.map((exp, index) => (
         <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <ItemHeader label={`Vị trí ${index + 1}`} canRemove={model.form.work_experiences.length > 1} onRemove={() => model.removeExp(index)} />
+          <ItemHeader label={`${t('gen.position')} ${index + 1}`} canRemove={model.form.work_experiences.length > 1} onRemove={() => model.removeExp(index)} />
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Công ty" required>
+            <FormField label={t('gen.company')} required>
               <input className={inputClass} value={exp.company} onChange={(event) => model.updateExp(index, 'company', event.target.value)} />
             </FormField>
-            <FormField label="Vị trí" required>
+            <FormField label={t('gen.position')} required>
               <input className={inputClass} value={exp.position} onChange={(event) => model.updateExp(index, 'position', event.target.value)} />
             </FormField>
-            <FormField label="Ngày bắt đầu">
+            <FormField label={t('gen.startDate')}>
               <input className={inputClass} value={exp.start_date} onChange={(event) => model.updateExp(index, 'start_date', event.target.value)} placeholder="01/2022" />
             </FormField>
-            <FormField label="Ngày kết thúc">
+            <FormField label={t('gen.endDate')}>
               <input className={inputClass} value={exp.end_date ?? ''} onChange={(event) => model.updateExp(index, 'end_date', event.target.value)} placeholder="Hiện tại" />
             </FormField>
           </div>
-          <FormField label="Mô tả công việc">
-            <textarea className={inputClass} rows={3} value={exp.description} onChange={(event) => model.updateExp(index, 'description', event.target.value)} placeholder="Mô tả trách nhiệm và thành tích của bạn…" />
+          <FormField label={t('gen.expDesc')}>
+            <textarea className={inputClass} rows={3} value={exp.description} onChange={(event) => model.updateExp(index, 'description', event.target.value)} placeholder={t('gen.expDescPlaceholder')} />
           </FormField>
         </div>
       ))}
@@ -220,29 +234,31 @@ function WorkExperienceSection({ model }: { model: GenerateCvFormModel }) {
 }
 
 function EducationSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <SectionHeader title="Học vấn" onAdd={model.addEdu} />
+      <SectionHeader title={t('gen.education')} onAdd={model.addEdu} />
       {model.form.educations.map((edu, index) => (
         <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <ItemHeader label={`Bằng cấp ${index + 1}`} canRemove={model.form.educations.length > 1} onRemove={() => model.removeEdu(index)} />
+          <ItemHeader label={`${t('gen.degree')} ${index + 1}`} canRemove={model.form.educations.length > 1} onRemove={() => model.removeEdu(index)} />
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Trường" required>
+            <FormField label={t('gen.school')} required>
               <input className={inputClass} value={edu.school} onChange={(event) => model.updateEdu(index, 'school', event.target.value)} />
             </FormField>
-            <FormField label="Bằng cấp" required>
+            <FormField label={t('gen.degree')} required>
               <input className={inputClass} value={edu.degree} onChange={(event) => model.updateEdu(index, 'degree', event.target.value)} placeholder="Cử nhân" />
             </FormField>
-            <FormField label="Chuyên ngành">
+            <FormField label={t('gen.major')}>
               <input className={inputClass} value={edu.major} onChange={(event) => model.updateEdu(index, 'major', event.target.value)} />
             </FormField>
-            <FormField label="GPA">
+            <FormField label={t('gen.gpa')}>
               <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={(event) => model.updateEdu(index, 'gpa', event.target.value)} placeholder="3.5" />
             </FormField>
-            <FormField label="Ngày bắt đầu">
+            <FormField label={t('gen.startDate')}>
               <input className={inputClass} value={edu.start_date} onChange={(event) => model.updateEdu(index, 'start_date', event.target.value)} placeholder="09/2018" />
             </FormField>
-            <FormField label="Ngày kết thúc">
+            <FormField label={t('gen.endDate')}>
               <input className={inputClass} value={edu.end_date ?? ''} onChange={(event) => model.updateEdu(index, 'end_date', event.target.value)} placeholder="06/2022" />
             </FormField>
           </div>
@@ -253,10 +269,12 @@ function EducationSection({ model }: { model: GenerateCvFormModel }) {
 }
 
 function SkillsSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">Kỹ năng</h2>
-      <TagInput value={model.skillInput} onChange={model.setSkillInput} onAdd={model.addSkill} placeholder="Nhập kỹ năng rồi nhấn Enter" />
+      <h2 className="font-semibold text-gray-900">{t('gen.skills')}</h2>
+      <TagInput value={model.skillInput} onChange={model.setSkillInput} onAdd={model.addSkill} placeholder={t('gen.skillPlaceholder')} />
       {model.form.skills.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {model.form.skills.map((skill) => (
@@ -269,11 +287,13 @@ function SkillsSection({ model }: { model: GenerateCvFormModel }) {
 }
 
 function LanguageAndReferenceSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">Ngôn ngữ & tham chiếu</h2>
-      <FormField label="Ngôn ngữ">
-        <TagInput value={model.languageInput} onChange={model.setLanguageInput} onAdd={model.addLanguage} placeholder="Ví dụ: Tiếng Anh - IELTS 7.0" />
+      <h2 className="font-semibold text-gray-900">{t('gen.langRef')}</h2>
+      <FormField label={t('gen.langLabel')}>
+        <TagInput value={model.languageInput} onChange={model.setLanguageInput} onAdd={model.addLanguage} placeholder={t('gen.langPlaceholder')} />
         {(model.form.languages ?? []).length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {(model.form.languages ?? []).map((language) => (
@@ -282,13 +302,13 @@ function LanguageAndReferenceSection({ model }: { model: GenerateCvFormModel }) 
           </div>
         )}
       </FormField>
-      <FormField label="Reference">
+      <FormField label={t('gen.reference')}>
         <textarea
           className={inputClass}
           rows={3}
           value={model.form.references ?? ''}
           onChange={(event) => model.setField('references', event.target.value)}
-          placeholder="Thông tin người tham chiếu hoặc ghi: Cung cấp khi được yêu cầu"
+          placeholder={t('gen.referencePlaceholder')}
         />
       </FormField>
     </section>
@@ -296,25 +316,27 @@ function LanguageAndReferenceSection({ model }: { model: GenerateCvFormModel }) 
 }
 
 function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
   return (
     <>
       <section className="hidden">
-        <SectionHeader title="Chứng chỉ" onAdd={model.addCert} suffix="(không bắt buộc)" />
-        {model.form.certifications.length === 0 && <p className="text-sm italic text-gray-400">Chưa có chứng chỉ nào. Nhấn &quot;+ Thêm&quot; để thêm.</p>}
+        <SectionHeader title={t('gen.certifications')} onAdd={model.addCert} suffix={t('gen.certSuffix')} />
+        {model.form.certifications.length === 0 && <p className="text-sm italic text-gray-400">{t('gen.certPlaceholder')}</p>}
         {model.form.certifications.map((cert, index) => (
           <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <ItemHeader label={`Chứng chỉ ${index + 1}`} canRemove onRemove={() => model.removeCert(index)} />
+            <ItemHeader label={`${t('gen.certifications')} ${index + 1}`} canRemove onRemove={() => model.removeCert(index)} />
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Tên chứng chỉ" required>
+              <FormField label={t('gen.certName')} required>
                 <input className={inputClass} value={cert.name} onChange={(event) => model.updateCert(index, 'name', event.target.value)} placeholder="AWS Certified Developer" />
               </FormField>
-              <FormField label="Tổ chức cấp">
+              <FormField label={t('gen.certIssuer')}>
                 <input className={inputClass} value={cert.issuer ?? ''} onChange={(event) => model.updateCert(index, 'issuer', event.target.value)} placeholder="Amazon Web Services" />
               </FormField>
-              <FormField label="Ngày cấp">
+              <FormField label={t('gen.certDate')}>
                 <input className={inputClass} value={cert.date ?? ''} onChange={(event) => model.updateCert(index, 'date', event.target.value)} placeholder="06/2023" />
               </FormField>
-              <FormField label="Link xác minh">
+              <FormField label={t('gen.certLink')}>
                 <input className={inputClass} value={cert.link ?? ''} onChange={(event) => model.updateCert(index, 'link', event.target.value)} placeholder="https://..." />
               </FormField>
             </div>
@@ -323,33 +345,33 @@ function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
       </section>
 
       <section className="hidden">
-        <SectionHeader title="Dự án" onAdd={model.addProj} suffix="(không bắt buộc)" />
+        <SectionHeader title={t('gen.projects')} onAdd={model.addProj} suffix={t('gen.projSuffix')} />
         {model.form.projects.map((proj, index) => (
           <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <ItemHeader label={`Dự án ${index + 1}`} canRemove onRemove={() => model.removeProj(index)} />
+            <ItemHeader label={`${t('gen.projects')} ${index + 1}`} canRemove onRemove={() => model.removeProj(index)} />
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Tên dự án" required>
+              <FormField label={t('gen.projName')} required>
                 <input className={inputClass} value={proj.name} onChange={(event) => model.updateProj(index, 'name', event.target.value)} />
               </FormField>
-              <FormField label="Link dự án">
+              <FormField label={t('gen.projLink')}>
                 <input className={inputClass} value={proj.link ?? ''} onChange={(event) => model.updateProj(index, 'link', event.target.value)} placeholder="https://..." />
               </FormField>
-              <FormField label="Thời gian bắt đầu">
+              <FormField label={t('gen.startDate')}>
                 <input className={inputClass} value={proj.start_date ?? ''} onChange={(event) => model.updateProj(index, 'start_date', event.target.value)} placeholder="01/2023" />
               </FormField>
-              <FormField label="Thời gian kết thúc">
+              <FormField label={t('gen.endDate')}>
                 <input className={inputClass} value={proj.end_date ?? ''} onChange={(event) => model.updateProj(index, 'end_date', event.target.value)} placeholder="06/2023" />
               </FormField>
             </div>
-            <FormField label="Mô tả dự án">
-              <textarea className={inputClass} rows={2} value={proj.description} onChange={(event) => model.updateProj(index, 'description', event.target.value)} placeholder="Mô tả ngắn về dự án, vai trò và kết quả đạt được…" />
+            <FormField label={t('gen.projDesc')}>
+              <textarea className={inputClass} rows={2} value={proj.description} onChange={(event) => model.updateProj(index, 'description', event.target.value)} placeholder={t('gen.projDescPlaceholder')} />
             </FormField>
-            <FormField label="Công nghệ sử dụng">
+            <FormField label={t('gen.techStack')}>
               <input
                 className={inputClass}
                 value={(proj.tech_stack ?? []).join(', ')}
                 onChange={(event) => model.updateProj(index, 'tech_stack', event.target.value.split(',').map((item) => item.trim()).filter(Boolean))}
-                placeholder="React, Node.js, PostgreSQL"
+                placeholder={t('gen.techStackPlaceholder')}
               />
             </FormField>
           </div>
@@ -360,25 +382,29 @@ function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
 }
 
 function SectionHeader({ title, suffix, onAdd }: { title: string; suffix?: string; onAdd: () => void }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-center justify-between">
       <h2 className="font-semibold text-gray-900">
         {title} {suffix && <span className="text-sm font-normal text-gray-400">{suffix}</span>}
       </h2>
       <button type="button" onClick={onAdd} className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-        + Thêm
+        + {t('gen.add')}
       </button>
     </div>
   )
 }
 
 function ItemHeader({ label, canRemove, onRemove }: { label: string; canRemove: boolean; onRemove: () => void }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
       {canRemove && (
         <button type="button" onClick={onRemove} className="text-xs text-red-400 hover:text-red-600">
-          Xóa
+          {t('gen.remove')}
         </button>
       )}
     </div>
@@ -386,6 +412,8 @@ function ItemHeader({ label, canRemove, onRemove }: { label: string; canRemove: 
 }
 
 function TagInput({ value, onChange, onAdd, placeholder }: { value: string; onChange: (value: string) => void; onAdd: () => void; placeholder: string }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex gap-2">
       <input
@@ -401,7 +429,7 @@ function TagInput({ value, onChange, onAdd, placeholder }: { value: string; onCh
         placeholder={placeholder}
       />
       <button type="button" onClick={onAdd} className="rounded-lg bg-gray-100 px-4 py-2 text-sm transition-colors hover:bg-gray-200">
-        Thêm
+        {t('gen.add')}
       </button>
     </div>
   )
