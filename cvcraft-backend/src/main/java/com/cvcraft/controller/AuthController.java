@@ -21,7 +21,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a new user (CANDIDATE or RECRUITER)")
+    @Operation(summary = "Register a new candidate user")
     public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
         return authService.register(req);
     }

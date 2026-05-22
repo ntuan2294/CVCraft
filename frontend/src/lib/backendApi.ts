@@ -1,4 +1,4 @@
-import type { AuthResponse, UserProfile, CvDocument, PageResponse } from './types'
+import type { AuthResponse, UserProfile, CvDocument, PageResponse, AdminDashboardStats, AdminUser, AdminCvDocument, UserRole } from './types'
 
 const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080/api'
 
@@ -75,4 +75,44 @@ export const cvDocumentApi = {
     request<void>(`/cv-docs/${id}`, { method: 'DELETE' }),
   getStats: () =>
     request<{ totalCvs: number }>('/cv-docs/stats'),
+}
+
+export const adminApi = {
+  getDashboardStats: () =>
+    request<AdminDashboardStats>('/admin/dashboard'),
+  getUsers: (query = '', page = 0, size = 20) =>
+    request<PageResponse<AdminUser>>(`/admin/users?query=${encodeURIComponent(query)}&page=${page}&size=${size}`),
+  createUser: (data: {
+    email: string
+    password: string
+    fullName: string
+    phone?: string
+    role: UserRole
+    isActive?: boolean
+    isEmailVerified?: boolean
+  }) => request<AdminUser>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: number, data: {
+    email: string
+    password?: string
+    fullName: string
+    phone?: string
+    role: UserRole
+    isActive: boolean
+    isEmailVerified: boolean
+  }) => request<AdminUser>(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id: number) =>
+    request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
+  getCvDocuments: (query = '', page = 0, size = 20) =>
+    request<PageResponse<AdminCvDocument>>(`/admin/cv-docs?query=${encodeURIComponent(query)}&page=${page}&size=${size}`),
+  updateCvDocument: (id: number, data: {
+    title?: string
+    templateId?: string
+    fileName?: string
+    downloadUrl?: string
+    atsScore?: number
+    jdTitle?: string
+    isPrimary?: boolean
+  }) => request<AdminCvDocument>(`/admin/cv-docs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCvDocument: (id: number) =>
+    request<void>(`/admin/cv-docs/${id}`, { method: 'DELETE' }),
 }

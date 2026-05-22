@@ -66,6 +66,46 @@ export interface PageResponse<T> {
   first: boolean
 }
 
+// ---- Admin ----
+export interface AdminDashboardStats {
+  totalUsers: number
+  totalCandidates: number
+  totalAdmins: number
+  activeUsers: number
+  inactiveUsers: number
+  totalCvDocuments: number
+  cvsCreatedLast7Days: number
+}
+
+export interface AdminUser {
+  id: number
+  email: string
+  fullName: string
+  phone?: string
+  role: UserRole
+  isActive: boolean
+  isEmailVerified: boolean
+  cvCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminCvDocument {
+  id: number
+  userId: number
+  userEmail: string
+  userFullName: string
+  title: string
+  templateId?: string
+  fileName?: string
+  downloadUrl?: string
+  atsScore?: number
+  jdTitle?: string
+  isPrimary: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 // ---- JD Search types ----
 export interface JDRewrittenSections {
   job_description: string[]

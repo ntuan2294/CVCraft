@@ -18,10 +18,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login')
+    if (!authLoading && user?.role === 'ADMIN') router.replace('/dashboard/admin')
   }, [user, authLoading, router])
 
   useEffect(() => {
     if (!user) return
+    if (user.role === 'ADMIN') return
     profileApi.getMe().then(setProfile).catch(() => { })
     cvDocumentApi.getMyCvs().then(setCvDocs).catch(() => { })
   }, [user])

@@ -1,20 +1,9 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n'
 
 export default function LandingPage() {
   const { t } = useI18n()
-  const [jobTitle, setJobTitle] = useState('')
-  const router = useRouter()
-
-  const handleStart = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    if (jobTitle) params.set('jd_title', jobTitle)
-    router.push(`/cv/generate?${params}`)
-  }
 
   const features = [
     { icon: '🤖', titleKey: 'home.feat1Title', descKey: 'home.feat1Desc' },
@@ -51,22 +40,40 @@ export default function LandingPage() {
               {t('home.heroDesc')}
             </p>
 
-            {/* Quick Start Form */}
-            <form onSubmit={handleStart} className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row gap-2 shadow-2xl max-w-2xl mx-auto">
-              <div className="flex-1 flex items-center gap-2 px-3">
-                <BriefcaseIcon className="w-5 h-5 text-gray-400 shrink-0" />
-                <input
-                  type="text"
-                  value={jobTitle}
-                  onChange={e => setJobTitle(e.target.value)}
-                  placeholder={t('home.heroInputPlaceholder')}
-                  className="w-full text-gray-900 placeholder-gray-400 text-sm focus:outline-none py-2"
-                />
-              </div>
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap text-sm">
-                {t('home.heroCta')}
-              </button>
-            </form>
+            <div className="flex flex-col items-center gap-4 max-w-3xl mx-auto">
+              <Link
+                href="/cv/generate"
+                className="inline-flex items-center justify-center rounded-2xl bg-white px-8 py-4 text-sm font-semibold text-blue-700 shadow-2xl transition-colors hover:bg-blue-50"
+              >
+                {t('home.ctaBuildCv')}
+              </Link>
+              <p className="text-sm text-blue-200">
+                <span className="text-blue-300/90">{t('home.step1Title')}</span>
+                <span className="mx-2 text-blue-500">•</span>
+                <Link href="/jd/search" className="font-medium text-white underline decoration-white/30 underline-offset-4 transition-colors hover:text-blue-100">
+                  {t('home.ctaJdSearch')}
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-10 grid w-full max-w-4xl gap-4 text-left sm:grid-cols-3">
+              {[
+                { icon: '01', title: t('home.step1Title'), desc: t('home.step1Desc') },
+                { icon: '02', title: t('home.step2Title'), desc: t('home.step2Desc') },
+                { icon: '03', title: t('home.step3Title'), desc: t('home.step3Desc') },
+              ].map((item) => (
+                <div
+                  key={item.icon}
+                  className="rounded-3xl border border-white/10 bg-white/8 p-5 backdrop-blur-md"
+                >
+                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-sm font-bold text-blue-100">
+                    {item.icon}
+                  </div>
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-blue-100/80">{item.desc}</p>
+                </div>
+              ))}
+            </div>
 
             <p className="text-sm text-blue-300 mt-4">{t('home.heroNoLogin')}</p>
           </div>
@@ -152,14 +159,5 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
-  )
-}
-
-function BriefcaseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
   )
 }

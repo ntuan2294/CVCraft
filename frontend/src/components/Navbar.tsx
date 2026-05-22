@@ -18,11 +18,17 @@ export default function Navbar() {
     router.push('/')
   }
 
-  const navLinks: [string, string][] = [
-    [t('nav.aiCvBuilder'), '/cv/generate'],
-    [t('nav.jdSearch'), '/jd/search'],
-    [t('nav.myCvs'), '/dashboard'],
-  ]
+  const navLinks: [string, string][] = user?.role === 'ADMIN'
+    ? [
+      [t('nav.adminPanel'), '/dashboard/admin'],
+      [t('nav.aiCvBuilder'), '/cv/generate'],
+      [t('nav.jdSearch'), '/jd/search'],
+    ]
+    : [
+      [t('nav.aiCvBuilder'), '/cv/generate'],
+      [t('nav.jdSearch'), '/jd/search'],
+      [t('nav.myCvs'), '/dashboard'],
+    ]
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -72,19 +78,21 @@ export default function Navbar() {
                       <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
-                    <Link href="/dashboard"
+                    <Link href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard'}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setDropOpen(false)}>
-                      {t('nav.dashboard')}
+                      {user.role === 'ADMIN' ? t('nav.adminPanel') : t('nav.dashboard')}
                     </Link>
                     <Link href="/cv/generate"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setDropOpen(false)}>
                       {t('nav.buildCv')}
                     </Link>
-                    <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
-                      {t('nav.profileSettings')}
-                    </Link>
+                    {user.role !== 'ADMIN' && (
+                      <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
+                        {t('nav.profileSettings')}
+                      </Link>
+                    )}
                     <div className="border-t border-gray-100 mt-1">
                       <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                         {t('nav.signOut')}

@@ -1,38 +1,59 @@
 import type { GenerateCVResponse } from '@/lib/types'
 
 export async function downloadCvEditorAsPdf() {
-  const editor = document.querySelector('[data-cv-docx-editor="true"]')
+  const editor = document.querySelector<HTMLElement>('[data-cv-docx-editor="true"]')
   if (!editor) return
 
-  const pages = Array.from(editor.querySelectorAll<HTMLElement>('.docx-wrapper > section'))
-  const targets = pages.length > 0 ? pages : [editor as HTMLElement]
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import('html2canvas'),
-    import('jspdf'),
-  ])
+  const printWindow = window.open('', '_blank', 'noopener,noreferrer')
+  if (!printWindow) return
 
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
+  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+    .map((node) => node.outerHTML)
+    .join('\n')
 
-  for (const [index, target] of targets.entries()) {
-    const canvas = await html2canvas(target, {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true,
-    })
-    const image = canvas.toDataURL('image/png')
-    const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height)
-    const width = canvas.width * ratio
-    const height = canvas.height * ratio
-    const x = (pageWidth - width) / 2
-    const y = (pageHeight - height) / 2
+  const content = editor.innerHTML
 
-    if (index > 0) pdf.addPage()
-    pdf.addImage(image, 'PNG', x, y, width, height)
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>cv.pdf</title>
+        ${styles}
+        <style>
+          body {
+            margin: 0;
+            padding: 24px;
+            background: #e2e8f0;
+          }
+
+          .print-root {
+            display: flex;
+            justify-content: center;
+          }
+
+          .docx-wrapper {
+            margin: 0 auto;
+          }
+
+          @media print {
+            body {
+              padding: 0;
+              background: #ffffff;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-root">${content}</div>
+      </body>
+    </html>
+  `)
+
+  printWindow.document.close()
+  printWindow.focus()
+  printWindow.onload = () => {
+    printWindow.print()
+    printWindow.onafterprint = () => printWindow.close()
   }
-
-  pdf.save('cv.pdf')
 }
 
 export function downloadGeneratedDocx(result: GenerateCVResponse | null) {

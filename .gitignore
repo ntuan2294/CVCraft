@@ -50,6 +50,7 @@ yarn-error.log*
 
 # ── Java / Maven ──────────────────────────────────────────────────────────────
 target/
+**/target/
 *.class
 *.jar
 *.war
@@ -83,3 +84,4 @@ logs/
 cvcraft-backend/src/main/resources/application.yml
 cvcraft-backend/src/main/resources/application-*.yml
 !cvcraft-backend/src/main/resources/application.yml.example
+cvcraft-backend/target/classes/application.yml
