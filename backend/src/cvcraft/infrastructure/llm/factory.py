@@ -32,21 +32,21 @@ class LLMFactory:
         if tier == "cheap":
             llm = ChatOpenAI(
                 model="gpt-4o-mini",
-                temperature=0.3,
+                temperature=0,
                 max_tokens=800,
                 api_key=api_key,
             )
         elif tier == "cheap_large":
             llm = ChatOpenAI(
                 model="gpt-4o-mini",
-                temperature=0.3,
+                temperature=0,
                 max_tokens=3000,
                 api_key=api_key,
             )
         else:
             llm = ChatOpenAI(
                 model="gpt-5.5",
-                temperature=0.7,
+                temperature=0,
                 max_tokens=1500,
                 api_key=api_key,
             )

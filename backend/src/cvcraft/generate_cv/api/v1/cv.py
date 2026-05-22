@@ -51,12 +51,19 @@ class OnlyOfficeCallbackRequest(BaseModel):
     url: str | None = None
 
 
-def _require_existing_docx(path: str) -> Path:
+def _require_existing_output(path: str) -> Path:
     if not path:
         raise HTTPException(status_code=400, detail="Thiếu path")
 
     file_path = Path(path)
-    if not file_path.exists() or file_path.suffix.lower() != ".docx":
+    if not file_path.exists() or file_path.suffix.lower() not in {".docx", ".html"}:
+        raise HTTPException(status_code=404, detail="File không tìm thấy")
+    return file_path
+
+
+def _require_existing_docx(path: str) -> Path:
+    file_path = _require_existing_output(path)
+    if file_path.suffix.lower() != ".docx":
         raise HTTPException(status_code=404, detail="File không tìm thấy")
     return file_path
 
@@ -158,8 +165,14 @@ async def get_task(task_id: str):
 
 @router.get("/download")
 async def download_cv(path: str):
-    """Tải file CV đã tạo (.docx)."""
-    _require_existing_docx(path)
+    """Tải file CV đã tạo (.docx hoặc .html)."""
+    file_path = _require_existing_output(path)
+    if file_path.suffix.lower() == ".html":
+        return FileResponse(
+            path,
+            filename="cv.html",
+            media_type="text/html; charset=utf-8",
+        )
     return FileResponse(
         path,
         filename="cv.docx",

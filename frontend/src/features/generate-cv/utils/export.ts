@@ -59,8 +59,9 @@ export async function downloadCvEditorAsPdf() {
 export function downloadGeneratedDocx(result: GenerateCVResponse | null) {
   if (!result?.output_path) return
 
+  const isHtml = result.output_path.toLowerCase().endsWith('.html')
   const a = document.createElement('a')
   a.href = `/api/cv/download?path=${encodeURIComponent(result.output_path)}`
-  a.download = 'cv.docx'
+  a.download = isHtml ? 'cv.html' : 'cv.docx'
   a.click()
 }

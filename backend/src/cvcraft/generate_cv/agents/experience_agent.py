@@ -20,31 +20,55 @@ LANGUAGE REQUIREMENT — CRITICAL:
 Default output MUST be fluent professional Vietnamese. If output_language is "en",
 write all bullets in fluent professional English after translating from the Vietnamese CV intent.
 
+VIETNAMESE WORDING POLICY — CRITICAL:
+When output_language is Vietnamese, write complete Vietnamese sentences. Keep English only for
+widely used technical terms, product/tool names, acronyms, or role nouns such as backend, frontend,
+full-stack, REST API, API, CI/CD, Docker, Git, Java, Spring Boot, PostgreSQL, MySQL, cloud, Agile/Scrum.
+Do NOT use English verbs/adjectives as Vietnamese prose, for example: delivered, optimized,
+implemented, designed, built, scaled, migrated, improved, maintained. Translate them naturally:
+- delivered -> triển khai / hoàn thành / đóng góp vào
+- optimized -> tối ưu / cải thiện
+- implemented -> triển khai / xây dựng
+- designed -> thiết kế
+- built -> xây dựng / phát triển
+- scaled -> mở rộng
+- migrated -> chuyển đổi / di chuyển
+- maintained -> bảo trì / duy trì
+
 STAR Method (mandatory for EVERY bullet):
 - S/T (Situation/Task): brief context (implicit in the sentence)
 - A (Action): specific action with strong verb at the start
-- R (Result): QUANTIFIED result (numbers, %, time, scale)
+- R (Result): result or business/technical outcome grounded in the user's input
 
-Bullet formula: [Strong verb] + [Specific object] + [Method/Tool] + [Quantified result]
+Bullet formula: [Strong verb] + [Specific object] + [Method/Tool] + [Result grounded in provided facts]
 
 GOOD examples:
-✓ "Architected microservices system using Node.js and Kubernetes, reducing API latency by 40% and supporting 2M+ daily requests"
-✓ "Led team of 5 engineers to migrate legacy monolith to AWS, completing 3 months ahead of schedule and saving $120K/year in infrastructure cost"
+✓ "Thiết kế RESTful API cho hệ thống quản lý đơn hàng bằng Java Spring Boot, giúp frontend tích hợp nghiệp vụ nhất quán và dễ bảo trì hơn"
+✓ "Tối ưu truy vấn PostgreSQL cho các màn hình quản lý đơn hàng, cải thiện độ ổn định và khả năng phản hồi của hệ thống"
 
 BAD examples (avoid):
 ✗ "Responsible for backend development" (no strong action, no result)
 ✗ "Worked on improving system performance" (vague, no quantification)
+✗ "Giảm latency 40% và xử lý 2M requests/ngày" if the user did not explicitly provide those metrics
 
 Additional rules:
 1. 3-5 bullets per experience (older jobs = fewer bullets)
 2. First bullet is always the most IMPACTFUL achievement
 3. Use past tense for past jobs, present tense for current job
 4. Naturally weave in keywords from the JD
-5. If user doesn't provide specific numbers, ESTIMATE reasonably based on scope
-6. DO NOT fabricate specific numbers if user didn't mention them
+5. NEVER invent or estimate numbers, percentages, money, time savings, team size, user volume,
+   latency, test coverage, daily requests, cloud scale, awards, certifications, leadership scope,
+   or business impact if the user did not explicitly provide them.
+6. If the input has no metrics, write qualitative results only, e.g. "giúp chuẩn hóa luồng xử lý",
+   "cải thiện khả năng bảo trì", "hỗ trợ triển khai ổn định", without adding any numeric value.
+7. Do not add technologies, cloud providers, tools, domains, projects, or responsibilities that are
+   not present in the user input or JD. JD keywords may be used only when they are compatible with
+   the user's actual experience.
+8. RAG examples are style references only. Do not copy their metrics, scale, technologies, or outcomes.
 
-Strong verbs: Architected, Led, Spearheaded, Optimized, Streamlined, Implemented, Delivered,
-Scaled, Orchestrated, Pioneered, Reduced, Increased, Designed, Built, Migrated, Automated."""
+Vietnamese strong verbs: Phát triển, Xây dựng, Thiết kế, Triển khai, Tối ưu, Cải thiện,
+Chuẩn hóa, Bảo trì, Phối hợp, Tích hợp, Xử lý, Viết, Hỗ trợ.
+English strong verbs are allowed only when output_language is English."""
 
 
 def experience_agent_node(state: CVAgentState) -> dict:

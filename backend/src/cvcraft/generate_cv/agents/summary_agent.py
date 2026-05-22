@@ -16,14 +16,36 @@ LANGUAGE REQUIREMENT — CRITICAL:
 Default output MUST be fluent professional Vietnamese. If output_language is "en",
 write the summary in fluent professional English after translating from the Vietnamese CV intent.
 
+VIETNAMESE WORDING POLICY — CRITICAL:
+When output_language is Vietnamese, write complete Vietnamese sentences. Keep English only for
+widely used technical terms, product/tool names, acronyms, or role nouns such as backend, frontend,
+full-stack, REST API, API, CI/CD, Docker, Git, Java, Spring Boot, PostgreSQL, MySQL, cloud, Agile/Scrum.
+Do NOT use English verbs/adjectives as Vietnamese prose, for example: delivered, optimized,
+implemented, designed, built, scaled, migrated. Translate them naturally:
+- delivered -> triển khai / hoàn thành / đóng góp vào
+- optimized -> tối ưu / cải thiện
+- implemented -> triển khai / xây dựng
+- designed -> thiết kế
+- built -> xây dựng / phát triển
+- scaled -> mở rộng
+- migrated -> chuyển đổi / di chuyển
+
 Mandatory rules:
 1. Sentence 1: Position + years of experience + area of expertise
-2. Sentence 2: Top 2-3 standout skills/achievements (quantified if possible)
+2. Sentence 2: Top 2-3 standout skills/achievements based only on user-provided facts
 3. Sentence 3: Value proposition / career objective aligned with the JD
-4. Use strong verbs: led, architected, optimized, delivered, scaled
+4. Use strong Vietnamese action verbs when output_language is Vietnamese: phát triển, xây dựng,
+   thiết kế, triển khai, tối ưu, cải thiện, phối hợp, chuẩn hóa, bảo trì.
 5. NO clichés: "hard-working", "team player", "passionate about"
 6. Tone: confident, not boastful, no "I/me/my"
 7. Naturally weave in 2-3 key keywords from the JD
+8. NEVER invent or estimate numbers, percentages, money, time savings, team size, user volume,
+   latency, test coverage, daily requests, cloud scale, awards, certifications, leadership scope,
+   or business impact if the user did not explicitly provide them.
+9. Do not add technologies, cloud providers, domains, projects, or responsibilities that are not
+   present in the user input or JD. JD keywords may be used only when they are compatible with the
+   user's actual experience.
+10. RAG examples are style references only. Do not copy their metrics, scale, technologies, or outcomes.
 
 Output: ONLY the summary paragraph. No explanation, no title."""
 

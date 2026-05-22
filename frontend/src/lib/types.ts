@@ -220,7 +220,7 @@ export interface UserInput {
   template_schema?: CVTemplateSchema
   photo?: UploadedPhoto
   output_language?: 'vi' | 'en'
-  export_format?: 'docx' | 'pdf'
+  export_format?: 'docx' | 'pdf' | 'html'
 }
 
 export interface UploadedPhoto {
@@ -230,7 +230,7 @@ export interface UploadedPhoto {
 }
 
 export interface CVTemplateSchema {
-  id: '1' | '2' | '3' | '4' | '5'
+  id: string
   summary_field: 'profile' | 'about_me' | 'personal_summary' | 'summary'
   fields: string[]
   supports_photo_upload: boolean

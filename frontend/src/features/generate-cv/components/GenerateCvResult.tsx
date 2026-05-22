@@ -5,6 +5,7 @@ import { cvDocumentApi } from '@/lib/backendApi'
 import { useI18n } from '@/lib/i18n'
 
 const DocxOutputEditor = dynamic(() => import('@/components/DocxOutputEditor'), { ssr: false })
+const HtmlOutputEditor = dynamic(() => import('@/components/HtmlOutputEditor'), { ssr: false })
 
 export function GenerateCvResult({
   result,
@@ -25,6 +26,7 @@ export function GenerateCvResult({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const isHtml = Boolean(result?.output_path?.toLowerCase().endsWith('.html'))
 
   const handleSave = async () => {
     if (!result) return
@@ -80,15 +82,17 @@ export function GenerateCvResult({
                 className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
                 disabled={!result.output_path}
               >
-                {t('gen.downloadDocx')}
+                {isHtml ? 'Tải HTML' : t('gen.downloadDocx')}
               </button>
-              <button
-                type="button"
-                onClick={onExportPdf}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
-              >
-                {t('gen.exportPdf')}
-              </button>
+              {!isHtml && (
+                <button
+                  type="button"
+                  onClick={onExportPdf}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
+                >
+                  Xuất PDF
+                </button>
+              )}
               {/* Save to library button */}
               {saved ? (
                 <span className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-700 flex items-center gap-1">
@@ -117,7 +121,11 @@ export function GenerateCvResult({
             </div>
           )}
 
-          <DocxOutputEditor outputPath={result.output_path} />
+          {isHtml ? (
+            <HtmlOutputEditor outputPath={result.output_path} />
+          ) : (
+            <DocxOutputEditor outputPath={result.output_path} />
+          )}
         </section>
       )}
     </div>

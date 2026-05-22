@@ -1390,6 +1390,23 @@ def template_renderer_node(state: CVAgentState) -> dict:
         return {"messages": ["[Template Renderer] Không có CV draft để render"]}
 
     try:
+        if Path(abs_template_path).suffix.lower() == ".html":
+            from cvcraft.generate_cv.agents.html_renderer import fields_from_state, render_html_template
+
+            outputs_dir = Path(settings.outputs_dir)
+            outputs_dir.mkdir(parents=True, exist_ok=True)
+            output_path = str(outputs_dir / "cv_output_template_6.html")
+            fields = fields_from_state(state)
+            result = render_html_template(abs_template_path, output_path, fields)
+            file_size = os.path.getsize(output_path)
+            return {
+                "output_path": output_path,
+                "messages": [
+                    f"[Template Renderer] (html-template) ĐÃ LƯU FILE: {output_path} "
+                    f"({file_size} bytes). Fill {result['filled']}"
+                ],
+            }
+
         doc = Document(abs_template_path)
         template_id = str(state.user_input.get("template_id") or Path(abs_template_path).stem)
         template_kind = detect_template_type(doc)

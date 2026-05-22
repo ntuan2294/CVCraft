@@ -192,7 +192,7 @@ export function useGenerateCvForm() {
 
     try {
       const templateSchema = {
-        id: selectedTemplate.id as '1' | '2' | '3' | '4' | '5',
+        id: selectedTemplate.id,
         summary_field: SUMMARY_FIELD_BY_TEMPLATE[selectedTemplate.id],
         fields: selectedTemplate.fields,
         supports_photo_upload: selectedTemplate.supportsPhotoUpload,
@@ -209,7 +209,7 @@ export function useGenerateCvForm() {
         template_schema: templateSchema,
         photo: selectedTemplate.supportsPhotoUpload ? photo : undefined,
         output_language: outputLanguage,
-        export_format: 'docx',
+        export_format: selectedTemplate.id === '6' ? 'html' : 'docx',
       }
 
       const { task_id } = await api.cv.generateAsync(jdText.trim(), userInput)

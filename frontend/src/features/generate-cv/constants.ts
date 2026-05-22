@@ -79,6 +79,14 @@ export const CV_TEMPLATES: CVTemplate[] = [
     thumbnail: '/template-images/temp5.jpg',
     fields: ['name', 'job_title', 'summary', 'work_experience', 'education', 'contact', 'language', 'skills', 'reference'],
   },
+  {
+    id: '6',
+    name: 'Template 6',
+    description: 'HTML/CSS modern, LLM viết nội dung JSON rồi render vào template',
+    summaryLabel: 'About me',
+    supportsPhotoUpload: false,
+    fields: ['name', 'job_title', 'about_me', 'work_experience', 'education', 'contact', 'language', 'skills'],
+  },
 ]
 
 export const TEMPLATE_PATH_BY_ID: Record<string, string> = {
@@ -87,6 +95,7 @@ export const TEMPLATE_PATH_BY_ID: Record<string, string> = {
   '3': 'template cv/3.docx',
   '4': 'template cv/4.docx',
   '5': 'template cv/5.docx',
+  '6': 'template cv/6.html',
 }
 
 export const SUMMARY_FIELD_BY_TEMPLATE: Record<string, 'profile' | 'about_me' | 'personal_summary' | 'summary'> = {
@@ -95,6 +104,7 @@ export const SUMMARY_FIELD_BY_TEMPLATE: Record<string, 'profile' | 'about_me' | 
   '3': 'profile',
   '4': 'personal_summary',
   '5': 'summary',
+  '6': 'about_me',
 }
 
 export const SAMPLE_JD_TEXT = `Java Software Engineer
