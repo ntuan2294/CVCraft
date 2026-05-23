@@ -29,8 +29,6 @@ const translations = {
     'footer.careerBlog': 'Career Blog',
     'footer.privacyPolicy': 'Privacy Policy',
     'footer.termsOfService': 'Terms of Service',
-    'footer.copyright': '© 2024 CVCraft. All rights reserved.',
-    'footer.poweredBy': 'Powered by AI',
 
     // Home - Hero
     'home.heroBadge': 'AI-Powered CV Generator',
@@ -39,29 +37,31 @@ const translations = {
     'home.heroDesc': 'Start with the AI CV Builder, explore job descriptions, or open your saved CV library to keep building faster.',
     'home.heroInputPlaceholder': 'e.g. Senior React Developer, Data Scientist...',
     'home.heroCta': 'Build My CV →',
-    'home.heroNoLogin': 'No account needed to try. Free forever for basic use.',
+    'home.heroNoLogin': 'No account needed · Free to try',
 
     // Home - Stats
     'home.stat1Label': 'Professional Templates',
     'home.stat2Label': 'Data Privacy',
     'home.stat3Label': 'Generation Time',
     'home.stat4Label': 'ATS Match Rate',
+    'home.stat5Label': 'Export Formats',
+    'home.stat6Label': 'Free to Start',
 
     // Home - Features
     'home.featuresTitle': 'Everything You Need to Land the Job',
     'home.featuresDesc': 'Our AI-powered tools help you create a standout CV tailored to any role',
     'home.feat1Title': 'Multi-Agent AI Pipeline',
-    'home.feat1Desc': 'Our specialized AI agents analyze the JD, extract skills, and craft each CV section for maximum impact.',
+    'home.feat1Desc': 'Multiple AI agents work together to analyze JD and tailor every CV section.',
     'home.feat2Title': 'ATS Optimization',
-    'home.feat2Desc': 'Built-in ATS scoring ensures your CV passes automated screening systems before reaching recruiters.',
+    'home.feat2Desc': 'Built-in ATS scoring so your CV passes automated screening.',
     'home.feat3Title': 'Quality Scoring',
-    'home.feat3Desc': 'Get detailed feedback on your CV\'s ATS score, JD match rate, and linguistic quality.',
+    'home.feat3Desc': 'Instant feedback on ATS score, JD match rate, and writing quality.',
     'home.feat4Title': 'Multiple Templates',
-    'home.feat4Desc': 'Choose from 5 professionally designed templates and export to DOCX or PDF.',
+    'home.feat4Desc': '5 professional templates, export to DOCX or PDF.',
     'home.feat5Title': 'JD-Tailored Content',
-    'home.feat5Desc': 'Paste any job description and AI will tailor your CV specifically for that role and company.',
+    'home.feat5Desc': 'Paste any JD and AI tailors your CV to match it.',
     'home.feat6Title': 'CV Library',
-    'home.feat6Desc': 'Save multiple CV versions, mark a primary one, and manage your entire portfolio in one place.',
+    'home.feat6Desc': 'Save, manage, and organize all your CV versions in one place.',
 
     // Home - How It Works
     'home.howItWorks': 'How CVCraft Works',
@@ -257,8 +257,6 @@ const translations = {
     'footer.careerBlog': 'Blog nghề nghiệp',
     'footer.privacyPolicy': 'Chính sách bảo mật',
     'footer.termsOfService': 'Điều khoản dịch vụ',
-    'footer.copyright': '© 2024 CVCraft. Bảo lưu mọi quyền.',
-    'footer.poweredBy': 'Hỗ trợ bởi AI',
 
     // Home - Hero
     'home.heroBadge': 'Tạo CV bằng Multi-Agent AI',
@@ -267,29 +265,31 @@ const translations = {
     'home.heroDesc': 'Bắt đầu với trình tạo CV bằng AI, khám phá JD phù hợp, hoặc mở thư viện CV của bạn để tiếp tục nhanh hơn.',
     'home.heroInputPlaceholder': 'VD: Senior React Developer, Data Scientist...',
     'home.heroCta': 'Tạo CV ngay →',
-    'home.heroNoLogin': 'Không cần tài khoản để thử. Miễn phí mãi mãi cho sử dụng cơ bản.',
+    'home.heroNoLogin': 'Không cần tài khoản · Miễn phí để thử',
 
     // Home - Stats
     'home.stat1Label': 'Mẫu CV chuyên nghiệp',
     'home.stat2Label': 'Bảo mật thông tin',
     'home.stat3Label': 'Thời gian tạo CV',
     'home.stat4Label': 'Tỷ lệ khớp ATS',
+    'home.stat5Label': 'Định dạng xuất',
+    'home.stat6Label': 'Miễn phí để bắt đầu',
 
     // Home - Features
     'home.featuresTitle': 'Tất Cả Công Cụ Bạn Cần',
     'home.featuresDesc': 'Các công cụ AI giúp bạn tạo CV nổi bật cho bất kỳ vị trí nào',
     'home.feat1Title': 'Multi-Agent AI',
-    'home.feat1Desc': 'Các AI chuyên biệt phân tích JD, trích xuất kỹ năng, và tạo từng phần CV để tối đa hóa hiệu quả.',
+    'home.feat1Desc': 'Nhiều AI phối hợp phân tích JD và tùy chỉnh từng phần CV.',
     'home.feat2Title': 'Tối Ưu ATS',
-    'home.feat2Desc': 'Chấm điểm ATS tích hợp đảm bảo CV vượt qua hệ thống sàng lọc tự động trước khi đến tay nhà tuyển dụng.',
+    'home.feat2Desc': 'Chấm điểm ATS tích hợp giúp CV vượt qua bộ lọc tự động.',
     'home.feat3Title': 'Chấm Điểm Chất Lượng',
-    'home.feat3Desc': 'Nhận phản hồi chi tiết về điểm ATS, tỷ lệ khớp JD, và chất lượng ngôn ngữ của CV.',
+    'home.feat3Desc': 'Phản hồi tức thì về điểm ATS, độ khớp JD và chất lượng văn phong.',
     'home.feat4Title': 'Nhiều Mẫu CV',
-    'home.feat4Desc': 'Chọn từ 5 mẫu CV được thiết kế chuyên nghiệp và xuất ra DOCX hoặc PDF.',
+    'home.feat4Desc': '5 mẫu CV chuyên nghiệp, xuất DOCX hoặc PDF.',
     'home.feat5Title': 'Nội Dung Theo JD',
-    'home.feat5Desc': 'Dán bất kỳ JD nào và AI sẽ tùy chỉnh CV của bạn cụ thể cho vị trí và công ty đó.',
+    'home.feat5Desc': 'Dán JD vào, AI tự tùy chỉnh CV theo đúng vị trí.',
     'home.feat6Title': 'Thư Viện CV',
-    'home.feat6Desc': 'Lưu nhiều phiên bản CV, đánh dấu CV chính, và quản lý toàn bộ portfolio trong một nơi.',
+    'home.feat6Desc': 'Lưu và quản lý tất cả phiên bản CV trong một nơi.',
 
     // Home - How It Works
     'home.howItWorks': 'CVCraft hoạt động thế nào?',

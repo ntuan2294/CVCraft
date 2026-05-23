@@ -14,11 +14,6 @@ export default function LandingPage() {
     { icon: '💾', titleKey: 'home.feat6Title', descKey: 'home.feat6Desc' },
   ] as const
 
-  const steps = [
-    { step: '01', titleKey: 'home.step1Title', descKey: 'home.step1Desc', icon: '✍️' },
-    { step: '02', titleKey: 'home.step2Title', descKey: 'home.step2Desc', icon: '🤖' },
-    { step: '03', titleKey: 'home.step3Title', descKey: 'home.step3Desc', icon: '✅' },
-  ] as const
 
   return (
     <div className="bg-white">
@@ -40,42 +35,21 @@ export default function LandingPage() {
               {t('home.heroDesc')}
             </p>
 
-            <div className="flex flex-col items-center gap-4 max-w-3xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-3xl mx-auto">
               <Link
                 href="/cv/generate"
                 className="inline-flex items-center justify-center rounded-2xl bg-white px-8 py-4 text-sm font-semibold text-blue-700 shadow-2xl transition-colors hover:bg-blue-50"
               >
                 {t('home.ctaBuildCv')}
               </Link>
-              <p className="text-sm text-blue-200">
-                <span className="text-blue-300/90">{t('home.step1Title')}</span>
-                <span className="mx-2 text-blue-500">•</span>
-                <Link href="/jd/search" className="font-medium text-white underline decoration-white/30 underline-offset-4 transition-colors hover:text-blue-100">
-                  {t('home.ctaJdSearch')}
-                </Link>
-              </p>
+              <Link
+                href="/jd/search"
+                className="inline-flex items-center justify-center rounded-2xl border border-blue-400/60 px-8 py-4 text-sm font-semibold text-blue-100 transition-colors hover:bg-blue-800/40"
+              >
+                {t('home.ctaJdSearch')}
+              </Link>
             </div>
-
-            <div className="mt-10 grid w-full max-w-4xl gap-4 text-left sm:grid-cols-3">
-              {[
-                { icon: '01', title: t('home.step1Title'), desc: t('home.step1Desc') },
-                { icon: '02', title: t('home.step2Title'), desc: t('home.step2Desc') },
-                { icon: '03', title: t('home.step3Title'), desc: t('home.step3Desc') },
-              ].map((item) => (
-                <div
-                  key={item.icon}
-                  className="rounded-3xl border border-white/10 bg-white/8 p-5 backdrop-blur-md"
-                >
-                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-sm font-bold text-blue-100">
-                    {item.icon}
-                  </div>
-                  <p className="text-sm font-semibold text-white">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-blue-100/80">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-sm text-blue-300 mt-4">{t('home.heroNoLogin')}</p>
+            <p className="text-sm text-blue-300/80 mt-5">{t('home.heroNoLogin')}</p>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0">
@@ -90,9 +64,9 @@ export default function LandingPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 -mt-2">
           {[
             { label: t('home.stat1Label'), value: '5+', icon: '📄' },
-            { label: t('home.stat2Label'), value: '100%', icon: '🔒' },
             { label: t('home.stat3Label'), value: '< 2 min', icon: '⚡' },
-            { label: t('home.stat4Label'), value: '95%+', icon: '🎯' },
+            { label: t('home.stat5Label'), value: 'DOCX/PDF', icon: '💾' },
+            { label: t('home.stat6Label'), value: 'Free', icon: '🎁' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
               <div className="text-3xl mb-2">{s.icon}</div>
@@ -120,27 +94,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('home.howItWorks')}</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">{t('home.howItWorksDesc')}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map(item => (
-              <div key={item.step} className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center">
-                <div className="text-4xl mb-4">{item.icon}</div>
-                <div className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
-                  {t('home.step')} {item.step}
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{t(item.titleKey)}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{t(item.descKey)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* CTA Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">

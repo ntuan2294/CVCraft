@@ -20,11 +20,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi" className={`${beVietnam.variable} font-sans`} suppressHydrationWarning>
-      <body className="min-h-screen bg-gray-50 text-gray-900" suppressHydrationWarning>
+      <body className="min-h-screen bg-gray-50 text-gray-900 flex flex-col" suppressHydrationWarning>
         <LanguageProvider>
           <AuthProvider>
             <Navbar />
-            <main className="min-h-[calc(100vh-64px-280px)]">
+            <main className="flex-1">
               {children}
             </main>
             <Footer />
