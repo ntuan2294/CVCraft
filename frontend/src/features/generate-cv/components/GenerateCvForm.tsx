@@ -191,28 +191,28 @@ function PersonalInfoSection({ model }: { model: GenerateCvFormModel }) {
       <h2 className="font-semibold text-gray-900">{t('gen.personal')}</h2>
       <div className="grid grid-cols-2 gap-3">
         <FormField label={t('gen.fullName')} required>
-          <input className={inputClass} value={form.full_name} onChange={(event) => model.setField('full_name', event.target.value)} placeholder="Nguyễn Văn A" />
+          <input className={inputClass} value={form.full_name} onChange={(event) => model.setField('full_name', event.target.value)} placeholder={t('gen.fullNamePlaceholder')} />
         </FormField>
-        <FormField label={t('gen.jobTitle')}>
-          <input className={inputClass} value={form.job_title ?? ''} onChange={(event) => model.setField('job_title', event.target.value)} placeholder="Java Software Engineer" />
+        <FormField label={t('gen.jobTitle')} required>
+          <input className={inputClass} value={form.job_title ?? ''} onChange={(event) => model.setField('job_title', event.target.value)} placeholder={t('gen.jobTitlePlaceholder')} />
         </FormField>
         <FormField label={t('gen.email')} required>
-          <input className={inputClass} type="email" value={form.email} onChange={(event) => model.setField('email', event.target.value)} placeholder="ban@example.com" />
+          <input className={inputClass} type="email" value={form.email} onChange={(event) => model.setField('email', event.target.value)} placeholder={t('gen.emailPlaceholder')} />
         </FormField>
-        <FormField label={t('gen.phone')}>
-          <input className={inputClass} value={form.phone ?? ''} onChange={(event) => model.setField('phone', event.target.value)} placeholder="+84 90 000 0000" />
+        <FormField label={t('gen.phone')} required>
+          <input className={inputClass} value={form.phone ?? ''} onChange={(event) => model.setField('phone', event.target.value)} placeholder={t('gen.phonePlaceholder')} />
         </FormField>
         <FormField label={t('gen.address')}>
-          <input className={inputClass} value={form.location ?? ''} onChange={(event) => model.setField('location', event.target.value)} placeholder="TP. Hồ Chí Minh" />
+          <input className={inputClass} value={form.location ?? ''} onChange={(event) => model.setField('location', event.target.value)} placeholder={t('gen.addressPlaceholder')} />
         </FormField>
         <FormField label={t('gen.linkedin')}>
-          <input className={inputClass} value={form.linkedin ?? ''} onChange={(event) => model.setField('linkedin', event.target.value)} placeholder="linkedin.com/in/..." />
+          <input className={inputClass} value={form.linkedin ?? ''} onChange={(event) => model.setField('linkedin', event.target.value)} placeholder={t('gen.linkedinPlaceholder')} />
         </FormField>
         <FormField label={t('gen.github')}>
-          <input className={inputClass} value={form.github ?? ''} onChange={(event) => model.setField('github', event.target.value)} placeholder="github.com/username" />
+          <input className={inputClass} value={form.github ?? ''} onChange={(event) => model.setField('github', event.target.value)} placeholder={t('gen.githubPlaceholder')} />
         </FormField>
       </div>
-      <FormField label={t('gen.summary')}>
+      <FormField label={t('gen.summary')} required>
         <textarea
           className={inputClass}
           rows={3}
@@ -230,22 +230,22 @@ function WorkExperienceSection({ model }: { model: GenerateCvFormModel }) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <SectionHeader title={t('gen.experience')} onAdd={model.addExp} />
+      <SectionHeader title={t('gen.experience')} onAdd={model.addExp} required />
       {model.form.work_experiences.map((exp, index) => (
         <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
           <ItemHeader label={`${t('gen.position')} ${index + 1}`} canRemove={model.form.work_experiences.length > 1} onRemove={() => model.removeExp(index)} />
           <div className="grid grid-cols-2 gap-3">
             <FormField label={t('gen.company')} required>
-              <input className={inputClass} value={exp.company} onChange={(event) => model.updateExp(index, 'company', event.target.value)} />
+              <input className={inputClass} value={exp.company} onChange={(event) => model.updateExp(index, 'company', event.target.value)} placeholder={t('gen.companyPlaceholder')} />
             </FormField>
             <FormField label={t('gen.position')} required>
-              <input className={inputClass} value={exp.position} onChange={(event) => model.updateExp(index, 'position', event.target.value)} />
+              <input className={inputClass} value={exp.position} onChange={(event) => model.updateExp(index, 'position', event.target.value)} placeholder={t('gen.positionPlaceholder')} />
             </FormField>
             <FormField label={t('gen.startDate')}>
-              <input className={inputClass} value={exp.start_date} onChange={(event) => model.updateExp(index, 'start_date', event.target.value)} placeholder="01/2022" />
+              <input className={inputClass} value={exp.start_date} onChange={(event) => model.updateExp(index, 'start_date', event.target.value)} placeholder={t('gen.startDatePlaceholder')} />
             </FormField>
             <FormField label={t('gen.endDate')}>
-              <input className={inputClass} value={exp.end_date ?? ''} onChange={(event) => model.updateExp(index, 'end_date', event.target.value)} placeholder="Hiện tại" />
+              <input className={inputClass} value={exp.end_date ?? ''} onChange={(event) => model.updateExp(index, 'end_date', event.target.value)} placeholder={t('gen.endDatePlaceholder')} />
             </FormField>
           </div>
           <FormField label={t('gen.expDesc')}>
@@ -262,28 +262,28 @@ function EducationSection({ model }: { model: GenerateCvFormModel }) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <SectionHeader title={t('gen.education')} onAdd={model.addEdu} />
+      <SectionHeader title={t('gen.education')} onAdd={model.addEdu} required />
       {model.form.educations.map((edu, index) => (
         <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
           <ItemHeader label={`${t('gen.degree')} ${index + 1}`} canRemove={model.form.educations.length > 1} onRemove={() => model.removeEdu(index)} />
           <div className="grid grid-cols-2 gap-3">
             <FormField label={t('gen.school')} required>
-              <input className={inputClass} value={edu.school} onChange={(event) => model.updateEdu(index, 'school', event.target.value)} />
+              <input className={inputClass} value={edu.school} onChange={(event) => model.updateEdu(index, 'school', event.target.value)} placeholder={t('gen.schoolPlaceholder')} />
             </FormField>
             <FormField label={t('gen.degree')} required>
-              <input className={inputClass} value={edu.degree} onChange={(event) => model.updateEdu(index, 'degree', event.target.value)} placeholder="Cử nhân" />
+              <input className={inputClass} value={edu.degree} onChange={(event) => model.updateEdu(index, 'degree', event.target.value)} placeholder={t('gen.degreePlaceholder')} />
             </FormField>
             <FormField label={t('gen.major')}>
-              <input className={inputClass} value={edu.major} onChange={(event) => model.updateEdu(index, 'major', event.target.value)} />
+              <input className={inputClass} value={edu.major} onChange={(event) => model.updateEdu(index, 'major', event.target.value)} placeholder={t('gen.majorPlaceholder')} />
             </FormField>
             <FormField label={t('gen.gpa')}>
-              <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={(event) => model.updateEdu(index, 'gpa', event.target.value)} placeholder="3.5" />
+              <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={(event) => model.updateEdu(index, 'gpa', event.target.value)} placeholder={t('gen.gpaPlaceholder')} />
             </FormField>
             <FormField label={t('gen.startDate')}>
-              <input className={inputClass} value={edu.start_date} onChange={(event) => model.updateEdu(index, 'start_date', event.target.value)} placeholder="09/2018" />
+              <input className={inputClass} value={edu.start_date} onChange={(event) => model.updateEdu(index, 'start_date', event.target.value)} placeholder={t('gen.startDatePlaceholder')} />
             </FormField>
             <FormField label={t('gen.endDate')}>
-              <input className={inputClass} value={edu.end_date ?? ''} onChange={(event) => model.updateEdu(index, 'end_date', event.target.value)} placeholder="06/2022" />
+              <input className={inputClass} value={edu.end_date ?? ''} onChange={(event) => model.updateEdu(index, 'end_date', event.target.value)} placeholder={t('gen.endDatePlaceholder')} />
             </FormField>
           </div>
         </div>
@@ -297,7 +297,10 @@ function SkillsSection({ model }: { model: GenerateCvFormModel }) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">{t('gen.skills')}</h2>
+      <h2 className="font-semibold text-gray-900">
+        {t('gen.skills')}
+        <span className="ml-0.5 text-red-500">*</span>
+      </h2>
       <TagInput value={model.skillInput} onChange={model.setSkillInput} onAdd={model.addSkill} placeholder={t('gen.skillPlaceholder')} />
       {model.form.skills.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -405,13 +408,14 @@ function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
   )
 }
 
-function SectionHeader({ title, suffix, onAdd }: { title: string; suffix?: string; onAdd: () => void }) {
+function SectionHeader({ title, required, suffix, onAdd }: { title: string; required?: boolean; suffix?: string; onAdd: () => void }) {
   const { t } = useI18n()
 
   return (
     <div className="flex items-center justify-between">
       <h2 className="font-semibold text-gray-900">
         {title} {suffix && <span className="text-sm font-normal text-gray-400">{suffix}</span>}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
       </h2>
       <button type="button" onClick={onAdd} className="text-sm font-medium text-indigo-600 hover:text-indigo-800">
         + {t('gen.add')}

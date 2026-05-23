@@ -15,6 +15,7 @@ export function GenerateCvResult({
   jobTitle,
   jdText,
   templateId,
+  initialSaved = false,
 }: {
   result: GenerateCVResponse | null
   onDownloadDocx: () => void | Promise<void>
@@ -23,10 +24,11 @@ export function GenerateCvResult({
   jobTitle?: string
   jdText?: string
   templateId?: string
+  initialSaved?: boolean
 }) {
   const { t } = useI18n()
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState(initialSaved)
   const [saveError, setSaveError] = useState('')
   const isHtml = Boolean(result?.output_path?.toLowerCase().endsWith('.html'))
 

@@ -63,6 +63,15 @@ public class CvDocumentController {
         cvDocumentService.deleteCv(currentUser.getUsername(), id);
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a single CV document by ID")
+    public CvDocumentResponse getCv(
+        @PathVariable Long id,
+        @AuthenticationPrincipal UserDetails currentUser
+    ) {
+        return cvDocumentService.getCv(currentUser.getUsername(), id);
+    }
+
     @GetMapping("/stats")
     @Operation(summary = "Get CV library stats")
     public Map<String, Long> getStats(@AuthenticationPrincipal UserDetails currentUser) {

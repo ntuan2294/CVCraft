@@ -15,7 +15,7 @@ interface Toast {
 }
 
 export default function Dashboard() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -180,6 +180,31 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             ),
+            tooltipBorder: 'border-emerald-200',
+            tooltip: (() => {
+              const bestCv = cvDocs?.content && cvDocs.content.length > 0
+                ? cvDocs.content.reduce((best, c) => ((c.atsScore ?? 0) > (best.atsScore ?? 0) ? c : best), cvDocs.content[0])
+                : null
+              return bestCv ? (
+                <div>
+                  <div className="font-bold border-b border-emerald-100 pb-1 mb-1.5 text-emerald-700">
+                    {locale === 'vi' ? 'CV điểm cao nhất:' : 'Highest Scoring CV:'}
+                  </div>
+                  <div className="text-[11px] text-gray-800 font-bold truncate" title={bestCv.title}>
+                    {bestCv.title}
+                  </div>
+                  {bestCv.jdTitle && (
+                    <div className="text-[9px] text-gray-500 font-normal mt-0.5 truncate" title={bestCv.jdTitle}>
+                      For: {bestCv.jdTitle}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-500 font-normal">
+                  {locale === 'vi' ? 'Chưa có CV nào' : 'No CVs generated yet'}
+                </div>
+              )
+            })(),
           },
           {
             label: t('dash.skillsListed'),
@@ -191,6 +216,25 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             ),
+            tooltipBorder: 'border-purple-200',
+            tooltip: profile?.skills && profile.skills.length > 0 ? (
+              <div>
+                <div className="font-bold border-b border-purple-100 pb-1 mb-1.5 text-purple-700">
+                  {locale === 'vi' ? 'Kỹ năng đã liệt kê:' : 'Skills listed:'}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1 font-normal">
+                  {profile.skills.map(s => (
+                    <span key={s} className="px-1.5 py-0.5 rounded bg-gray-50 text-gray-600 text-[10px] border border-gray-200 font-semibold shadow-sm">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500 font-normal">
+                {locale === 'vi' ? 'Chưa liệt kê kỹ năng nào' : 'No skills listed yet'}
+              </div>
+            ),
           },
           {
             label: t('dash.profileComplete'),
@@ -201,9 +245,37 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             ),
+            tooltipBorder: 'border-orange-200',
+            tooltip: (() => {
+              if (!profile) return null
+              const missing: string[] = []
+              if (!profile.fullName) missing.push(t('gen.fullName'))
+              if (!profile.email) missing.push(t('gen.email'))
+              if (!profile.phone) missing.push(t('gen.phone'))
+              if (!profile.headline) missing.push(t('gen.jobTitle'))
+              if (!profile.bio) missing.push(t('gen.summary'))
+              if (!profile.skills || profile.skills.length === 0) missing.push(t('gen.skills'))
+              if (safeParseJsonLength(profile.workExperiences) === 0) missing.push(t('gen.experience'))
+              if (safeParseJsonLength(profile.educations) === 0) missing.push(t('gen.education'))
+              
+              return missing.length > 0 ? (
+                <div>
+                  <div className="font-bold border-b border-orange-100 pb-1 mb-1.5 text-orange-700">
+                    {locale === 'vi' ? 'Trường còn thiếu:' : 'Missing fields:'}
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-[11px] text-gray-600 font-medium">
+                    {missing.map(f => <li key={f}>{f}</li>)}
+                  </ul>
+                </div>
+              ) : (
+                <span className="text-emerald-600 font-bold">
+                  {locale === 'vi' ? '✓ Hồ sơ đã hoàn thiện 100%!' : '✓ Profile 100% completed!'}
+                </span>
+              )
+            })(),
           },
         ].map(s => (
-          <div key={s.label} className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+          <div key={s.label} className={`flex items-center gap-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md ${s.tooltip ? 'relative group/tooltip cursor-help' : ''}`}>
             <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${s.color}`}>
               {s.icon}
             </div>
@@ -211,6 +283,14 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-gray-900">{s.value}</div>
               <div className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-gray-400">{s.label}</div>
             </div>
+            {s.tooltip && (
+              <div className={`absolute top-full left-1/2 z-30 mt-2.5 w-64 -translate-x-1/2 scale-0 origin-top rounded-2xl bg-white p-3.5 text-left text-xs leading-normal font-semibold text-gray-800 shadow-xl border transition-all duration-200 group-hover/tooltip:scale-100 ${s.tooltipBorder || 'border-gray-200'}`}>
+                <div className={`absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-white border-t border-l ${s.tooltipBorder || 'border-gray-200'}`} />
+                <div className="relative z-10">
+                  {s.tooltip}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -462,11 +542,11 @@ function CvCard({
 
   return (
     <div className="flex flex-col justify-between gap-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition-all">
-      <div className="space-y-3">
+      <Link href={`/cv/edit/${cv.id}`} className="space-y-3 block group/cv-link cursor-pointer">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center flex-wrap gap-1.5">
-              <h3 className="font-bold text-gray-900 truncate max-w-[140px] sm:max-w-none" title={cv.title}>{cv.title}</h3>
+              <h3 className="font-bold text-gray-900 truncate max-w-[140px] sm:max-w-none group-hover/cv-link:text-blue-600 transition-colors" title={cv.title}>{cv.title}</h3>
               {cv.isPrimary && (
                 <span className="shrink-0 rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold text-violet-700">
                   {t('dash.primary')}
@@ -486,7 +566,7 @@ function CvCard({
           {cv.templateId && <span className="font-semibold text-gray-500">{getTemplateName(cv.templateId)}</span>}
           <span>{t('dash.updatedAt', { date: new Date(cv.updatedAt || cv.createdAt).toLocaleDateString() })}</span>
         </div>
-      </div>
+      </Link>
 
       <div className="flex gap-2 border-t border-gray-50 pt-3 relative">
         {cv.downloadUrl && (
@@ -658,20 +738,14 @@ function safeParseJsonLength(str?: string): number {
 
 function calcCompletion(p: UserProfile): number {
   const fields = [
+    p.fullName,
+    p.email,
+    p.phone,
     p.headline,
     p.bio,
-    p.location,
-    p.experienceYears,
     p.skills?.length,
-    p.linkedinUrl,
-    p.githubUrl,
-    p.portfolioUrl,
-    p.phone,
     safeParseJsonLength(p.workExperiences),
     safeParseJsonLength(p.educations),
-    safeParseJsonLength(p.languages),
-    safeParseJsonLength(p.certifications),
-    safeParseJsonLength(p.projects),
   ]
   const filled = fields.filter(Boolean).length
   return Math.round((filled / fields.length) * 100)

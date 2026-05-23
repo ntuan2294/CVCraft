@@ -246,38 +246,38 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t('gen.fullName')} required>
               <input value={fullName} onChange={e => setFullName(e.target.value)}
-                placeholder="Nguyễn Văn A" className={inputClass} maxLength={100} />
+                placeholder={t('gen.fullNamePlaceholder')} className={inputClass} maxLength={100} />
             </FormField>
-            <FormField label={`${t('gen.email')} (Không thể thay đổi)`}>
+            <FormField label={`${t('gen.email')} (Không thể thay đổi)`} required>
               <input value={user?.email} disabled
                 className={`${inputClass} bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed`} />
             </FormField>
-            <FormField label={t('gen.phone')}>
+            <FormField label={t('gen.phone')} required>
               <input value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="+84 90 000 0000" className={inputClass} maxLength={20} />
+                placeholder={t('gen.phonePlaceholder')} className={inputClass} maxLength={20} />
             </FormField>
-            <FormField label={t('gen.jobTitle')}>
+            <FormField label={t('gen.jobTitle')} required>
               <input value={headline} onChange={e => setHeadline(e.target.value)}
-                placeholder="Java Software Engineer" className={inputClass} maxLength={200} />
+                placeholder={t('gen.jobTitlePlaceholder')} className={inputClass} maxLength={200} />
             </FormField>
             <FormField label={t('gen.address')}>
               <input value={location} onChange={e => setLocation(e.target.value)}
-                placeholder="TP. Hồ Chí Minh" className={inputClass} />
+                placeholder={t('gen.addressPlaceholder')} className={inputClass} />
             </FormField>
             <FormField label={t('gen.linkedin')}>
               <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
-                placeholder="linkedin.com/in/..." className={inputClass} />
+                placeholder={t('gen.linkedinPlaceholder')} className={inputClass} />
             </FormField>
             <FormField label={t('gen.github')}>
               <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)}
-                placeholder="github.com/username" className={inputClass} />
+                placeholder={t('gen.githubPlaceholder')} className={inputClass} />
             </FormField>
             <FormField label="Portfolio / Website (Không bắt buộc)">
               <input value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)}
-                placeholder="https://yourportfolio.com" className={inputClass} />
+                placeholder={t('gen.portfolioPlaceholder')} className={inputClass} />
             </FormField>
           </div>
-          <FormField label={t('gen.summary')}>
+          <FormField label={t('gen.summary')} required>
             <textarea value={bio} onChange={e => setBio(e.target.value)}
               placeholder={t('gen.summaryPlaceholder')}
               rows={4} className={inputClass} />
@@ -285,7 +285,7 @@ export default function ProfilePage() {
         </Section>
 
         {/* Work Experience */}
-        <Section title={t('gen.experience')} onAdd={addExp}>
+        <Section title={t('gen.experience')} onAdd={addExp} required>
           {workExperiences.length === 0 && (
             <p className="text-sm italic text-gray-400">Chưa thêm kinh nghiệm làm việc nào.</p>
           )}
@@ -295,16 +295,16 @@ export default function ProfilePage() {
                 <ItemHeader label={`${t('gen.position')} ${index + 1}`} canRemove={workExperiences.length > 1} onRemove={() => removeExp(index)} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField label={t('gen.company')} required>
-                    <input className={inputClass} value={exp.company} onChange={e => updateExp(index, 'company', e.target.value)} placeholder="FPT Software" />
+                    <input className={inputClass} value={exp.company} onChange={e => updateExp(index, 'company', e.target.value)} placeholder={t('gen.companyPlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.position')} required>
-                    <input className={inputClass} value={exp.position} onChange={e => updateExp(index, 'position', e.target.value)} placeholder="Backend Developer" />
+                    <input className={inputClass} value={exp.position} onChange={e => updateExp(index, 'position', e.target.value)} placeholder={t('gen.positionPlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.startDate')}>
-                    <input className={inputClass} value={exp.start_date} onChange={e => updateExp(index, 'start_date', e.target.value)} placeholder="01/2022" />
+                    <input className={inputClass} value={exp.start_date} onChange={e => updateExp(index, 'start_date', e.target.value)} placeholder={t('gen.startDatePlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.endDate')}>
-                    <input className={inputClass} value={exp.end_date ?? ''} onChange={e => updateExp(index, 'end_date', e.target.value)} placeholder="Hiện tại" />
+                    <input className={inputClass} value={exp.end_date ?? ''} onChange={e => updateExp(index, 'end_date', e.target.value)} placeholder={t('gen.endDatePlaceholder')} />
                   </FormField>
                 </div>
                 <FormField label={t('gen.expDesc')}>
@@ -316,7 +316,7 @@ export default function ProfilePage() {
         </Section>
 
         {/* Education */}
-        <Section title={t('gen.education')} onAdd={addEdu}>
+        <Section title={t('gen.education')} onAdd={addEdu} required>
           {educations.length === 0 && (
             <p className="text-sm italic text-gray-400">Chưa thêm thông tin học vấn nào.</p>
           )}
@@ -326,22 +326,22 @@ export default function ProfilePage() {
                 <ItemHeader label={`${t('gen.degree')} ${index + 1}`} canRemove={educations.length > 1} onRemove={() => removeEdu(index)} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField label={t('gen.school')} required>
-                    <input className={inputClass} value={edu.school} onChange={e => updateEdu(index, 'school', e.target.value)} placeholder="Đại học Bách Khoa" />
+                    <input className={inputClass} value={edu.school} onChange={e => updateEdu(index, 'school', e.target.value)} placeholder={t('gen.schoolPlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.degree')} required>
-                    <input className={inputClass} value={edu.degree} onChange={e => updateEdu(index, 'degree', e.target.value)} placeholder="Cử nhân" />
+                    <input className={inputClass} value={edu.degree} onChange={e => updateEdu(index, 'degree', e.target.value)} placeholder={t('gen.degreePlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.major')}>
-                    <input className={inputClass} value={edu.major} onChange={e => updateEdu(index, 'major', e.target.value)} placeholder="Khoa học máy tính" />
+                    <input className={inputClass} value={edu.major} onChange={e => updateEdu(index, 'major', e.target.value)} placeholder={t('gen.majorPlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.gpa')}>
-                    <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={e => updateEdu(index, 'gpa', e.target.value)} placeholder="3.5" />
+                    <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={e => updateEdu(index, 'gpa', e.target.value)} placeholder={t('gen.gpaPlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.startDate')}>
-                    <input className={inputClass} value={edu.start_date} onChange={e => updateEdu(index, 'start_date', e.target.value)} placeholder="09/2018" />
+                    <input className={inputClass} value={edu.start_date} onChange={e => updateEdu(index, 'start_date', e.target.value)} placeholder={t('gen.startDatePlaceholder')} />
                   </FormField>
                   <FormField label={t('gen.endDate')}>
-                    <input className={inputClass} value={edu.end_date ?? ''} onChange={e => updateEdu(index, 'end_date', e.target.value)} placeholder="06/2022" />
+                    <input className={inputClass} value={edu.end_date ?? ''} onChange={e => updateEdu(index, 'end_date', e.target.value)} placeholder={t('gen.endDatePlaceholder')} />
                   </FormField>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export default function ProfilePage() {
         </Section>
 
         {/* Skills */}
-        <Section title={t('gen.skills')}>
+        <Section title={t('gen.skills')} required>
           <div className="flex gap-2">
             <input value={skillInput} onChange={e => setSkillInput(e.target.value)}
               onKeyDown={e => {
@@ -424,18 +424,18 @@ export default function ProfilePage() {
       </form>
 
       {/* Change Password */}
-      <div className="mt-8">
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <div className="border-b border-gray-100 pb-3 mb-4">
-            <h2 className="font-semibold text-gray-950 text-base">{t('auth.changePasswordTitle')}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{t('auth.changePasswordSubtitle')}</p>
-          </div>
+      <div className="mt-12 pt-10 border-t border-gray-200">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">{t('auth.changePasswordTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.changePasswordSubtitle')}</p>
+        </div>
 
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
           {pwError && (
-            <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{pwError}</div>
+            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-sm text-red-700">{pwError}</div>
           )}
           {pwSuccess && (
-            <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2 font-semibold">
+            <div className="mb-6 rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-sm text-emerald-700 flex items-center gap-2 font-semibold">
               <span>✓</span> {t('auth.passwordChangedSuccess')}
             </div>
           )}
@@ -467,11 +467,14 @@ export default function ProfilePage() {
   )
 }
 
-function Section({ title, onAdd, children }: { title: string; onAdd?: () => void; children: React.ReactNode }) {
+function Section({ title, required, onAdd, children }: { title: string; required?: boolean; onAdd?: () => void; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-        <h2 className="font-semibold text-gray-950 text-base">{title}</h2>
+        <h2 className="font-semibold text-gray-950 text-base">
+          {title}
+          {required && <span className="ml-0.5 text-red-500">*</span>}
+        </h2>
         {onAdd && (
           <button type="button" onClick={onAdd} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
             + Thêm mới

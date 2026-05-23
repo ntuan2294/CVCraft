@@ -83,6 +83,8 @@ export const profileApi = {
 export const cvDocumentApi = {
   getMyCvs: (page = 0, size = 20) =>
     request<PageResponse<CvDocument>>(`/cv-docs?page=${page}&size=${size}`),
+  getCv: (id: number) =>
+    request<CvDocument>(`/cv-docs/${id}`),
   saveCv: (data: {
     title?: string
     templateId?: string

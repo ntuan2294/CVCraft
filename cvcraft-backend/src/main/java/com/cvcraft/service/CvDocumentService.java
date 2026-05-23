@@ -73,6 +73,13 @@ public class CvDocumentService {
         cvDocumentRepository.delete(doc);
     }
 
+    public CvDocumentResponse getCv(String email, Long docId) {
+        var user = userRepository.findByEmail(email).orElseThrow();
+        var doc = cvDocumentRepository.findByIdAndUserId(docId, user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("CvDocument", docId));
+        return CvDocumentResponse.from(doc);
+    }
+
     public long countMyCvs(String email) {
         var user = userRepository.findByEmail(email).orElseThrow();
         return cvDocumentRepository.countByUserId(user.getId());
