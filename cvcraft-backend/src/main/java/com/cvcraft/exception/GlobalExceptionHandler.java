@@ -30,6 +30,14 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(com.cvcraft.service.AuthService.EmailNotVerifiedException.class)
+    public ProblemDetail handleEmailNotVerified(com.cvcraft.service.AuthService.EmailNotVerifiedException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setType(URI.create("https://cvcraft.com/errors/email-not-verified"));
+        pd.setProperty("errorCode", "EMAIL_NOT_VERIFIED");
+        return pd;
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
         var pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid email or password");

@@ -22,7 +22,7 @@ function RegisterForm() {
     setLoading(true)
     try {
       await register(form)
-      router.push('/dashboard')
+      router.push(`/auth/verify-email?email=${encodeURIComponent(form.email)}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
     } finally {

@@ -55,6 +55,35 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, body);
     }
 
+    @Async
+    public void sendVerificationOtpEmail(String toEmail, String otpCode) {
+        if (mailPassword == null || mailPassword.isBlank()) {
+            log.warn("=== [DEV] Email verification OTP for {} ===", toEmail);
+            log.warn("=== OTP CODE: {} ===", otpCode);
+            return;
+        }
+
+        String subject = "CVCraft – Verify your email (" + otpCode + ")";
+        String body = """
+            <html><body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 24px; border-radius: 12px 12px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">CVCraft</h1>
+              </div>
+              <div style="background: #fff; padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                <h2 style="color: #111827; margin-top: 0;">Verify your email address</h2>
+                <p>Enter the code below to verify your CVCraft account:</p>
+                <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+                  <span style="font-size: 40px; font-weight: 800; letter-spacing: 12px; color: #2563eb;">%s</span>
+                </div>
+                <p style="color: #6b7280; font-size: 13px;">This code expires in <strong>10 minutes</strong>.</p>
+                <p style="color: #6b7280; font-size: 13px;">If you didn't create a CVCraft account, ignore this email.</p>
+              </div>
+            </body></html>
+            """.formatted(otpCode);
+
+        sendHtmlEmail(toEmail, subject, body);
+    }
+
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             var message = mailSender.createMimeMessage();

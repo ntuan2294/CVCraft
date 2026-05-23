@@ -29,9 +29,13 @@ export const authApi = {
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (data: { email: string; password: string; fullName: string; phone?: string }) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    request<{ message: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   refresh: (refreshToken: string) =>
     request<AuthResponse>(`/auth/refresh?refreshToken=${refreshToken}`, { method: 'POST' }),
+  verifyEmail: (email: string, otpCode: string) =>
+    request<AuthResponse>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ email, otpCode }) }),
+  resendVerification: (email: string) =>
+    request<{ message: string }>('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) }),
   forgotPassword: (email: string) =>
     request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (token: string, newPassword: string) =>

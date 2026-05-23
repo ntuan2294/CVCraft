@@ -117,6 +117,19 @@ const translations = {
     'auth.alreadyHaveAccount': 'Already have an account?',
     'auth.registrationFailed': 'Registration failed',
 
+    // Auth - Verify Email
+    'verify.title': 'Verify your email',
+    'verify.subtitle': 'Enter the 6-digit code we sent to your email',
+    'verify.sentTo': 'We sent a code to',
+    'verify.expiry': 'The code expires in 10 minutes',
+    'verify.invalidOtp': 'Invalid or expired code. Please try again.',
+    'verify.noEmail': 'Email address is missing. Please register again.',
+    'verify.didntReceive': "Didn't receive the code?",
+    'verify.resend': 'Resend',
+    'verify.resending': 'Sending...',
+    'verify.resendIn': 'Resend in {s}s',
+    'verify.resendFailed': 'Failed to resend. Please try again.',
+
     // Auth - Forgot Password
     'auth.forgotPasswordTitle': 'Forgot your password?',
     'auth.forgotPasswordSubtitle': 'Enter your email and we\'ll send you a reset link',
@@ -403,6 +416,19 @@ const translations = {
     'auth.register': 'Tạo tài khoản',
     'auth.alreadyHaveAccount': 'Đã có tài khoản?',
     'auth.registrationFailed': 'Đăng ký thất bại',
+
+    // Auth - Verify Email
+    'verify.title': 'Xác minh email của bạn',
+    'verify.subtitle': 'Nhập mã 6 số chúng tôi đã gửi về email của bạn',
+    'verify.sentTo': 'Chúng tôi đã gửi mã tới',
+    'verify.expiry': 'Mã sẽ hết hạn sau 10 phút',
+    'verify.invalidOtp': 'Mã không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.',
+    'verify.noEmail': 'Thiếu địa chỉ email. Vui lòng đăng ký lại.',
+    'verify.didntReceive': 'Không nhận được mã?',
+    'verify.resend': 'Gửi lại',
+    'verify.resending': 'Đang gửi...',
+    'verify.resendIn': 'Gửi lại sau {s}s',
+    'verify.resendFailed': 'Gửi lại thất bại. Vui lòng thử lại.',
 
     // Auth - Forgot Password
     'auth.forgotPasswordTitle': 'Quên mật khẩu?',

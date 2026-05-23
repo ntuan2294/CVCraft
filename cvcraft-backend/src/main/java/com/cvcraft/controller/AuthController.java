@@ -22,8 +22,8 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a new candidate user")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
+    @Operation(summary = "Register a new candidate user — sends OTP to email")
+    public MessageResponse register(@Valid @RequestBody RegisterRequest req) {
         return authService.register(req);
     }
 
@@ -37,6 +37,18 @@ public class AuthController {
     @Operation(summary = "Refresh access token using refresh token")
     public AuthResponse refresh(@RequestParam String refreshToken) {
         return authService.refresh(refreshToken);
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify email with 6-digit OTP code")
+    public AuthResponse verifyEmail(@Valid @RequestBody VerifyEmailRequest req) {
+        return authService.verifyEmail(req);
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Resend email verification OTP")
+    public MessageResponse resendVerification(@Valid @RequestBody ResendVerificationRequest req) {
+        return authService.resendVerification(req);
     }
 
     @PostMapping("/forgot-password")

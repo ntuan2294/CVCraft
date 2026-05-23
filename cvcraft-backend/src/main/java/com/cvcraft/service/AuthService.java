@@ -3,9 +3,11 @@ package com.cvcraft.service;
 import com.cvcraft.dto.request.*;
 import com.cvcraft.dto.response.AuthResponse;
 import com.cvcraft.dto.response.MessageResponse;
+import com.cvcraft.entity.EmailVerificationOtp;
 import com.cvcraft.entity.PasswordResetToken;
 import com.cvcraft.entity.User;
 import com.cvcraft.exception.BadRequestException;
+import com.cvcraft.repository.EmailVerificationOtpRepository;
 import com.cvcraft.repository.PasswordResetTokenRepository;
 import com.cvcraft.repository.UserRepository;
 import com.cvcraft.security.JwtService;
@@ -20,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
 @Service
@@ -32,7 +35,10 @@ public class AuthService {
     private final AuthenticationManager authManager;
     private final UserDetailsService userDetailsService;
     private final PasswordResetTokenRepository resetTokenRepository;
+    private final EmailVerificationOtpRepository otpRepository;
     private final EmailService emailService;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -41,7 +47,7 @@ public class AuthService {
     private int tokenExpiryMinutes;
 
     @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public MessageResponse register(RegisterRequest req) {
         if (userRepository.existsByEmail(req.email())) {
             throw new BadRequestException("Email already registered: " + req.email());
         }
@@ -55,12 +61,18 @@ public class AuthService {
             .isEmailVerified(false)
             .build();
         user = userRepository.save(user);
-        return buildAuthResponse(user);
+        sendOtp(user);
+        return MessageResponse.of("Registration successful. Please check your email for the verification code.");
     }
 
     public AuthResponse login(LoginRequest req) {
         authManager.authenticate(new UsernamePasswordAuthenticationToken(req.email(), req.password()));
         var user = userRepository.findByEmail(req.email()).orElseThrow();
+        if (!user.getIsEmailVerified()) {
+            // Resend OTP and tell frontend to go to verify page
+            sendOtp(user);
+            throw new EmailNotVerifiedException("Email not verified. A new verification code has been sent to " + req.email());
+        }
         return buildAuthResponse(user);
     }
 
@@ -75,8 +87,55 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse verifyEmail(VerifyEmailRequest req) {
+        var user = userRepository.findByEmail(req.email())
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if (user.getIsEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        var otp = otpRepository.findTopByUser_IdAndUsedFalseOrderByCreatedAtDesc(user.getId())
+            .orElseThrow(() -> new BadRequestException("No active verification code found. Please request a new one."));
+
+        if (otp.isExpired()) {
+            throw new BadRequestException("Verification code has expired. Please request a new one.");
+        }
+        if (!otp.getOtpCode().equals(req.otpCode())) {
+            throw new BadRequestException("Invalid verification code");
+        }
+
+        otp.setUsed(true);
+        otpRepository.save(otp);
+
+        user.setIsEmailVerified(true);
+        userRepository.save(user);
+
+        return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public MessageResponse resendVerification(ResendVerificationRequest req) {
+        var user = userRepository.findByEmail(req.email())
+            .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if (user.getIsEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        // Cooldown: block resend if last OTP was sent less than 60s ago
+        otpRepository.findTopByUser_IdAndUsedFalseOrderByCreatedAtDesc(user.getId()).ifPresent(existing -> {
+            if (existing.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(60))) {
+                throw new BadRequestException("Please wait before requesting a new code");
+            }
+        });
+
+        sendOtp(user);
+        return MessageResponse.of("A new verification code has been sent to your email.");
+    }
+
+    @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest req) {
-        // Always return success to prevent email enumeration
         userRepository.findByEmail(req.email()).ifPresent(user -> {
             resetTokenRepository.deleteAllByUserId(user.getId());
             var resetToken = PasswordResetToken.builder()
@@ -129,10 +188,27 @@ public class AuthService {
         return MessageResponse.of("Password changed successfully");
     }
 
+    private void sendOtp(User user) {
+        otpRepository.deleteAllByUserId(user.getId());
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+        var otp = EmailVerificationOtp.builder()
+            .user(user)
+            .otpCode(code)
+            .expiresAt(LocalDateTime.now().plusMinutes(10))
+            .build();
+        otpRepository.save(otp);
+        emailService.sendVerificationOtpEmail(user.getEmail(), code);
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String accessToken = jwtService.generateToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
         return AuthResponse.of(accessToken, refreshToken, user, jwtExpiration / 1000);
+    }
+
+    // Custom exception so frontend can detect "needs verification" state
+    public static class EmailNotVerifiedException extends RuntimeException {
+        public EmailNotVerifiedException(String message) { super(message); }
     }
 }

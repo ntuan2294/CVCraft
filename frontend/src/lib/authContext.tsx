@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import type { AuthUser } from './types'
+import type { AuthResponse, AuthUser } from './types'
 import { authApi } from './backendApi'
 
 interface AuthContext {
@@ -9,6 +9,7 @@ interface AuthContext {
   login: (email: string, password: string) => Promise<void>
   register: (data: { email: string; password: string; fullName: string; phone?: string }) => Promise<void>
   logout: () => void
+  setAuthFromResponse: (res: AuthResponse) => void
   isCandidate: boolean
 }
 
@@ -24,20 +25,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(email, password)
+  const setAuthFromResponse = useCallback((res: AuthResponse) => {
     localStorage.setItem('cvcraft_token', res.accessToken)
     localStorage.setItem('cvcraft_refresh', res.refreshToken)
     localStorage.setItem('cvcraft_user', JSON.stringify(res.user))
     setUser(res.user)
   }, [])
 
+  const login = useCallback(async (email: string, password: string) => {
+    const res = await authApi.login(email, password)
+    setAuthFromResponse(res)
+  }, [setAuthFromResponse])
+
   const register = useCallback(async (data: { email: string; password: string; fullName: string; phone?: string }) => {
-    const res = await authApi.register(data)
-    localStorage.setItem('cvcraft_token', res.accessToken)
-    localStorage.setItem('cvcraft_refresh', res.refreshToken)
-    localStorage.setItem('cvcraft_user', JSON.stringify(res.user))
-    setUser(res.user)
+    // register now returns MessageResponse, not AuthResponse — just call API
+    await authApi.register(data)
   }, [])
 
   const logout = useCallback(() => {
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      user, loading, login, register, logout,
+      user, loading, login, register, logout, setAuthFromResponse,
       isCandidate: user?.role === 'CANDIDATE' || user?.role === 'ADMIN',
     }}>
       {children}

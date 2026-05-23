@@ -24,7 +24,12 @@ function LoginForm() {
       await login(email, password)
       router.push(redirect)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('auth.invalidCredentials'))
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.toLowerCase().includes('not verified') || msg.toLowerCase().includes('email not verified')) {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+        return
+      }
+      setError(msg || t('auth.invalidCredentials'))
     } finally {
       setLoading(false)
     }
