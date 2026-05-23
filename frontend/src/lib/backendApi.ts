@@ -7,6 +7,14 @@ function getToken(): string | null {
   return localStorage.getItem('cvcraft_token')
 }
 
+export class ApiError extends Error {
+  fields?: Record<string, string>
+  constructor(message: string, fields?: Record<string, string>) {
+    super(message)
+    this.fields = fields
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -18,7 +26,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BACKEND_BASE}${path}`, { ...options, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail ?? err.message ?? 'Request failed')
+    throw new ApiError(err.detail ?? err.message ?? 'Request failed', err.errors)
   }
   if (res.status === 204) return undefined as T
   return res.json()

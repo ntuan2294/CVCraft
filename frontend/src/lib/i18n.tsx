@@ -116,6 +116,9 @@ const translations = {
     'auth.register': 'Create Account',
     'auth.alreadyHaveAccount': 'Already have an account?',
     'auth.registrationFailed': 'Registration failed',
+    'auth.emailTaken': 'This email is already registered',
+    'auth.phoneTaken': 'This phone number is already linked to another account',
+    'auth.emailInvalid': 'This email address does not exist',
 
     // Auth - Verify Email
     'verify.title': 'Verify your email',
@@ -416,6 +419,9 @@ const translations = {
     'auth.register': 'Tạo tài khoản',
     'auth.alreadyHaveAccount': 'Đã có tài khoản?',
     'auth.registrationFailed': 'Đăng ký thất bại',
+    'auth.emailTaken': 'Email này đã được đăng ký',
+    'auth.phoneTaken': 'Số điện thoại này đã được liên kết với tài khoản khác',
+    'auth.emailInvalid': 'Địa chỉ email này không tồn tại',
 
     // Auth - Verify Email
     'verify.title': 'Xác minh email của bạn',

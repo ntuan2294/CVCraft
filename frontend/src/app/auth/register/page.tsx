@@ -3,32 +3,57 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
+import { ApiError } from '@/lib/backendApi'
 import { useI18n } from '@/lib/i18n'
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null
+  return <p className="mt-1 text-xs text-red-600">{msg}</p>
+}
 
 function RegisterForm() {
   const { t } = useI18n()
   const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '' })
-  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [globalError, setGlobalError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
   const router = useRouter()
 
-  const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const update = (k: string, v: string) => {
+    setForm(f => ({ ...f, [k]: v }))
+    setFieldErrors(e => ({ ...e, [k]: '' }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    if (form.password.length < 8) { setError(t('auth.passwordMin')); return }
+    setGlobalError('')
+    setFieldErrors({})
+
+    if (form.password.length < 8) {
+      setFieldErrors({ password: t('auth.passwordMin') })
+      return
+    }
+
     setLoading(true)
     try {
       await register(form)
       router.push(`/auth/verify-email?email=${encodeURIComponent(form.email)}`)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('auth.registrationFailed'))
+      if (err instanceof ApiError && err.fields) {
+        setFieldErrors(err.fields)
+      } else {
+        setGlobalError(err instanceof Error ? err.message : t('auth.registrationFailed'))
+      }
     } finally {
       setLoading(false)
     }
   }
+
+  const inputClass = (field: string) =>
+    `w-full text-sm border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+      fieldErrors[field] ? 'border-red-400 bg-red-50' : 'border-gray-200'
+    }`
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
@@ -36,30 +61,30 @@ function RegisterForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.fullName')}</label>
           <input type="text" value={form.fullName} onChange={e => update('fullName', e.target.value)} required
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Nguyễn Văn A" />
+            className={inputClass('fullName')} placeholder="Nguyễn Văn A" />
+          <FieldError msg={fieldErrors['fullName']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.emailAddress')}</label>
           <input type="email" value={form.email} onChange={e => update('email', e.target.value)} required
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="you@example.com" />
+            className={inputClass('email')} placeholder="you@example.com" />
+          <FieldError msg={fieldErrors['email']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.phone')}</label>
           <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="+84 912 345 678" />
+            className={inputClass('phone')} placeholder="0912 345 678" />
+          <FieldError msg={fieldErrors['phone']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.password')}</label>
           <input type="password" value={form.password} onChange={e => update('password', e.target.value)} required
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="••••••••" />
+            className={inputClass('password')} placeholder="••••••••" />
+          <FieldError msg={fieldErrors['password']} />
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>
+        {globalError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{globalError}</div>
         )}
 
         <button type="submit" disabled={loading}

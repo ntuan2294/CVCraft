@@ -56,7 +56,11 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
             .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage, (a, b) -> a));
-        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
+        // Use first error as main message
+        String firstMessage = errors.values().iterator().next();
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, firstMessage);
+        pd.setType(URI.create("https://cvcraft.com/errors/validation"));
+        pd.setProperty("errorCode", "VALIDATION_ERROR");
         pd.setProperty("errors", errors);
         return pd;
     }

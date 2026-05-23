@@ -90,6 +90,12 @@ export default function JDSearchPage() {
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             placeholder={t('jd.placeholder')}
             className="w-full text-sm focus:outline-none text-gray-900 placeholder-gray-400" />
+          {query && (
+            <button type="button" onClick={() => setQuery('')}
+              className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 text-lg leading-none">
+              ×
+            </button>
+          )}
         </div>
         <button type="submit" disabled={loading || !query.trim()}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-2xl transition-colors disabled:opacity-70 text-sm whitespace-nowrap shadow-sm">
@@ -97,12 +103,13 @@ export default function JDSearchPage() {
         </button>
       </form>
 
-      {!searched && !loading && (
+      {!loading && !query.trim() && (
         <div className="text-center py-8">
           <div className="text-4xl mb-3">💡</div>
           <p className="text-gray-500 text-sm">{t('jd.tip')}</p>
           <div className="flex flex-wrap justify-center gap-2 mt-3">
-            {['Software Engineer', 'Product Manager', 'Data Analyst', 'DevOps Engineer', 'UX Designer'].map(q => (
+            {['Software Engineer', 'Product Manager', 'Data Analyst', 'DevOps Engineer', 'UX Designer',
+              'Frontend Developer', 'Backend Developer', 'Data Scientist', 'Marketing Manager', 'Business Analyst'].map(q => (
               <button key={q} onClick={() => setQuery(q)}
                 className="text-xs bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-600 px-3 py-1.5 rounded-full transition-colors">
                 {q}

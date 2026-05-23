@@ -88,7 +88,7 @@ public class EmailService {
         try {
             var message = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(from);
+            helper.setFrom(from, "CVCraft");
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);

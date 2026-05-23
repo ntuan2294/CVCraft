@@ -37,6 +37,7 @@ public class AuthService {
     private final PasswordResetTokenRepository resetTokenRepository;
     private final EmailVerificationOtpRepository otpRepository;
     private final EmailService emailService;
+    private final EmailValidationService emailValidationService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -48,8 +49,12 @@ public class AuthService {
 
     @Transactional
     public MessageResponse register(RegisterRequest req) {
+        emailValidationService.validateOrThrow(req.email());
         if (userRepository.existsByEmail(req.email())) {
             throw new BadRequestException("Email already registered: " + req.email());
+        }
+        if (req.phone() != null && !req.phone().isBlank() && userRepository.existsByPhone(req.phone())) {
+            throw new BadRequestException("Phone number is already linked to another account");
         }
         var user = User.builder()
             .email(req.email())
@@ -136,6 +141,7 @@ public class AuthService {
 
     @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest req) {
+        emailValidationService.validateOrThrow(req.email());
         userRepository.findByEmail(req.email()).ifPresent(user -> {
             resetTokenRepository.deleteAllByUserId(user.getId());
             var resetToken = PasswordResetToken.builder()
