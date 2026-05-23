@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { adminApi } from '@/lib/backendApi'
 import { useAuth } from '@/lib/authContext'
 import { useI18n } from '@/lib/i18n'
-import type { AdminCvDocument, AdminDashboardStats, AdminUser, PageResponse, UserRole } from '@/lib/types'
+import type { CvTemplate, AdminDashboardStats, AdminUser, PageResponse, UserRole } from '@/lib/types'
 
 type UserFormState = {
   email: string
@@ -17,14 +17,13 @@ type UserFormState = {
   isEmailVerified: boolean
 }
 
-type CvFormState = {
-  title: string
-  templateId: string
-  fileName: string
-  downloadUrl: string
-  atsScore: string
-  jdTitle: string
-  isPrimary: boolean
+type TemplateFormState = {
+  name: string
+  description: string
+  fields: string
+  supportsPhotoUpload: boolean
+  summaryLabel: string
+  thumbnail: string
 }
 
 const EMPTY_USER_FORM: UserFormState = {
@@ -37,14 +36,13 @@ const EMPTY_USER_FORM: UserFormState = {
   isEmailVerified: false,
 }
 
-const EMPTY_CV_FORM: CvFormState = {
-  title: '',
-  templateId: '',
-  fileName: '',
-  downloadUrl: '',
-  atsScore: '',
-  jdTitle: '',
-  isPrimary: false,
+const EMPTY_TEMPLATE_FORM: TemplateFormState = {
+  name: '',
+  description: '',
+  fields: '',
+  supportsPhotoUpload: false,
+  summaryLabel: '',
+  thumbnail: '',
 }
 
 export default function AdminDashboardPage() {
@@ -53,23 +51,23 @@ export default function AdminDashboardPage() {
   const { locale } = useI18n()
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
   const [users, setUsers] = useState<PageResponse<AdminUser> | null>(null)
-  const [cvDocs, setCvDocs] = useState<PageResponse<AdminCvDocument> | null>(null)
-  const [tab, setTab] = useState<'users' | 'cvs'>('users')
+  const [cvTemplates, setCvTemplates] = useState<PageResponse<CvTemplate> | null>(null)
+  const [tab, setTab] = useState<'users' | 'templates'>('users')
   const [userSearch, setUserSearch] = useState('')
   const [userQuery, setUserQuery] = useState('')
-  const [cvSearch, setCvSearch] = useState('')
-  const [cvQuery, setCvQuery] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [templateQuery, setTemplateQuery] = useState('')
   const [userPage, setUserPage] = useState(0)
-  const [cvPage, setCvPage] = useState(0)
+  const [templatePage, setTemplatePage] = useState(0)
   const pageSize = 10
   const [userForm, setUserForm] = useState<UserFormState>(EMPTY_USER_FORM)
-  const [cvForm, setCvForm] = useState<CvFormState>(EMPTY_CV_FORM)
+  const [templateForm, setTemplateForm] = useState<TemplateFormState>(EMPTY_TEMPLATE_FORM)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
-  const [editingCv, setEditingCv] = useState<AdminCvDocument | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<CvTemplate | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [loadingUsers, setLoadingUsers] = useState(false)
-  const [loadingCvs, setLoadingCvs] = useState(false)
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [error, setError] = useState('')
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean
@@ -87,18 +85,19 @@ export default function AdminDashboardPage() {
     locale === 'vi'
       ? {
         title: 'Quản trị hệ thống',
-        subtitle: 'Quản lý người dùng, thư viện CV và theo dõi số CV đã được tạo.',
+        subtitle: 'Quản lý người dùng, cấu hình các biểu mẫu CV và theo dõi số CV đã được tạo.',
         users: 'Người dùng',
-        cvs: 'CV Library',
+        templates: 'Biểu mẫu CV',
         refresh: 'Tải lại',
         createUser: 'Thêm người dùng',
         updateUser: 'Cập nhật người dùng',
-        saveCv: 'Lưu chỉnh sửa CV',
+        createTemplate: 'Tạo biểu mẫu mới',
+        saveTemplate: 'Lưu biểu mẫu',
         reset: 'Làm mới form',
         searchUsers: 'Tìm theo email hoặc tên',
-        searchCvs: 'Tìm theo CV, JD hoặc người dùng',
+        searchTemplates: 'Tìm theo tên hoặc mô tả biểu mẫu',
         noUsers: 'Chưa có người dùng nào.',
-        noCvs: 'Chưa có CV nào được lưu.',
+        noTemplates: 'Chưa có biểu mẫu nào được cấu hình.',
         statsUsers: 'Tổng người dùng',
         statsCandidates: 'Candidates',
         statsAdmins: 'Admins',
@@ -117,40 +116,39 @@ export default function AdminDashboardPage() {
         password: 'Mật khẩu',
         fullName: 'Họ tên',
         phone: 'Số điện thoại',
-        titleField: 'Tiêu đề CV',
-        template: 'Template',
-        fileName: 'Tên file',
-        downloadUrl: 'Link tải',
-        atsScore: 'Điểm ATS',
-        jdTitle: 'Tiêu đề JD',
-        primary: 'CV chính',
-        owner: 'Chủ sở hữu',
+        templateName: 'Tên biểu mẫu',
+        templateDescription: 'Mô tả',
+        templateFields: 'Các trường (phân cách bằng dấu phẩy)',
+        supportsPhotoUpload: 'Hỗ trợ tải ảnh',
+        summaryLabel: 'Nhãn phần tóm tắt',
+        thumbnail: 'Ảnh thumbnail',
         createdAt: 'Tạo lúc',
         totalCv: 'Số CV',
         confirmDeleteUser: 'Xóa người dùng này?',
-        confirmDeleteCv: 'Xóa CV này?',
+        confirmDeleteTemplate: 'Xóa biểu mẫu này?',
         listUsers: 'Danh sách người dùng',
-        listCvs: 'Danh sách CV',
+        listTemplates: 'Danh sách biểu mẫu CV',
         userEditor: 'Biểu mẫu người dùng',
-        cvEditor: 'Biểu mẫu CV',
+        templateEditor: 'Cấu hình biểu mẫu',
         createHint: 'Tạo candidate hoặc admin mới trực tiếp từ khu quản trị.',
-        editHint: 'Chỉnh sửa metadata CV hoặc xóa CV lỗi khỏi hệ thống.',
-        chooseCv: 'Chọn một CV để chỉnh sửa.',
+        editTemplateHint: 'Thêm mới, chỉnh sửa cấu hình hoặc xóa biểu mẫu khỏi hệ thống.',
+        chooseTemplate: 'Chọn một biểu mẫu để chỉnh sửa hoặc điền form để tạo mới.',
       }
       : {
         title: 'System Administration',
-        subtitle: 'Manage users, the CV library, and monitor how many CVs have been created.',
+        subtitle: 'Manage users, configure CV templates, and monitor how many CVs have been created.',
         users: 'Users',
-        cvs: 'CV Library',
+        templates: 'CV Templates',
         refresh: 'Refresh',
         createUser: 'Create User',
         updateUser: 'Update User',
-        saveCv: 'Save CV Changes',
+        createTemplate: 'Create Template',
+        saveTemplate: 'Save Template',
         reset: 'Reset Form',
         searchUsers: 'Search by email or name',
-        searchCvs: 'Search by CV, JD, or owner',
+        searchTemplates: 'Search by template name or description',
         noUsers: 'No users found.',
-        noCvs: 'No CVs found.',
+        noTemplates: 'No templates found.',
         statsUsers: 'Total Users',
         statsCandidates: 'Candidates',
         statsAdmins: 'Admins',
@@ -169,25 +167,23 @@ export default function AdminDashboardPage() {
         password: 'Password',
         fullName: 'Full Name',
         phone: 'Phone',
-        titleField: 'CV Title',
-        template: 'Template',
-        fileName: 'File Name',
-        downloadUrl: 'Download URL',
-        atsScore: 'ATS Score',
-        jdTitle: 'JD Title',
-        primary: 'Primary CV',
-        owner: 'Owner',
+        templateName: 'Template Name',
+        templateDescription: 'Description',
+        templateFields: 'Fields (comma-separated)',
+        supportsPhotoUpload: 'Supports Photo Upload',
+        summaryLabel: 'Summary Label',
+        thumbnail: 'Thumbnail URL',
         createdAt: 'Created At',
         totalCv: 'CV Count',
         confirmDeleteUser: 'Delete this user?',
-        confirmDeleteCv: 'Delete this CV?',
+        confirmDeleteTemplate: 'Delete this template?',
         listUsers: 'User List',
-        listCvs: 'CV List',
+        listTemplates: 'CV Templates List',
         userEditor: 'User Form',
-        cvEditor: 'CV Form',
+        templateEditor: 'Template Form',
         createHint: 'Create candidate or admin accounts directly from the admin area.',
-        editHint: 'Edit CV metadata or remove broken CVs from the system.',
-        chooseCv: 'Select a CV to edit.',
+        editTemplateHint: 'Create, edit configuration, or remove templates from the system.',
+        chooseTemplate: 'Select a CV template to edit, or fill the form to create a new one.',
       }
   ), [locale])
 
@@ -215,14 +211,14 @@ export default function AdminDashboardPage() {
     return () => clearTimeout(handler)
   }, [userSearch])
 
-  // Debounced search term updater for CVs
+  // Debounced search term updater for CV templates
   useEffect(() => {
     const handler = setTimeout(() => {
-      setCvQuery(cvSearch)
-      setCvPage(0) // Reset to first page on search
+      setTemplateQuery(templateSearch)
+      setTemplatePage(0) // Reset to first page on search
     }, 500)
     return () => clearTimeout(handler)
-  }, [cvSearch])
+  }, [templateSearch])
 
   // Effect to load users when query or page changes
   useEffect(() => {
@@ -231,12 +227,12 @@ export default function AdminDashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userQuery, userPage, authLoading, user])
 
-  // Effect to load CVs when query or page changes
+  // Effect to load templates when query or page changes
   useEffect(() => {
     if (authLoading || !user || user.role !== 'ADMIN') return
-    void reloadCvs(cvQuery, cvPage)
+    void reloadTemplates(templateQuery, templatePage)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cvQuery, cvPage, authLoading, user])
+  }, [templateQuery, templatePage, authLoading, user])
 
   async function loadAll() {
     setLoadingData(true)
@@ -263,15 +259,15 @@ export default function AdminDashboardPage() {
     }
   }
 
-  async function reloadCvs(query = cvQuery, page = cvPage) {
-    setLoadingCvs(true)
+  async function reloadTemplates(query = templateQuery, page = templatePage) {
+    setLoadingTemplates(true)
     try {
-      const data = await adminApi.getCvDocuments(query, page, pageSize)
-      setCvDocs(data)
+      const data = await adminApi.getCvTemplates(query, page, pageSize)
+      setCvTemplates(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load CVs')
+      setError(err instanceof Error ? err.message : 'Failed to load templates')
     } finally {
-      setLoadingCvs(false)
+      setLoadingTemplates(false)
     }
   }
 
@@ -288,16 +284,15 @@ export default function AdminDashboardPage() {
     })
   }
 
-  const handleEditCv = (item: AdminCvDocument) => {
-    setEditingCv(item)
-    setCvForm({
-      title: item.title,
-      templateId: item.templateId ?? '',
-      fileName: item.fileName ?? '',
-      downloadUrl: item.downloadUrl ?? '',
-      atsScore: item.atsScore?.toString() ?? '',
-      jdTitle: item.jdTitle ?? '',
-      isPrimary: item.isPrimary,
+  const handleEditTemplate = (item: CvTemplate) => {
+    setEditingTemplate(item)
+    setTemplateForm({
+      name: item.name,
+      description: item.description ?? '',
+      fields: item.fields.join(','),
+      supportsPhotoUpload: item.supportsPhotoUpload,
+      summaryLabel: item.summaryLabel ?? '',
+      thumbnail: item.thumbnail ?? '',
     })
   }
 
@@ -306,9 +301,9 @@ export default function AdminDashboardPage() {
     setUserForm(EMPTY_USER_FORM)
   }
 
-  const resetCvForm = () => {
-    setEditingCv(null)
-    setCvForm(EMPTY_CV_FORM)
+  const resetTemplateForm = () => {
+    setEditingTemplate(null)
+    setTemplateForm(EMPTY_TEMPLATE_FORM)
   }
 
   const handleUserSubmit = async (e: React.FormEvent) => {
@@ -337,24 +332,34 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleCvSubmit = async (e: React.FormEvent) => {
+  const handleTemplateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editingCv) return
     setSubmitting(true)
     setError('')
     try {
-      await adminApi.updateCvDocument(editingCv.id, {
-        title: cvForm.title,
-        templateId: cvForm.templateId || undefined,
-        fileName: cvForm.fileName || undefined,
-        downloadUrl: cvForm.downloadUrl || undefined,
-        atsScore: cvForm.atsScore ? Number(cvForm.atsScore) : undefined,
-        jdTitle: cvForm.jdTitle || undefined,
-        isPrimary: cvForm.isPrimary,
-      })
-      await Promise.all([reloadCvs(cvQuery, cvPage), refreshStats()])
+      if (editingTemplate) {
+        await adminApi.updateCvTemplate(editingTemplate.id, {
+          name: templateForm.name,
+          description: templateForm.description || undefined,
+          fields: templateForm.fields,
+          supportsPhotoUpload: templateForm.supportsPhotoUpload,
+          summaryLabel: templateForm.summaryLabel || undefined,
+          thumbnail: templateForm.thumbnail || undefined,
+        })
+      } else {
+        await adminApi.createCvTemplate({
+          name: templateForm.name,
+          description: templateForm.description || undefined,
+          fields: templateForm.fields,
+          supportsPhotoUpload: templateForm.supportsPhotoUpload,
+          summaryLabel: templateForm.summaryLabel || undefined,
+          thumbnail: templateForm.thumbnail || undefined,
+        })
+      }
+      resetTemplateForm()
+      await Promise.all([reloadTemplates(templateQuery, templatePage), refreshStats()])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save CV')
+      setError(err instanceof Error ? err.message : 'Failed to save template')
     } finally {
       setSubmitting(false)
     }
@@ -370,13 +375,13 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleDeleteCv = async (id: number) => {
+  const handleDeleteTemplate = async (id: number) => {
     try {
-      await adminApi.deleteCvDocument(id)
-      if (editingCv?.id === id) resetCvForm()
-      await Promise.all([reloadCvs(cvQuery, cvPage), refreshStats()])
+      await adminApi.deleteCvTemplate(id)
+      if (editingTemplate?.id === id) resetTemplateForm()
+      await Promise.all([reloadTemplates(templateQuery, templatePage), refreshStats()])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete CV')
+      setError(err instanceof Error ? err.message : 'Failed to delete template')
     }
   }
 
@@ -389,12 +394,12 @@ export default function AdminDashboardPage() {
     })
   }
 
-  const handleDeleteCvClick = (id: number) => {
+  const handleDeleteTemplateClick = (id: number) => {
     setConfirmModal({
       isOpen: true,
-      title: text.confirmDeleteCv,
-      message: 'Hành động này không thể hoàn tác. Tài liệu CV này sẽ bị xóa vĩnh viễn khỏi hệ thống.',
-      onConfirm: () => void handleDeleteCv(id),
+      title: text.confirmDeleteTemplate,
+      message: 'Hành động này không thể hoàn tác. Cấu hình biểu mẫu này sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+      onConfirm: () => void handleDeleteTemplate(id),
     })
   }
 
@@ -405,7 +410,7 @@ export default function AdminDashboardPage() {
       await Promise.all([
         refreshStats(),
         reloadUsers(userQuery, userPage),
-        reloadCvs(cvQuery, cvPage)
+        reloadTemplates(templateQuery, templatePage)
       ])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh data')
@@ -526,7 +531,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="mb-6 flex w-fit gap-1 rounded-2xl bg-gray-100 p-1">
-        {(['users', 'cvs'] as const).map((name) => (
+        {(['users', 'templates'] as const).map((name) => (
           <button
             key={name}
             type="button"
@@ -535,7 +540,7 @@ export default function AdminDashboardPage() {
               tab === name ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            {name === 'users' ? text.users : text.cvs}
+            {name === 'users' ? text.users : text.templates}
           </button>
         ))}
       </div>
@@ -702,19 +707,19 @@ export default function AdminDashboardPage() {
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{text.listCvs}</h2>
-                <p className="mt-1 text-sm text-gray-500">{text.editHint}</p>
+                <h2 className="text-lg font-semibold text-gray-900">{text.listTemplates}</h2>
+                <p className="mt-1 text-sm text-gray-500">{text.editTemplateHint}</p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <input
-                    value={cvSearch}
-                    onChange={(e) => setCvSearch(e.target.value)}
-                    placeholder={text.searchCvs}
+                    value={templateSearch}
+                    onChange={(e) => setTemplateSearch(e.target.value)}
+                    placeholder={text.searchTemplates}
                     className="min-w-0 w-64 rounded-2xl border border-gray-200 pl-10 pr-4 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
                   />
                   <div className="absolute left-3.5 top-3 text-gray-400">
-                    {loadingCvs ? (
+                    {loadingTemplates ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                     ) : (
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -727,39 +732,53 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-4">
-              {loadingCvs ? (
+              {loadingTemplates ? (
                 <SkeletonList />
-              ) : cvDocs?.content.length ? (
+              ) : cvTemplates?.content.length ? (
                 <>
-                  {cvDocs.content.map((item) => (
+                  {cvTemplates.content.map((item) => (
                     <div key={item.id} className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
-                            {item.isPrimary && (
-                              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">{text.primary}</span>
-                            )}
-                          </div>
-                          <p className="mt-2 text-sm text-gray-600">{text.owner}: {item.userFullName} ({item.userEmail})</p>
-                          {item.jdTitle && <p className="mt-1 text-sm text-gray-500">{text.jdTitle}: {item.jdTitle}</p>}
-                          <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-                            <span>ATS: <strong className="text-gray-800">{item.atsScore ?? '-'}</strong></span>
-                            <span>{text.template}: <strong className="text-gray-800">{item.templateId ?? '-'}</strong></span>
-                            <span>{text.createdAt}: {formatDate(item.createdAt)}</span>
+                        <div className="min-w-0 flex items-start gap-4">
+                          {item.thumbnail ? (
+                            <img
+                              src={item.thumbnail}
+                              alt={item.name}
+                              className="h-20 w-14 shrink-0 rounded-md border border-gray-200 object-cover object-top shadow-sm bg-white"
+                            />
+                          ) : (
+                            <div className="h-20 w-14 shrink-0 rounded-md border border-dashed border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-400 font-semibold">
+                              No pic
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-base font-semibold text-gray-900">{item.name}</h3>
+                              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">ID: {item.id}</span>
+                              {item.supportsPhotoUpload && (
+                                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Ảnh</span>
+                              )}
+                            </div>
+                            <p className="mt-1.5 text-sm text-gray-600">{item.description}</p>
+                            <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                              <span>Fields: <strong className="text-gray-800">{item.fields.join(', ')}</strong></span>
+                              {item.summaryLabel && (
+                                <span>Summary Label: <strong className="text-gray-800">{item.summaryLabel}</strong></span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 shrink-0">
                           <button
                             type="button"
-                            onClick={() => handleEditCv(item)}
+                            onClick={() => handleEditTemplate(item)}
                             className="rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-blue-300 hover:text-blue-700"
                           >
                             {text.edit}
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteCvClick(item.id)}
+                            onClick={() => handleDeleteTemplateClick(item.id)}
                             className="rounded-2xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
                           >
                             {text.delete}
@@ -769,16 +788,16 @@ export default function AdminDashboardPage() {
                     </div>
                   ))}
                   <Pagination
-                    currentPage={cvPage}
-                    totalPages={cvDocs.totalPages}
-                    totalElements={cvDocs.totalElements}
+                    currentPage={templatePage}
+                    totalPages={cvTemplates.totalPages}
+                    totalElements={cvTemplates.totalElements}
                     pageSize={pageSize}
-                    onPageChange={(page) => setCvPage(page)}
+                    onPageChange={(page) => setTemplatePage(page)}
                   />
                 </>
               ) : (
                 <div className="rounded-3xl border border-dashed border-gray-200 px-6 py-12 text-center text-sm text-gray-500">
-                  {text.noCvs}
+                  {text.noTemplates}
                 </div>
               )}
             </div>
@@ -787,57 +806,54 @@ export default function AdminDashboardPage() {
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{text.cvEditor}</h2>
-                <p className="mt-1 text-sm text-gray-500">{editingCv ? `${editingCv.userEmail}` : text.chooseCv}</p>
+                <h2 className="text-lg font-semibold text-gray-900">{text.templateEditor}</h2>
+                <p className="mt-1 text-sm text-gray-500">{editingTemplate ? `${editingTemplate.name}` : text.chooseTemplate}</p>
               </div>
               <button
                 type="button"
-                onClick={resetCvForm}
+                onClick={resetTemplateForm}
                 className="rounded-2xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600"
               >
                 {text.reset}
               </button>
             </div>
 
-            {editingCv ? (
-              <form className="space-y-4" onSubmit={handleCvSubmit}>
-                <FormInput label={text.titleField} value={cvForm.title} onChange={(value) => setCvForm(prev => ({ ...prev, title: value }))} />
-                <FormInput label={text.template} value={cvForm.templateId} onChange={(value) => setCvForm(prev => ({ ...prev, templateId: value }))} />
-                <FormInput label={text.fileName} value={cvForm.fileName} onChange={(value) => setCvForm(prev => ({ ...prev, fileName: value }))} />
-                <FormInput label={text.downloadUrl} value={cvForm.downloadUrl} onChange={(value) => setCvForm(prev => ({ ...prev, downloadUrl: value }))} />
-                <FormInput label={text.atsScore} type="number" value={cvForm.atsScore} onChange={(value) => setCvForm(prev => ({ ...prev, atsScore: value }))} />
-                <FormInput label={text.jdTitle} value={cvForm.jdTitle} onChange={(value) => setCvForm(prev => ({ ...prev, jdTitle: value }))} />
-                <ToggleField
-                  label={text.primary}
-                  checked={cvForm.isPrimary}
-                  onChange={(checked) => setCvForm(prev => ({ ...prev, isPrimary: checked }))}
-                />
+            <form className="space-y-4" onSubmit={handleTemplateSubmit}>
+              <FormInput label={text.templateName} value={templateForm.name} onChange={(value) => setTemplateForm(prev => ({ ...prev, name: value }))} required />
+              <FormInput label={text.templateDescription} value={templateForm.description} onChange={(value) => setTemplateForm(prev => ({ ...prev, description: value }))} />
+              <FormInput label={text.templateFields} value={templateForm.fields} onChange={(value) => setTemplateForm(prev => ({ ...prev, fields: value }))} placeholder="photo,name,job_title,skills..." required />
+              <FormInput label={text.summaryLabel} value={templateForm.summaryLabel} onChange={(value) => setTemplateForm(prev => ({ ...prev, summaryLabel: value }))} placeholder="e.g. Profile, About me" />
+              <FormInput label={text.thumbnail} value={templateForm.thumbnail} onChange={(value) => setTemplateForm(prev => ({ ...prev, thumbnail: value }))} placeholder="e.g. /template-images/temp1.jpg" />
+              
+              <ToggleField
+                label={text.supportsPhotoUpload}
+                checked={templateForm.supportsPhotoUpload}
+                onChange={(checked) => setTemplateForm(prev => ({ ...prev, supportsPhotoUpload: checked }))}
+              />
 
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
-                  >
-                    {text.saveCv}
-                  </button>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {editingTemplate ? text.saveTemplate : text.createTemplate}
+                </button>
+                {editingTemplate && (
                   <button
                     type="button"
-                    onClick={resetCvForm}
+                    onClick={resetTemplateForm}
                     className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-600"
                   >
                     {text.cancelEdit}
                   </button>
-                </div>
-              </form>
-            ) : (
-              <div className="rounded-3xl border border-dashed border-gray-200 px-6 py-12 text-center text-sm text-gray-500">
-                {text.chooseCv}
+                )}
               </div>
-            )}
+            </form>
           </section>
         </div>
       )}
+
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}

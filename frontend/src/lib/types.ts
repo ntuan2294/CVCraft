@@ -70,6 +70,18 @@ export interface PageResponse<T> {
   first: boolean
 }
 
+export interface CvTemplate {
+  id: number
+  name: string
+  description?: string
+  fields: string[]
+  supportsPhotoUpload: boolean
+  summaryLabel?: string
+  thumbnail?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 // ---- Admin ----
 export interface AdminDashboardStats {
   totalUsers: number

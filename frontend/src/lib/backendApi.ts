@@ -1,4 +1,4 @@
-import type { AuthResponse, UserProfile, CvDocument, PageResponse, AdminDashboardStats, AdminUser, AdminCvDocument, UserRole } from './types'
+import type { AuthResponse, UserProfile, CvDocument, PageResponse, AdminDashboardStats, AdminUser, AdminCvDocument, UserRole, CvTemplate } from './types'
 
 const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080/api'
 
@@ -102,6 +102,10 @@ export const cvDocumentApi = {
     request<{ totalCvs: number }>('/cv-docs/stats'),
 }
 
+export const cvTemplateApi = {
+  getAll: () => request<CvTemplate[]>('/cv-templates'),
+}
+
 export const adminApi = {
   getDashboardStats: () =>
     request<AdminDashboardStats>('/admin/dashboard'),
@@ -140,4 +144,24 @@ export const adminApi = {
   }) => request<AdminCvDocument>(`/admin/cv-docs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCvDocument: (id: number) =>
     request<void>(`/admin/cv-docs/${id}`, { method: 'DELETE' }),
+  getCvTemplates: (query = '', page = 0, size = 20) =>
+    request<PageResponse<CvTemplate>>(`/admin/cv-templates?query=${encodeURIComponent(query)}&page=${page}&size=${size}`),
+  createCvTemplate: (data: {
+    name: string
+    description?: string
+    fields: string
+    supportsPhotoUpload?: boolean
+    summaryLabel?: string
+    thumbnail?: string
+  }) => request<CvTemplate>('/admin/cv-templates', { method: 'POST', body: JSON.stringify(data) }),
+  updateCvTemplate: (id: number, data: {
+    name: string
+    description?: string
+    fields: string
+    supportsPhotoUpload?: boolean
+    summaryLabel?: string
+    thumbnail?: string
+  }) => request<CvTemplate>(`/admin/cv-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCvTemplate: (id: number) =>
+    request<void>(`/admin/cv-templates/${id}`, { method: 'DELETE' }),
 }

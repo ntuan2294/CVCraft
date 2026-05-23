@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { buildJDText } from '@/lib/jd'
-import { profileApi, type UpdateProfileRequest } from '@/lib/backendApi'
+import { profileApi, cvTemplateApi, type UpdateProfileRequest } from '@/lib/backendApi'
+import type { CVTemplate } from '@/components/TemplatePickerModal'
 import type {
   Certification,
   Education,
@@ -61,6 +62,7 @@ function getInitialJdText() {
 export function useGenerateCvForm() {
   const [jdText, setJdText] = useState(getInitialJdText)
   const [form, setForm] = useState<UserInput>(initialForm)
+  const [templates, setTemplates] = useState<CVTemplate[]>(CV_TEMPLATES)
   const [templateId, setTemplateId] = useState(CV_TEMPLATES[0].id)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [skillInput, setSkillInput] = useState('')
@@ -74,9 +76,36 @@ export function useGenerateCvForm() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [saveProfileSuccess, setSaveProfileSuccess] = useState(false)
 
+  useEffect(() => {
+    let isMounted = true
+    cvTemplateApi.getAll()
+      .then(data => {
+        if (!isMounted) return
+        if (data && data.length > 0) {
+          const mapped: CVTemplate[] = data.map(t => ({
+            id: String(t.id),
+            name: t.name,
+            description: t.description || '',
+            fields: t.fields,
+            supportsPhotoUpload: t.supportsPhotoUpload,
+            summaryLabel: t.summaryLabel || 'Profile',
+            thumbnail: t.thumbnail || ''
+          }))
+          setTemplates(mapped)
+          if (!mapped.some(t => t.id === templateId)) {
+            setTemplateId(mapped[0].id)
+          }
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load CV templates from database, falling back to static constants:', err)
+      })
+    return () => { isMounted = false }
+  }, [templateId])
+
   const selectedTemplate = useMemo(
-    () => CV_TEMPLATES.find((template) => template.id === templateId) ?? CV_TEMPLATES[0],
-    [templateId],
+    () => templates.find((template) => template.id === templateId) ?? templates[0],
+    [templateId, templates],
   )
 
   const setField = (field: keyof UserInput, value: string) => {
@@ -171,7 +200,7 @@ export function useGenerateCvForm() {
 
   const handleTemplateSelect = (id: string) => {
     setTemplateId(id)
-    const template = CV_TEMPLATES.find((item) => item.id === id)
+    const template = templates.find((item) => item.id === id)
     if (!template?.supportsPhotoUpload) {
       setPhoto(undefined)
     }
@@ -194,9 +223,16 @@ export function useGenerateCvForm() {
     setResult(null)
 
     try {
+      const summaryField = SUMMARY_FIELD_BY_TEMPLATE[selectedTemplate.id] ||
+        (selectedTemplate.summaryLabel?.toLowerCase().includes('about') ? 'about_me' :
+         selectedTemplate.summaryLabel?.toLowerCase().includes('personal') ? 'personal_summary' :
+         selectedTemplate.summaryLabel?.toLowerCase().includes('summary') ? 'summary' : 'profile')
+      const templatePath = TEMPLATE_PATH_BY_ID[selectedTemplate.id] || `template cv/${selectedTemplate.id}.docx`
+      const exportFormat = templatePath.toLowerCase().endsWith('.html') ? 'html' : 'docx'
+
       const templateSchema = {
         id: selectedTemplate.id,
-        summary_field: SUMMARY_FIELD_BY_TEMPLATE[selectedTemplate.id],
+        summary_field: summaryField,
         fields: selectedTemplate.fields,
         supports_photo_upload: selectedTemplate.supportsPhotoUpload,
         instruction: `Sinh toàn bộ CV bằng ${outputLanguage === 'vi' ? 'tiếng Việt' : 'tiếng Anh sau khi dịch từ bản tiếng Việt'}, match input người dùng với JD theo logic cũ, tổng hợp thành JSON theo các field của Template ${selectedTemplate.id}, rồi render vào file mẫu.`,
@@ -207,12 +243,12 @@ export function useGenerateCvForm() {
         educations: form.educations.filter((item) => item.school && item.degree),
         certifications: [],
         projects: [],
-        template_path: TEMPLATE_PATH_BY_ID[selectedTemplate.id],
+        template_path: templatePath,
         template_id: selectedTemplate.id,
         template_schema: templateSchema,
         photo: selectedTemplate.supportsPhotoUpload ? photo : undefined,
         output_language: outputLanguage,
-        export_format: selectedTemplate.id === '6' ? 'html' : 'docx',
+        export_format: exportFormat,
       }
 
       const { task_id } = await api.cv.generateAsync(jdText.trim(), userInput)
@@ -345,6 +381,7 @@ export function useGenerateCvForm() {
     setJdText,
     form,
     setField,
+    templates,
     selectedTemplate,
     templateId,
     showTemplatePicker,

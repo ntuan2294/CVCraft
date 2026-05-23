@@ -3,11 +3,14 @@ package com.cvcraft.controller;
 import com.cvcraft.dto.request.AdminCreateUserRequest;
 import com.cvcraft.dto.request.AdminUpdateCvRequest;
 import com.cvcraft.dto.request.AdminUpdateUserRequest;
+import com.cvcraft.dto.request.CvTemplateRequest;
 import com.cvcraft.dto.response.AdminCvDocumentResponse;
 import com.cvcraft.dto.response.AdminDashboardResponse;
 import com.cvcraft.dto.response.AdminUserResponse;
+import com.cvcraft.dto.response.CvTemplateResponse;
 import com.cvcraft.dto.response.PageResponse;
 import com.cvcraft.service.AdminService;
+import com.cvcraft.service.CvTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final AdminService adminService;
+    private final CvTemplateService cvTemplateService;
 
     @GetMapping("/dashboard")
     @Operation(summary = "Get admin dashboard stats")
@@ -96,5 +100,38 @@ public class AdminController {
     @Operation(summary = "Delete CV document as admin")
     public void deleteCvDocument(@PathVariable Long id) {
         adminService.deleteCvDocument(id);
+    }
+
+    @GetMapping("/cv-templates")
+    @Operation(summary = "List all CV templates for admin")
+    public PageResponse<CvTemplateResponse> getCvTemplates(
+        @RequestParam(defaultValue = "") String query,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        return cvTemplateService.searchTemplates(query, page, size);
+    }
+
+    @PostMapping("/cv-templates")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create CV template as admin")
+    public CvTemplateResponse createCvTemplate(@Valid @RequestBody CvTemplateRequest req) {
+        return cvTemplateService.createTemplate(req);
+    }
+
+    @PutMapping("/cv-templates/{id}")
+    @Operation(summary = "Update CV template as admin")
+    public CvTemplateResponse updateCvTemplate(
+        @PathVariable Long id,
+        @Valid @RequestBody CvTemplateRequest req
+    ) {
+        return cvTemplateService.updateTemplate(id, req);
+    }
+
+    @DeleteMapping("/cv-templates/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete CV template as admin")
+    public void deleteCvTemplate(@PathVariable Long id) {
+        cvTemplateService.deleteTemplate(id);
     }
 }

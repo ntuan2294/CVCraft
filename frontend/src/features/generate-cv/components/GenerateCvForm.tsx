@@ -133,7 +133,7 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
 
       {model.showTemplatePicker && (
         <TemplatePickerModal
-          templates={CV_TEMPLATES}
+          templates={model.templates}
           selected={model.templateId}
           onSelect={model.handleTemplateSelect}
           onClose={() => model.setShowTemplatePicker(false)}
