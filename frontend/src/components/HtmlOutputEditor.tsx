@@ -35,27 +35,27 @@ const CV_COMPONENTS = [
 const SECTION_COPY: Record<CvComponentKind, { title: string; body: string }> = {
   awards: {
     title: 'Awards',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên giải thưởng</span><span class="exp-time">YYYY</span></div><div class="exp-role">Đơn vị trao giải</div><ul class="exp-bullets"><li>Mô tả ngắn về thành tích hoặc phạm vi giải thưởng.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Tên giải thưởng</div><div class="exp-time">YYYY</div><div class="exp-role">Đơn vị trao giải</div><ul class="exp-bullets"><li>Mô tả ngắn về thành tích hoặc phạm vi giải thưởng.</li></ul></div>',
   },
   projects: {
     title: 'Projects',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên dự án</span><span class="exp-time">MM/YYYY - MM/YYYY</span></div><div class="exp-role">Link: https://example.com</div><ul class="exp-bullets"><li>Mô tả mục tiêu, vai trò, công nghệ sử dụng và kết quả dự án.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Tên dự án</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Link: https://example.com</div><ul class="exp-bullets"><li>Mô tả mục tiêu, vai trò, công nghệ sử dụng và kết quả dự án.</li></ul></div>',
   },
   activities: {
     title: 'Activities',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên hoạt động</span><span class="exp-time">MM/YYYY - MM/YYYY</span></div><div class="exp-role">Vai trò / Tổ chức</div><ul class="exp-bullets"><li>Mô tả đóng góp chính hoặc kết quả đạt được.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Tên hoạt động</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Vai trò / Tổ chức</div><ul class="exp-bullets"><li>Mô tả đóng góp chính hoặc kết quả đạt được.</li></ul></div>',
   },
   volunteer: {
     title: 'Volunteer',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên tổ chức</span><span class="exp-time">MM/YYYY - MM/YYYY</span></div><div class="exp-role">Vai trò tình nguyện viên</div><ul class="exp-bullets"><li>Mô tả hoạt động và đóng góp của bạn.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Tên tổ chức</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Vai trò tình nguyện viên</div><ul class="exp-bullets"><li>Mô tả hoạt động và đóng góp của bạn.</li></ul></div>',
   },
   publications: {
     title: 'Publications',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên nghiên cứu / ấn phẩm</span><span class="exp-time">YYYY</span></div><div class="exp-role">Tạp chí / Hội nghị / Nơi xuất bản</div><ul class="exp-bullets"><li>Mô tả nội dung và đóng góp của nghiên cứu.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Tên nghiên cứu / ấn phẩm</div><div class="exp-time">YYYY</div><div class="exp-role">Tạp chí / Hội nghị / Nơi xuất bản</div><ul class="exp-bullets"><li>Mô tả nội dung và đóng góp của nghiên cứu.</li></ul></div>',
   },
   hobbies: {
     title: 'Hobbies & Interests',
-    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Sở thích & Hoạt động cá nhân</span></div><ul class="exp-bullets"><li>Liệt kê sở thích và hoạt động ngoại khoá của bạn.</li></ul></div>',
+    body: '<div class="exp-entry"><div class="exp-company">Sở thích &amp; Hoạt động cá nhân</div><ul class="exp-bullets"><li>Liệt kê sở thích và hoạt động ngoại khoá của bạn.</li></ul></div>',
   },
 }
 
@@ -89,7 +89,6 @@ function normalizeListNearSelection(doc: Document) {
   list.style.marginLeft = '0'
   if (list.tagName === 'UL') list.style.listStyleType = 'disc'
 }
-
 
 function buildSectionHtml(doc: Document, kind: CvComponentKind) {
   const copy = SECTION_COPY[kind]
@@ -172,6 +171,7 @@ function Divider() {
 export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
+  const sectionUndoRef = useRef<Element[]>([])
   const [html, setHtml] = useState('')
   const [error, setError] = useState('')
   const [fontFamily, setFontFamily] = useState('DM Sans')
@@ -238,38 +238,29 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     if (!doc || !frame) return
 
     const sectionHtml = buildSectionHtml(doc, kind)
-
-    // Always insert inside the main content column (right column for 2-col templates,
-    // or the page itself for flat templates). This ensures the new section is at the
-    // same alignment/margin level as existing sections.
+    // Prefer .main (right column in 2-col templates), fall back to .page
     const mainContainer = doc.querySelector('.main') ?? doc.querySelector('.page')
     if (!mainContainer) return
 
-    const lastSection = mainContainer.lastElementChild
-    if (lastSection) {
-      const range = doc.createRange()
-      range.setStartAfter(lastSection)
-      range.collapse(true)
-      const sel = doc.getSelection()
-      sel?.removeAllRanges()
-      sel?.addRange(range)
-      savedRangeRef.current = range
-    }
+    // insertAdjacentHTML is reliable — always appends as last child of mainContainer
+    // regardless of current cursor position (execCommand can nest inside last section)
+    mainContainer.insertAdjacentHTML('beforeend', sectionHtml)
+    const inserted = mainContainer.lastElementChild as HTMLElement | null
+    if (!inserted) return
 
+    // Track for Ctrl+Z undo (see keydown handler in useEffect)
+    sectionUndoRef.current.push(inserted)
+
+    inserted.scrollIntoView({ block: 'center' })
     frame.contentWindow?.focus()
-    doc.execCommand('insertHTML', false, sectionHtml)
 
-    const inserted = mainContainer.lastElementChild
-    if (inserted instanceof HTMLElement) {
-      inserted.scrollIntoView({ block: 'center' })
-      const endRange = doc.createRange()
-      endRange.selectNodeContents(inserted)
-      endRange.collapse(false)
-      const sel = doc.getSelection()
-      sel?.removeAllRanges()
-      sel?.addRange(endRange)
-      savedRangeRef.current = endRange
-    }
+    const range = doc.createRange()
+    range.selectNodeContents(inserted)
+    range.collapse(false)
+    const sel = doc.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+    savedRangeRef.current = range
 
     updateFormatState()
   }, [getEditorDocument, updateFormatState])
@@ -291,17 +282,41 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     doc.write(html.replace('<main class="page">', '<main class="page" contenteditable="true" spellcheck="false">'))
     doc.close()
 
+    // Reset section undo stack whenever HTML is reloaded
+    sectionUndoRef.current = []
+
     const syncSelection = () => updateFormatState()
     doc.addEventListener('selectionchange', syncSelection)
     doc.addEventListener('keyup', syncSelection)
     doc.addEventListener('mouseup', syncSelection)
     doc.addEventListener('input', syncSelection)
 
+    // Ctrl+Z: undo the last inserted section (only when undo stack has entries
+    // AND the cursor is inside one of our inserted sections)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        const stack = sectionUndoRef.current
+        if (stack.length === 0) return
+        const last = stack[stack.length - 1]
+        // Only intercept if cursor is inside the most-recently added section
+        const sel = doc.getSelection()
+        const anchor = sel?.anchorNode
+        const inLast = anchor && last.contains(anchor)
+        if (inLast) {
+          e.preventDefault()
+          last.parentNode?.removeChild(last)
+          stack.pop()
+        }
+      }
+    }
+    doc.addEventListener('keydown', handleKeyDown)
+
     return () => {
       doc.removeEventListener('selectionchange', syncSelection)
       doc.removeEventListener('keyup', syncSelection)
       doc.removeEventListener('mouseup', syncSelection)
       doc.removeEventListener('input', syncSelection)
+      doc.removeEventListener('keydown', handleKeyDown)
     }
   }, [getEditorDocument, html, updateFormatState])
 

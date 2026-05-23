@@ -21,20 +21,23 @@ Quy tắc:
 Trả lời chính xác, không phỏng đoán quá đà. Nếu JD không nói rõ về một field, để None hoặc list rỗng."""
 
 
+def parse_jd(jd_text: str) -> JobRequirement:
+    """Standalone function — reusable outside LangGraph (e.g. edit-cv pipeline)."""
+    llm = LLMFactory.get_llm(tier="cheap")
+    user_msg = f"Phân tích JD sau và trích xuất thông tin có cấu trúc:\n\n{jd_text}"
+    return call_with_structured_output(
+        llm=llm,
+        output_schema=JobRequirement,
+        system_prompt=SYSTEM_PROMPT,
+        user_message=user_msg,
+    )
+
+
 def jd_analyzer_node(state: CVAgentState) -> dict:
     if not state.job_description:
         return {"messages": ["[JD Analyzer] Bỏ qua - không có JD"]}
-
-    llm = LLMFactory.get_llm(tier="cheap")
-    user_msg = f"Phân tích JD sau và trích xuất thông tin có cấu trúc:\n\n{state.job_description}"
-
     try:
-        result = call_with_structured_output(
-            llm=llm,
-            output_schema=JobRequirement,
-            system_prompt=SYSTEM_PROMPT,
-            user_message=user_msg,
-        )
+        result = parse_jd(state.job_description)
         return {
             "job_requirement": result,
             "messages": [f"[JD Analyzer] Đã phân tích JD: {result.job_title} ({result.seniority_level})"],

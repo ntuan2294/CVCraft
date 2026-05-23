@@ -39,6 +39,33 @@ export default function JDSearchPage() {
     }
   }
 
+  const handleEdit = (detail: JDFormattedDetail, card: JDCardResult) => {
+    sessionStorage.setItem(
+      'edit_cv_jd',
+      JSON.stringify({
+        title: card.title,
+        company: card.company,
+        details: {
+          job_title: card.title,
+          company_name: card.company ?? '',
+          ...detail.quick_info,
+          job_description: detail.description_bullets.join('\n'),
+          requirements: detail.requirements_bullets.join('\n'),
+          benefits: detail.benefits_bullets.join('\n'),
+        },
+        rewritten_sections: {
+          job_description: detail.description_bullets,
+          requirements: detail.requirements_bullets,
+          benefits: detail.benefits_bullets,
+        },
+        description_bullets: detail.description_bullets,
+        requirements_bullets: detail.requirements_bullets,
+        benefits_bullets: detail.benefits_bullets,
+      }),
+    )
+    router.push('/edit-cv')
+  }
+
   const handleGenerate = (detail: JDFormattedDetail, card: JDCardResult) => {
     sessionStorage.setItem(
       'selected_jd',
@@ -158,6 +185,7 @@ export default function JDSearchPage() {
               card={card}
               prefetched={prefetchedDetails.get(card.id)}
               onGenerate={handleGenerate}
+              onEdit={handleEdit}
             />
           ))}
         </div>
