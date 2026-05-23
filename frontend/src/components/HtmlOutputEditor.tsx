@@ -11,7 +11,7 @@ type FormatState = {
   unordered: boolean
 }
 
-type CvComponentKind = 'awards' | 'projects' | 'activities'
+type CvComponentKind = 'awards' | 'projects' | 'activities' | 'volunteer' | 'publications' | 'hobbies'
 
 const FONT_FAMILIES = ['Poppins', 'Raleway', 'Lato', 'Inter', 'Open Sans', 'Barlow', 'Arial', 'Georgia', 'Times New Roman']
 const DEFAULT_FORMAT: FormatState = {
@@ -27,6 +27,9 @@ const CV_COMPONENTS = [
   { kind: 'awards' as const, label: 'Giải thưởng', icon: '★' },
   { kind: 'projects' as const, label: 'Dự án', icon: '▣' },
   { kind: 'activities' as const, label: 'Hoạt động', icon: '◉' },
+  { kind: 'volunteer' as const, label: 'Tình nguyện', icon: '♥' },
+  { kind: 'publications' as const, label: 'Nghiên cứu', icon: '◈' },
+  { kind: 'hobbies' as const, label: 'Sở thích', icon: '♦' },
 ]
 
 const SECTION_COPY: Record<CvComponentKind, { title: string; body: string }> = {
@@ -42,6 +45,18 @@ const SECTION_COPY: Record<CvComponentKind, { title: string; body: string }> = {
     title: 'Activities',
     body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên hoạt động</span><span class="exp-time">MM/YYYY - MM/YYYY</span></div><div class="exp-role">Vai trò / Tổ chức</div><ul class="exp-bullets"><li>Mô tả đóng góp chính hoặc kết quả đạt được.</li></ul></div>',
   },
+  volunteer: {
+    title: 'Volunteer',
+    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên tổ chức</span><span class="exp-time">MM/YYYY - MM/YYYY</span></div><div class="exp-role">Vai trò tình nguyện viên</div><ul class="exp-bullets"><li>Mô tả hoạt động và đóng góp của bạn.</li></ul></div>',
+  },
+  publications: {
+    title: 'Publications',
+    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Tên nghiên cứu / ấn phẩm</span><span class="exp-time">YYYY</span></div><div class="exp-role">Tạp chí / Hội nghị / Nơi xuất bản</div><ul class="exp-bullets"><li>Mô tả nội dung và đóng góp của nghiên cứu.</li></ul></div>',
+  },
+  hobbies: {
+    title: 'Hobbies & Interests',
+    body: '<div class="exp-entry"><div class="exp-head"><span class="exp-company">Sở thích & Hoạt động cá nhân</span></div><ul class="exp-bullets"><li>Liệt kê sở thích và hoạt động ngoại khoá của bạn.</li></ul></div>',
+  },
 }
 
 function sectionIcon(kind: CvComponentKind) {
@@ -50,6 +65,15 @@ function sectionIcon(kind: CvComponentKind) {
   }
   if (kind === 'activities') {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8.5 0a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7ZM2 21v-1c0-4 2.8-7 6-7s6 3 6 7v1H2Zm12.5 0c.3-.8.5-1.7.5-2.6 0-2-.7-3.8-1.8-5.1 1-.8 2.2-1.3 3.3-1.3 3 0 5.5 2.8 5.5 6.5V21h-7.5Z"/></svg>'
+  }
+  if (kind === 'volunteer') {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>'
+  }
+  if (kind === 'publications') {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>'
+  }
+  if (kind === 'hobbies') {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>'
   }
   return '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 14 5.5l4-.6-.6 4 3.6 2.1-3.6 2.1.6 4-4-.6L12 20l-2-3.5-4 .6.6-4L3 11l3.6-2.1-.6-4 4 .6L12 2Zm-2.2 8.8-1.4 1.4 2.6 2.6 5-5-1.4-1.4-3.6 3.6-1.2-1.2Z"/></svg>'
 }
@@ -66,13 +90,6 @@ function normalizeListNearSelection(doc: Document) {
   if (list.tagName === 'UL') list.style.listStyleType = 'disc'
 }
 
-function findEducationSection(doc: Document) {
-  const headings = Array.from(doc.querySelectorAll('h2'))
-  const educationHeading = headings.find((heading) =>
-    (heading.textContent || '').trim().toLowerCase().includes('education'),
-  )
-  return educationHeading?.closest('section') ?? doc.querySelector('.education-grid')?.closest('section')
-}
 
 function buildSectionHtml(doc: Document, kind: CvComponentKind) {
   const copy = SECTION_COPY[kind]
@@ -220,14 +237,18 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     const frame = iframeRef.current
     if (!doc || !frame) return
 
-    const html = buildSectionHtml(doc, kind)
-    const target = findEducationSection(doc)
-    const page = doc.querySelector('.page')
-    const anchor = target ?? (page?.lastElementChild as Element | null)
+    const sectionHtml = buildSectionHtml(doc, kind)
 
-    if (anchor) {
+    // Always insert inside the main content column (right column for 2-col templates,
+    // or the page itself for flat templates). This ensures the new section is at the
+    // same alignment/margin level as existing sections.
+    const mainContainer = doc.querySelector('.main') ?? doc.querySelector('.page')
+    if (!mainContainer) return
+
+    const lastSection = mainContainer.lastElementChild
+    if (lastSection) {
       const range = doc.createRange()
-      range.setStartAfter(anchor)
+      range.setStartAfter(lastSection)
       range.collapse(true)
       const sel = doc.getSelection()
       sel?.removeAllRanges()
@@ -236,9 +257,9 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     }
 
     frame.contentWindow?.focus()
-    doc.execCommand('insertHTML', false, html)
+    doc.execCommand('insertHTML', false, sectionHtml)
 
-    const inserted = target?.nextElementSibling ?? page?.lastElementChild
+    const inserted = mainContainer.lastElementChild
     if (inserted instanceof HTMLElement) {
       inserted.scrollIntoView({ block: 'center' })
       const endRange = doc.createRange()
