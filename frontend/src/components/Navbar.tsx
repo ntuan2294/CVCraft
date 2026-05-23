@@ -18,17 +18,12 @@ export default function Navbar() {
     router.push('/')
   }
 
-  const navLinks: [string, string][] = user?.role === 'ADMIN'
-    ? [
-      [t('nav.adminPanel'), '/dashboard/admin'],
-      [t('nav.aiCvBuilder'), '/cv/generate'],
-      [t('nav.jdSearch'), '/jd/search'],
-    ]
-    : [
-      [t('nav.aiCvBuilder'), '/cv/generate'],
-      [t('nav.jdSearch'), '/jd/search'],
-      [t('nav.myCvs'), '/dashboard'],
-    ]
+  const navLinks: [string, string][] = [
+    [t('nav.aiCvBuilder'), '/cv/generate'],
+    [t('nav.jdSearch'), '/jd/search'],
+    [t('nav.myCvs'), user?.role === 'ADMIN' ? '/dashboard/candidate' : '/dashboard'],
+    ...(user?.role === 'ADMIN' ? [[t('nav.adminPanel'), '/dashboard/admin'] as [string, string]] : []),
+  ]
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -49,7 +44,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Auth Area + Lang Toggle */}
+          {/* Right side: Lang Toggle + Auth */}
           <div className="hidden md:flex items-center gap-3">
             {/* Language Toggle */}
             <button
@@ -78,23 +73,32 @@ export default function Navbar() {
                       <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
-                    <Link href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard'}
+                    <Link
+                      href="/dashboard/candidate"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setDropOpen(false)}>
-                      {user.role === 'ADMIN' ? t('nav.adminPanel') : t('nav.dashboard')}
+                      onClick={() => setDropOpen(false)}
+                    >
+                      {t('nav.dashboard')}
                     </Link>
-                    <Link href="/cv/generate"
+                    <Link
+                      href="/cv/generate"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setDropOpen(false)}>
+                      onClick={() => setDropOpen(false)}
+                    >
                       {t('nav.buildCv')}
                     </Link>
-                    {user.role !== 'ADMIN' && (
-                      <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropOpen(false)}>
-                        {t('nav.profileSettings')}
-                      </Link>
-                    )}
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropOpen(false)}
+                    >
+                      {t('nav.profileSettings')}
+                    </Link>
                     <div className="border-t border-gray-100 mt-1">
-                      <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
                         {t('nav.signOut')}
                       </button>
                     </div>
@@ -130,12 +134,18 @@ export default function Navbar() {
           {navLinks.map(([label, href]) => {
             const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
             return (
-              <Link key={href} href={href} className={`block px-3 py-2 text-sm font-medium rounded-lg ${
-                isActive 
-                  ? 'text-blue-600 bg-blue-50 font-semibold' 
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-                onClick={() => setMenuOpen(false)}>{label}</Link>
+              <Link
+                key={href}
+                href={href}
+                className={`block px-3 py-2 text-sm font-medium rounded-lg ${
+                  isActive
+                    ? 'text-blue-600 bg-blue-50 font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {label}
+              </Link>
             )
           })}
           <div className="pt-2 border-t border-gray-100 flex gap-2 items-center">
@@ -172,8 +182,8 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
   return (
     <Link href={href} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-      isActive 
-        ? 'text-blue-600 bg-blue-50/80 font-semibold' 
+      isActive
+        ? 'text-blue-600 bg-blue-50/80 font-semibold'
         : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
     }`}>
       {children}
