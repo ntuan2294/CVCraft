@@ -36,6 +36,8 @@ export const authApi = {
 
 // CV Profile (personal info used for CV generation)
 export interface UpdateProfileRequest {
+  fullName?: string
+  phone?: string
   headline?: string
   bio?: string
   location?: string
@@ -48,6 +50,9 @@ export interface UpdateProfileRequest {
   workExperiences?: string
   educations?: string
   certifications?: string
+  languages?: string
+  projects?: string
+  referencesInfo?: string
 }
 
 export const profileApi = {

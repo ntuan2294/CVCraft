@@ -22,24 +22,48 @@ export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
       <LanguageAndReferenceSection model={model} />
       <HiddenOptionalSections model={model} />
 
+      {model.saveProfileSuccess && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-sm text-emerald-700 flex items-center gap-2 font-semibold">
+          <span>✓</span> {t('gen.saveProfileSuccess')}
+        </div>
+      )}
+
       {model.error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{model.error}</div>
       )}
 
-      <button
-        type="submit"
-        disabled={model.loading}
-        className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {model.loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            {model.loadingMsg || t('gen.submitting')}
-          </span>
-        ) : (
-          t('gen.submit')
-        )}
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={model.handleSaveToProfile}
+          disabled={model.loading || model.savingProfile}
+          className="flex-1 rounded-xl border border-indigo-200 bg-indigo-50/50 py-3 text-sm font-semibold text-indigo-700 transition-all hover:border-indigo-300 hover:bg-indigo-100/80 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {model.savingProfile ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600/30 border-t-indigo-600" />
+              {t('gen.savingProfile')}
+            </span>
+          ) : (
+            t('gen.saveProfile')
+          )}
+        </button>
+
+        <button
+          type="submit"
+          disabled={model.loading || model.savingProfile}
+          className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {model.loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              {model.loadingMsg || t('gen.submitting')}
+            </span>
+          ) : (
+            t('gen.submit')
+          )}
+        </button>
+      </div>
     </form>
   )
 }

@@ -338,10 +338,19 @@ export default function Dashboard() {
           </div>
           {profile ? (
             <div className="space-y-4">
+              <ProfileField label="Họ tên" value={profile.fullName} />
+              <ProfileField label="Điện thoại" value={profile.phone} />
               <ProfileField label="Headline" value={profile.headline} />
               <ProfileField label="Location" value={profile.location} />
-              <ProfileField label="Experience" value={profile.experienceYears ? `${profile.experienceYears} years` : null} />
+              <ProfileField label="Experience" value={profile.experienceYears ? `${profile.experienceYears} năm` : null} />
               <ProfileField label="Skills" value={profile.skills?.join(', ')} />
+              <ProfileField label="Languages" value={(() => {
+                try {
+                  return profile.languages ? (JSON.parse(profile.languages) as string[]).join(', ') : null
+                } catch {
+                  return null
+                }
+              })()} />
               <ProfileField label="LinkedIn" value={profile.linkedinUrl} />
               <ProfileField label="GitHub" value={profile.githubUrl} />
             </div>
@@ -637,8 +646,33 @@ function ProfileField({ label, value }: { label: string; value?: string | null }
   )
 }
 
+function safeParseJsonLength(str?: string): number {
+  if (!str) return 0
+  try {
+    const arr = JSON.parse(str)
+    return Array.isArray(arr) ? arr.length : 0
+  } catch {
+    return 0
+  }
+}
+
 function calcCompletion(p: UserProfile): number {
-  const fields = [p.headline, p.bio, p.location, p.experienceYears, p.skills?.length, p.linkedinUrl]
+  const fields = [
+    p.headline,
+    p.bio,
+    p.location,
+    p.experienceYears,
+    p.skills?.length,
+    p.linkedinUrl,
+    p.githubUrl,
+    p.portfolioUrl,
+    p.phone,
+    safeParseJsonLength(p.workExperiences),
+    safeParseJsonLength(p.educations),
+    safeParseJsonLength(p.languages),
+    safeParseJsonLength(p.certifications),
+    safeParseJsonLength(p.projects),
+  ]
   const filled = fields.filter(Boolean).length
   return Math.round((filled / fields.length) * 100)
 }

@@ -10,6 +10,7 @@ public record CandidateResponse(
     Long userId,
     String fullName,
     String email,
+    String phone,
     String avatarUrl,
     String headline,
     String bio,
@@ -24,15 +25,20 @@ public record CandidateResponse(
     String workExperiences,
     String educations,
     String certifications,
+    String languages,
+    String projects,
+    String referencesInfo,
     LocalDateTime createdAt
 ) {
     public static CandidateResponse from(CandidateProfile p) {
         return new CandidateResponse(
             p.getId(), p.getUser().getId(), p.getUser().getFullName(), p.getUser().getEmail(),
-            p.getUser().getAvatarUrl(), p.getHeadline(), p.getBio(), p.getLocation(),
+            p.getUser().getPhone(), p.getUser().getAvatarUrl(), p.getHeadline(), p.getBio(), p.getLocation(),
             p.getExperienceYears(), p.getExperienceLevel(), p.getSkills(),
             p.getCvUrl(), p.getLinkedinUrl(), p.getGithubUrl(), p.getPortfolioUrl(),
-            p.getWorkExperiences(), p.getEducations(), p.getCertifications(), p.getCreatedAt()
+            p.getWorkExperiences(), p.getEducations(), p.getCertifications(),
+            p.getLanguages(), p.getProjects(), p.getReferencesInfo(),
+            p.getCreatedAt()
         );
     }
 }

@@ -33,7 +33,11 @@ export default function GenerateCVPage() {
         </div>
       ) : (
         <div className="mx-auto max-w-3xl space-y-8">
-          <GenerateCvHeader onLoadSample={model.loadSampleProfile} />
+          <GenerateCvHeader
+            onLoadSample={model.loadSampleProfile}
+            onLoadProfile={model.loadFromProfile}
+            loadingProfile={model.loading && model.loadingMsg.includes('hồ sơ')}
+          />
           <GenerateCvForm model={model} />
         </div>
       )}

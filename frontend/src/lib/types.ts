@@ -24,6 +24,7 @@ export interface UserProfile {
   userId: number
   fullName: string
   email: string
+  phone?: string
   avatarUrl?: string
   headline?: string
   bio?: string
@@ -38,6 +39,9 @@ export interface UserProfile {
   workExperiences?: string
   educations?: string
   certifications?: string
+  languages?: string
+  projects?: string
+  referencesInfo?: string
   createdAt: string
 }
 

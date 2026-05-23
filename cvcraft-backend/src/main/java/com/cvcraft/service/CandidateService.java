@@ -33,6 +33,10 @@ public class CandidateService {
         var profile = candidateProfileRepository.findByUserId(user.getId())
             .orElseGet(() -> CandidateProfile.builder().user(user).build());
 
+        if (req.fullName() != null) user.setFullName(req.fullName());
+        if (req.phone() != null) user.setPhone(req.phone());
+        userRepository.save(user);
+
         if (req.headline() != null) profile.setHeadline(req.headline());
         if (req.bio() != null) profile.setBio(req.bio());
         if (req.location() != null) profile.setLocation(req.location());
@@ -45,6 +49,9 @@ public class CandidateService {
         if (req.workExperiences() != null) profile.setWorkExperiences(req.workExperiences());
         if (req.educations() != null) profile.setEducations(req.educations());
         if (req.certifications() != null) profile.setCertifications(req.certifications());
+        if (req.languages() != null) profile.setLanguages(req.languages());
+        if (req.projects() != null) profile.setProjects(req.projects());
+        if (req.referencesInfo() != null) profile.setReferencesInfo(req.referencesInfo());
 
         profile = candidateProfileRepository.save(profile);
         return CandidateResponse.from(profile);

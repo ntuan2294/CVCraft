@@ -3,15 +3,29 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { profileApi, type UpdateProfileRequest } from '@/lib/backendApi'
-import type { UserProfile, ExperienceLevel } from '@/lib/types'
+import type { UserProfile, WorkExperience, Education } from '@/lib/types'
+import { useI18n } from '@/lib/i18n'
 
-const EXPERIENCE_LEVELS: ExperienceLevel[] = ['INTERN', 'JUNIOR', 'MID', 'SENIOR', 'LEAD', 'MANAGER', 'DIRECTOR']
-const LEVEL_LABELS: Record<ExperienceLevel, string> = {
-  INTERN: 'Thực tập sinh', JUNIOR: 'Junior (0–2 năm)', MID: 'Mid (2–5 năm)',
-  SENIOR: 'Senior (5–8 năm)', LEAD: 'Lead / Tech Lead', MANAGER: 'Manager', DIRECTOR: 'Director',
+const EMPTY_EXP: WorkExperience = {
+  company: '',
+  position: '',
+  start_date: '',
+  end_date: '',
+  description: '',
 }
 
+const EMPTY_EDU: Education = {
+  school: '',
+  degree: '',
+  major: '',
+  start_date: '',
+  end_date: '',
+}
+
+const inputClass = 'w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-white transition-all text-gray-800'
+
 export default function ProfilePage() {
+  const { t } = useI18n()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
@@ -22,16 +36,26 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
 
   // Form state
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
   const [headline, setHeadline] = useState('')
   const [bio, setBio] = useState('')
   const [location, setLocation] = useState('')
-  const [experienceYears, setExperienceYears] = useState('')
-  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | ''>('')
-  const [skillInput, setSkillInput] = useState('')
-  const [skills, setSkills] = useState<string[]>([])
   const [linkedinUrl, setLinkedinUrl] = useState('')
   const [githubUrl, setGithubUrl] = useState('')
   const [portfolioUrl, setPortfolioUrl] = useState('')
+
+  // Lists and nested states
+  const [skills, setSkills] = useState<string[]>([])
+  const [skillInput, setSkillInput] = useState('')
+
+  const [languages, setLanguages] = useState<string[]>([])
+  const [languageInput, setLanguageInput] = useState('')
+
+  const [referencesInfo, setReferencesInfo] = useState('')
+
+  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([])
+  const [educations, setEducations] = useState<Education[]>([])
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login')
@@ -42,52 +66,112 @@ export default function ProfilePage() {
     profileApi.getMe()
       .then(p => {
         setProfile(p)
+        setFullName(p.fullName ?? '')
+        setPhone(p.phone ?? '')
         setHeadline(p.headline ?? '')
         setBio(p.bio ?? '')
         setLocation(p.location ?? '')
-        setExperienceYears(p.experienceYears?.toString() ?? '')
-        setExperienceLevel(p.experienceLevel ?? '')
         setSkills(p.skills ?? [])
         setLinkedinUrl(p.linkedinUrl ?? '')
         setGithubUrl(p.githubUrl ?? '')
         setPortfolioUrl(p.portfolioUrl ?? '')
+        setReferencesInfo(p.referencesInfo ?? '')
+
+        // Parse complex JSON lists safely
+        try {
+          setWorkExperiences(p.workExperiences ? JSON.parse(p.workExperiences) : [{ ...EMPTY_EXP }])
+        } catch {
+          setWorkExperiences([{ ...EMPTY_EXP }])
+        }
+
+        try {
+          setEducations(p.educations ? JSON.parse(p.educations) : [{ ...EMPTY_EDU }])
+        } catch {
+          setEducations([{ ...EMPTY_EDU }])
+        }
+
+        try {
+          setLanguages(p.languages ? JSON.parse(p.languages) : [])
+        } catch {
+          setLanguages([])
+        }
       })
       .catch(() => setError('Không tải được profile'))
       .finally(() => setLoading(false))
   }, [user])
 
+  // Skill management
   const addSkill = () => {
     const s = skillInput.trim()
     if (s && !skills.includes(s)) setSkills(prev => [...prev, s])
     setSkillInput('')
   }
+  const removeSkill = (skill: string) => setSkills(prev => prev.filter(s => s !== skill))
 
-  const handleSkillKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); addSkill() }
-    if (e.key === ',') { e.preventDefault(); addSkill() }
+  // Language management
+  const addLanguage = () => {
+    const l = languageInput.trim()
+    if (l && !languages.includes(l)) setLanguages(prev => [...prev, l])
+    setLanguageInput('')
   }
+  const removeLanguage = (language: string) => setLanguages(prev => prev.filter(l => l !== language))
+
+  // Work Experience list modifiers
+  const updateExp = (index: number, field: keyof WorkExperience, value: string) => {
+    setWorkExperiences(prev => {
+      const copy = [...prev]
+      copy[index] = { ...copy[index], [field]: value }
+      return copy
+    })
+  }
+  const addExp = () => setWorkExperiences(prev => [...prev, { ...EMPTY_EXP }])
+  const removeExp = (index: number) => setWorkExperiences(prev => prev.filter((_, idx) => idx !== index))
+
+  // Education list modifiers
+  const updateEdu = (index: number, field: keyof Education, value: string) => {
+    setEducations(prev => {
+      const copy = [...prev]
+      copy[index] = {
+        ...copy[index],
+        [field]: field === 'gpa' && value ? Number(value) : value,
+      }
+      return copy
+    })
+  }
+  const addEdu = () => setEducations(prev => [...prev, { ...EMPTY_EDU }])
+  const removeEdu = (index: number) => setEducations(prev => prev.filter((_, idx) => idx !== index))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!fullName.trim()) {
+      setError('Họ và tên là trường bắt buộc')
+      return
+    }
+
     setSaving(true)
     setSaved(false)
     setError('')
     try {
       const payload: UpdateProfileRequest = {
+        fullName: fullName || undefined,
+        phone: phone || undefined,
         headline: headline || undefined,
         bio: bio || undefined,
         location: location || undefined,
-        experienceYears: experienceYears ? Number(experienceYears) : undefined,
-        experienceLevel: experienceLevel || undefined,
         skills,
         linkedinUrl: linkedinUrl || undefined,
         githubUrl: githubUrl || undefined,
         portfolioUrl: portfolioUrl || undefined,
+        workExperiences: JSON.stringify(workExperiences.filter(exp => exp.company && exp.position)),
+        educations: JSON.stringify(educations.filter(edu => edu.school && edu.degree)),
+        languages: JSON.stringify(languages),
+        referencesInfo: referencesInfo || undefined,
       }
       const updated = await profileApi.updateMe(payload)
       setProfile(updated)
       setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setTimeout(() => setSaved(false), 4000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lưu thất bại')
     } finally {
@@ -97,141 +181,209 @@ export default function ProfilePage() {
 
   if (authLoading || loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
     </div>
   )
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa Profile</h1>
-        <p className="text-sm text-gray-500 mt-1">Thông tin này được dùng để tạo CV nhanh hơn</p>
+        <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa hồ sơ CV</h1>
+        <p className="text-sm text-gray-500 mt-1">Thông tin này được lưu trữ và dùng để tạo CV tự động</p>
       </div>
 
-      {/* User info (readonly) */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-2xl font-bold shrink-0">
-            {user?.fullName?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="font-semibold text-gray-900 text-lg">{user?.fullName}</p>
-            <p className="text-sm text-gray-500">{user?.email}</p>
-            {profile?.createdAt && (
-              <p className="text-xs text-gray-400 mt-0.5">
-                Tham gia từ {new Date(profile.createdAt).toLocaleDateString('vi-VN')}
-              </p>
-            )}
-          </div>
+      {/* Error / Success Status */}
+      {error && (
+        <div className="mb-6 rounded-xl bg-red-50 border border-red-200 px-5 py-4 text-sm text-red-700">{error}</div>
+      )}
+      {saved && (
+        <div className="mb-6 rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-sm text-emerald-700 flex items-center gap-2 font-semibold">
+          <span>✓</span> Hồ sơ đã được lưu thành công vào cơ sở dữ liệu!
         </div>
-      </div>
+      )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
 
-        {/* Basic info */}
-        <Section title="Thông tin cơ bản">
-          <Field label="Tiêu đề nghề nghiệp" hint="VD: Senior Frontend Developer | React & TypeScript">
-            <input value={headline} onChange={e => setHeadline(e.target.value)}
-              placeholder="Senior Frontend Developer | React & TypeScript"
-              className={inputCls} maxLength={200} />
-          </Field>
-          <Field label="Giới thiệu bản thân">
+        {/* Personal info */}
+        <Section title={t('gen.personal')}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t('gen.fullName')} required>
+              <input value={fullName} onChange={e => setFullName(e.target.value)}
+                placeholder="Nguyễn Văn A" className={inputClass} maxLength={100} />
+            </FormField>
+            <FormField label={`${t('gen.email')} (Không thể thay đổi)`}>
+              <input value={user?.email} disabled
+                className={`${inputClass} bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed`} />
+            </FormField>
+            <FormField label={t('gen.phone')}>
+              <input value={phone} onChange={e => setPhone(e.target.value)}
+                placeholder="+84 90 000 0000" className={inputClass} maxLength={20} />
+            </FormField>
+            <FormField label={t('gen.jobTitle')}>
+              <input value={headline} onChange={e => setHeadline(e.target.value)}
+                placeholder="Java Software Engineer" className={inputClass} maxLength={200} />
+            </FormField>
+            <FormField label={t('gen.address')}>
+              <input value={location} onChange={e => setLocation(e.target.value)}
+                placeholder="TP. Hồ Chí Minh" className={inputClass} />
+            </FormField>
+            <FormField label={t('gen.linkedin')}>
+              <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
+                placeholder="linkedin.com/in/..." className={inputClass} />
+            </FormField>
+            <FormField label={t('gen.github')}>
+              <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)}
+                placeholder="github.com/username" className={inputClass} />
+            </FormField>
+            <FormField label="Portfolio / Website (Không bắt buộc)">
+              <input value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)}
+                placeholder="https://yourportfolio.com" className={inputClass} />
+            </FormField>
+          </div>
+          <FormField label={t('gen.summary')}>
             <textarea value={bio} onChange={e => setBio(e.target.value)}
-              placeholder="Mô tả ngắn về bản thân, thế mạnh, mục tiêu nghề nghiệp..."
-              rows={3} className={inputCls} />
-          </Field>
-          <Field label="Địa điểm">
-            <input value={location} onChange={e => setLocation(e.target.value)}
-              placeholder="VD: Hà Nội, TP. Hồ Chí Minh, Remote..."
-              className={inputCls} />
-          </Field>
+              placeholder={t('gen.summaryPlaceholder')}
+              rows={4} className={inputClass} />
+          </FormField>
         </Section>
 
-        {/* Experience */}
-        <Section title="Kinh nghiệm">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Số năm kinh nghiệm">
-              <input type="number" min={0} max={50} value={experienceYears}
-                onChange={e => setExperienceYears(e.target.value)}
-                placeholder="0" className={inputCls} />
-            </Field>
-            <Field label="Cấp độ">
-              <select value={experienceLevel} onChange={e => setExperienceLevel(e.target.value as ExperienceLevel)}
-                className={inputCls}>
-                <option value="">-- Chọn cấp độ --</option>
-                {EXPERIENCE_LEVELS.map(l => (
-                  <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
-                ))}
-              </select>
-            </Field>
+        {/* Work Experience */}
+        <Section title={t('gen.experience')} onAdd={addExp}>
+          {workExperiences.length === 0 && (
+            <p className="text-sm italic text-gray-400">Chưa thêm kinh nghiệm làm việc nào.</p>
+          )}
+          <div className="space-y-4">
+            {workExperiences.map((exp, index) => (
+              <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4 relative">
+                <ItemHeader label={`${t('gen.position')} ${index + 1}`} canRemove={workExperiences.length > 1} onRemove={() => removeExp(index)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <FormField label={t('gen.company')} required>
+                    <input className={inputClass} value={exp.company} onChange={e => updateExp(index, 'company', e.target.value)} placeholder="FPT Software" />
+                  </FormField>
+                  <FormField label={t('gen.position')} required>
+                    <input className={inputClass} value={exp.position} onChange={e => updateExp(index, 'position', e.target.value)} placeholder="Backend Developer" />
+                  </FormField>
+                  <FormField label={t('gen.startDate')}>
+                    <input className={inputClass} value={exp.start_date} onChange={e => updateExp(index, 'start_date', e.target.value)} placeholder="01/2022" />
+                  </FormField>
+                  <FormField label={t('gen.endDate')}>
+                    <input className={inputClass} value={exp.end_date ?? ''} onChange={e => updateExp(index, 'end_date', e.target.value)} placeholder="Hiện tại" />
+                  </FormField>
+                </div>
+                <FormField label={t('gen.expDesc')}>
+                  <textarea className={inputClass} rows={3} value={exp.description} onChange={e => updateExp(index, 'description', e.target.value)} placeholder={t('gen.expDescPlaceholder')} />
+                </FormField>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* Education */}
+        <Section title={t('gen.education')} onAdd={addEdu}>
+          {educations.length === 0 && (
+            <p className="text-sm italic text-gray-400">Chưa thêm thông tin học vấn nào.</p>
+          )}
+          <div className="space-y-4">
+            {educations.map((edu, index) => (
+              <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
+                <ItemHeader label={`${t('gen.degree')} ${index + 1}`} canRemove={educations.length > 1} onRemove={() => removeEdu(index)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <FormField label={t('gen.school')} required>
+                    <input className={inputClass} value={edu.school} onChange={e => updateEdu(index, 'school', e.target.value)} placeholder="Đại học Bách Khoa" />
+                  </FormField>
+                  <FormField label={t('gen.degree')} required>
+                    <input className={inputClass} value={edu.degree} onChange={e => updateEdu(index, 'degree', e.target.value)} placeholder="Cử nhân" />
+                  </FormField>
+                  <FormField label={t('gen.major')}>
+                    <input className={inputClass} value={edu.major} onChange={e => updateEdu(index, 'major', e.target.value)} placeholder="Khoa học máy tính" />
+                  </FormField>
+                  <FormField label={t('gen.gpa')}>
+                    <input className={inputClass} type="number" step="0.01" min="0" max="4" value={edu.gpa ?? ''} onChange={e => updateEdu(index, 'gpa', e.target.value)} placeholder="3.5" />
+                  </FormField>
+                  <FormField label={t('gen.startDate')}>
+                    <input className={inputClass} value={edu.start_date} onChange={e => updateEdu(index, 'start_date', e.target.value)} placeholder="09/2018" />
+                  </FormField>
+                  <FormField label={t('gen.endDate')}>
+                    <input className={inputClass} value={edu.end_date ?? ''} onChange={e => updateEdu(index, 'end_date', e.target.value)} placeholder="06/2022" />
+                  </FormField>
+                </div>
+              </div>
+            ))}
           </div>
         </Section>
 
         {/* Skills */}
-        <Section title="Kỹ năng">
+        <Section title={t('gen.skills')}>
           <div className="flex gap-2">
             <input value={skillInput} onChange={e => setSkillInput(e.target.value)}
-              onKeyDown={handleSkillKeyDown}
-              placeholder="Nhập kỹ năng rồi nhấn Enter hoặc dấu phẩy"
-              className={`${inputCls} flex-1`} />
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); addSkill() }
+                if (e.key === ',') { e.preventDefault(); addSkill() }
+              }}
+              placeholder={t('gen.skillPlaceholder')}
+              className={`${inputClass} flex-1`}
+            />
             <button type="button" onClick={addSkill}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors shrink-0">
-              Thêm
+              className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shrink-0">
+              {t('gen.add')}
             </button>
           </div>
           {skills.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {skills.map(skill => (
-                <span key={skill} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-full border border-blue-200">
-                  {skill}
-                  <button type="button" onClick={() => setSkills(prev => prev.filter(s => s !== skill))}
-                    className="text-blue-400 hover:text-blue-700 text-xs font-bold leading-none">×</button>
-                </span>
+                <Tag key={skill} label={skill} color="indigo" onRemove={() => removeSkill(skill)} />
               ))}
             </div>
           )}
         </Section>
 
-        {/* Links */}
-        <Section title="Liên kết">
-          <Field label="LinkedIn" hint="https://linkedin.com/in/...">
-            <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
-              placeholder="https://linkedin.com/in/username" type="url"
-              className={inputCls} />
-          </Field>
-          <Field label="GitHub" hint="https://github.com/...">
-            <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)}
-              placeholder="https://github.com/username" type="url"
-              className={inputCls} />
-          </Field>
-          <Field label="Portfolio / Website">
-            <input value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)}
-              placeholder="https://yourportfolio.com" type="url"
-              className={inputCls} />
-          </Field>
+        {/* Languages & References */}
+        <Section title={t('gen.langRef')}>
+          <FormField label={t('gen.langLabel')}>
+            <div className="flex gap-2">
+              <input value={languageInput} onChange={e => setLanguageInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); addLanguage() }
+                }}
+                placeholder={t('gen.langPlaceholder')}
+                className={`${inputClass} flex-1`}
+              />
+              <button type="button" onClick={addLanguage}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shrink-0">
+                {t('gen.add')}
+              </button>
+            </div>
+            {languages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {languages.map(lang => (
+                  <Tag key={lang} label={lang} color="emerald" onRemove={() => removeLanguage(lang)} />
+                ))}
+              </div>
+            )}
+          </FormField>
+
+          <FormField label={t('gen.reference')}>
+            <textarea
+              className={inputClass}
+              rows={3}
+              value={referencesInfo}
+              onChange={e => setReferencesInfo(e.target.value)}
+              placeholder={t('gen.referencePlaceholder')}
+            />
+          </FormField>
         </Section>
 
-        {/* Error / Success */}
-        {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
-        )}
-        {saved && (
-          <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
-            <span>✓</span> Profile đã được lưu thành công!
-          </div>
-        )}
-
-        {/* Submit */}
-        <div className="flex gap-3 pt-2">
+        {/* Submit Actions */}
+        <div className="flex gap-3 pt-4 border-t border-gray-100">
           <button type="submit" disabled={saving}
-            className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-60 text-sm">
-            {saving ? 'Đang lưu...' : 'Lưu profile'}
+            className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all disabled:opacity-60 text-sm shadow-sm hover:shadow">
+            {saving ? 'Đang lưu hồ sơ...' : 'Lưu hồ sơ CV'}
           </button>
           <button type="button" onClick={() => router.push('/dashboard')}
-            className="px-6 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors text-sm">
-            Huỷ
+            className="flex-1 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors text-sm text-center">
+            Huỷ bỏ
           </button>
         </div>
       </form>
@@ -239,25 +391,59 @@ export default function ProfilePage() {
   )
 }
 
-const inputCls = 'w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white'
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, onAdd, children }: { title: string; onAdd?: () => void; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-      <h2 className="font-semibold text-gray-900 text-base border-b border-gray-100 pb-3">{title}</h2>
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm">
+      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+        <h2 className="font-semibold text-gray-950 text-base">{title}</h2>
+        {onAdd && (
+          <button type="button" onClick={onAdd} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
+            + Thêm mới
+          </button>
+        )}
+      </div>
       {children}
     </div>
   )
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 w-full">
       <label className="block text-sm font-medium text-gray-700">
         {label}
-        {hint && <span className="text-xs text-gray-400 font-normal ml-2">{hint}</span>}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
       {children}
     </div>
+  )
+}
+
+function ItemHeader({ label, canRemove = true, onRemove }: { label: string; canRemove?: boolean; onRemove: () => void }) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
+      {canRemove && (
+        <button type="button" onClick={onRemove} className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors">
+          Gỡ bỏ
+        </button>
+      )}
+    </div>
+  )
+}
+
+function Tag({ label, color, onRemove }: { label: string; color: 'indigo' | 'emerald'; onRemove: () => void }) {
+  const classes =
+    color === 'indigo'
+      ? 'bg-indigo-50 border-indigo-100 text-indigo-700 [&_button]:text-indigo-400 [&_button:hover]:text-indigo-700'
+      : 'bg-emerald-50 border-emerald-100 text-emerald-700 [&_button]:text-emerald-400 [&_button:hover]:text-emerald-700'
+
+  return (
+    <span className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-sm font-medium ${classes}`}>
+      {label}
+      <button type="button" onClick={onRemove} className="ml-1 text-base leading-none focus:outline-none">
+        ×
+      </button>
+    </span>
   )
 }

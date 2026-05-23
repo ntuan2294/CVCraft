@@ -5,6 +5,8 @@ import com.cvcraft.entity.CandidateProfile;
 import java.util.List;
 
 public record UpdateCandidateProfileRequest(
+    String fullName,
+    String phone,
     String headline,
     String bio,
     String location,
@@ -16,5 +18,8 @@ public record UpdateCandidateProfileRequest(
     String portfolioUrl,
     String workExperiences,
     String educations,
-    String certifications
+    String certifications,
+    String languages,
+    String projects,
+    String referencesInfo
 ) {}

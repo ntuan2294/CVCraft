@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { buildJDText } from '@/lib/jd'
+import { profileApi, type UpdateProfileRequest } from '@/lib/backendApi'
 import type {
   Certification,
   Education,
@@ -70,6 +71,8 @@ export function useGenerateCvForm() {
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<GenerateCVResponse | null>(null)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [saveProfileSuccess, setSaveProfileSuccess] = useState(false)
 
   const selectedTemplate = useMemo(
     () => CV_TEMPLATES.find((template) => template.id === templateId) ?? CV_TEMPLATES[0],
@@ -245,6 +248,98 @@ export function useGenerateCvForm() {
     }
   }
 
+  const loadFromProfile = async () => {
+    setLoading(true)
+    setLoadingMsg('Đang tải thông tin từ hồ sơ...')
+    setError('')
+    try {
+      const p = await profileApi.getMe()
+      
+      let workExperiences = [{ ...EMPTY_EXP }]
+      try {
+        if (p.workExperiences) {
+          const parsed = JSON.parse(p.workExperiences)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            workExperiences = parsed
+          }
+        }
+      } catch {}
+
+      let educations = [{ ...EMPTY_EDU }]
+      try {
+        if (p.educations) {
+          const parsed = JSON.parse(p.educations)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            educations = parsed
+          }
+        }
+      } catch {}
+
+      let languagesArr: string[] = []
+      try {
+        if (p.languages) {
+          languagesArr = JSON.parse(p.languages)
+        }
+      } catch {}
+
+      setForm({
+        full_name: p.fullName ?? '',
+        email: p.email ?? '',
+        phone: p.phone ?? '',
+        location: p.location ?? '',
+        linkedin: p.linkedinUrl ?? '',
+        github: p.githubUrl ?? '',
+        job_title: p.headline ?? '',
+        summary: p.bio ?? '',
+        work_experiences: workExperiences,
+        educations: educations,
+        skills: p.skills ?? [],
+        languages: languagesArr,
+        references: p.referencesInfo ?? '',
+        certifications: [],
+        projects: [],
+      })
+      
+      setSkillInput('')
+      setLanguageInput('')
+      setResult(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không lấy được thông tin hồ sơ. Vui lòng đăng nhập.')
+    } finally {
+      setLoading(false)
+      setLoadingMsg('')
+    }
+  }
+
+  const handleSaveToProfile = async () => {
+    setSavingProfile(true)
+    setError('')
+    setSaveProfileSuccess(false)
+    try {
+      const payload: UpdateProfileRequest = {
+        fullName: form.full_name || undefined,
+        phone: form.phone || undefined,
+        headline: form.job_title || undefined,
+        bio: form.summary || undefined,
+        location: form.location || undefined,
+        skills: form.skills,
+        linkedinUrl: form.linkedin || undefined,
+        githubUrl: form.github || undefined,
+        workExperiences: JSON.stringify(form.work_experiences.filter(exp => exp.company && exp.position)),
+        educations: JSON.stringify(form.educations.filter(edu => edu.school && edu.degree)),
+        languages: JSON.stringify(form.languages ?? []),
+        referencesInfo: form.references || undefined,
+      }
+      await profileApi.updateMe(payload)
+      setSaveProfileSuccess(true)
+      setTimeout(() => setSaveProfileSuccess(false), 4000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Lưu hồ sơ thất bại. Vui lòng đăng nhập.')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   return {
     jdText,
     setJdText,
@@ -284,5 +379,9 @@ export function useGenerateCvForm() {
     removeProj,
     handleTemplateSelect,
     handleSubmit,
+    loadFromProfile,
+    savingProfile,
+    saveProfileSuccess,
+    handleSaveToProfile,
   }
 }

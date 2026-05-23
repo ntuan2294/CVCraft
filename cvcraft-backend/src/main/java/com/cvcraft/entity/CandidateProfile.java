@@ -70,6 +70,17 @@ public class CandidateProfile {
     @Column(columnDefinition = "jsonb")
     private String certifications;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String languages;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String projects;
+
+    @Column(name = "references_info", columnDefinition = "TEXT")
+    private String referencesInfo;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
