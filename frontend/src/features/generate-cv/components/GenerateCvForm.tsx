@@ -14,12 +14,15 @@ export function GenerateCvForm({ model }: { model: GenerateCvFormModel }) {
     <form onSubmit={model.handleSubmit} className="space-y-6">
       <JobDescriptionSection model={model} />
       <TemplateSection model={model} />
+      <PhotoUploadSection model={model} />
       <OutputLanguageSection model={model} />
       <PersonalInfoSection model={model} />
       <WorkExperienceSection model={model} />
       <EducationSection model={model} />
       <SkillsSection model={model} />
-      <LanguageAndReferenceSection model={model} />
+      <LanguageSection model={model} />
+      <CertificateSection model={model} />
+      <ReferencesSection model={model} />
       <HiddenOptionalSections model={model} />
 
       {model.saveProfileSuccess && (
@@ -90,7 +93,7 @@ function JobDescriptionSection({ model }: { model: GenerateCvFormModel }) {
 function TemplateSection({ model }: { model: GenerateCvFormModel }) {
   const { selectedTemplate } = model
   const { t } = useI18n()
-  const localizedTemplateName = t(`tpl.${selectedTemplate.id}.name` as any) || selectedTemplate.name
+  const localizedTemplateName = t(`tpl.${selectedTemplate.id}.name` as Parameters<typeof t>[0]) || selectedTemplate.name
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -109,9 +112,6 @@ function TemplateSection({ model }: { model: GenerateCvFormModel }) {
             <h2 className="font-semibold text-gray-900">{t('gen.template')}</h2>
             <p className="mt-0.5 text-sm text-gray-500">
               {t('gen.activeTemplate', { name: localizedTemplateName })}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {t('gen.fields', { fields: selectedTemplate.fields.join(', ') })}
             </p>
           </div>
         </div>
@@ -313,31 +313,69 @@ function SkillsSection({ model }: { model: GenerateCvFormModel }) {
   )
 }
 
-function LanguageAndReferenceSection({ model }: { model: GenerateCvFormModel }) {
+function LanguageSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
+  return (
+    <section className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5">
+      <h2 className="font-semibold text-gray-900">{t('gen.langLabel')}</h2>
+      <TagInput value={model.languageInput} onChange={model.setLanguageInput} onAdd={model.addLanguage} placeholder={t('gen.langPlaceholder')} />
+      {(model.form.languages ?? []).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {(model.form.languages ?? []).map((language) => (
+            <Tag key={language} label={language} color="emerald" onRemove={() => model.removeLanguage(language)} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function CertificateSection({ model }: { model: GenerateCvFormModel }) {
   const { t } = useI18n()
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">{t('gen.langRef')}</h2>
-      <FormField label={t('gen.langLabel')}>
-        <TagInput value={model.languageInput} onChange={model.setLanguageInput} onAdd={model.addLanguage} placeholder={t('gen.langPlaceholder')} />
-        {(model.form.languages ?? []).length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(model.form.languages ?? []).map((language) => (
-              <Tag key={language} label={language} color="emerald" onRemove={() => model.removeLanguage(language)} />
-            ))}
+      <SectionHeader title={t('gen.certifications')} onAdd={model.addCert} />
+      {model.form.certifications.length === 0 && (
+        <p className="text-sm italic text-gray-400">{t('gen.certPlaceholder')}</p>
+      )}
+      {model.form.certifications.map((cert, index) => (
+        <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <ItemHeader label={`${t('gen.certifications')} ${index + 1}`} canRemove onRemove={() => model.removeCert(index)} />
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label={t('gen.certName')}>
+              <input className={inputClass} value={cert.name} onChange={(e) => model.updateCert(index, 'name', e.target.value)} placeholder="AWS Certified Developer" />
+            </FormField>
+            <FormField label={t('gen.certIssuer')}>
+              <input className={inputClass} value={cert.issuer ?? ''} onChange={(e) => model.updateCert(index, 'issuer', e.target.value)} placeholder="Amazon Web Services" />
+            </FormField>
+            <FormField label={t('gen.certDate')}>
+              <input className={inputClass} value={cert.date ?? ''} onChange={(e) => model.updateCert(index, 'date', e.target.value)} placeholder="06/2023" />
+            </FormField>
+            <FormField label={t('gen.certLink')}>
+              <input className={inputClass} value={cert.link ?? ''} onChange={(e) => model.updateCert(index, 'link', e.target.value)} placeholder="https://..." />
+            </FormField>
           </div>
-        )}
-      </FormField>
-      <FormField label={t('gen.reference')}>
-        <textarea
-          className={inputClass}
-          rows={3}
-          value={model.form.references ?? ''}
-          onChange={(event) => model.setField('references', event.target.value)}
-          placeholder={t('gen.referencePlaceholder')}
-        />
-      </FormField>
+        </div>
+      ))}
+    </section>
+  )
+}
+
+function ReferencesSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <h2 className="mb-3 font-semibold text-gray-900">{t('gen.reference')}</h2>
+      <textarea
+        className={inputClass}
+        rows={3}
+        value={model.form.references ?? ''}
+        onChange={(e) => model.setField('references', e.target.value)}
+        placeholder={t('gen.referencePlaceholder')}
+      />
     </section>
   )
 }
@@ -347,30 +385,6 @@ function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
 
   return (
     <>
-      <section className="hidden">
-        <SectionHeader title={t('gen.certifications')} onAdd={model.addCert} suffix={t('gen.certSuffix')} />
-        {model.form.certifications.length === 0 && <p className="text-sm italic text-gray-400">{t('gen.certPlaceholder')}</p>}
-        {model.form.certifications.map((cert, index) => (
-          <div key={index} className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <ItemHeader label={`${t('gen.certifications')} ${index + 1}`} canRemove onRemove={() => model.removeCert(index)} />
-            <div className="grid grid-cols-2 gap-3">
-              <FormField label={t('gen.certName')} required>
-                <input className={inputClass} value={cert.name} onChange={(event) => model.updateCert(index, 'name', event.target.value)} placeholder="AWS Certified Developer" />
-              </FormField>
-              <FormField label={t('gen.certIssuer')}>
-                <input className={inputClass} value={cert.issuer ?? ''} onChange={(event) => model.updateCert(index, 'issuer', event.target.value)} placeholder="Amazon Web Services" />
-              </FormField>
-              <FormField label={t('gen.certDate')}>
-                <input className={inputClass} value={cert.date ?? ''} onChange={(event) => model.updateCert(index, 'date', event.target.value)} placeholder="06/2023" />
-              </FormField>
-              <FormField label={t('gen.certLink')}>
-                <input className={inputClass} value={cert.link ?? ''} onChange={(event) => model.updateCert(index, 'link', event.target.value)} placeholder="https://..." />
-              </FormField>
-            </div>
-          </div>
-        ))}
-      </section>
-
       <section className="hidden">
         <SectionHeader title={t('gen.projects')} onAdd={model.addProj} suffix={t('gen.projSuffix')} />
         {model.form.projects.map((proj, index) => (
@@ -405,6 +419,61 @@ function HiddenOptionalSections({ model }: { model: GenerateCvFormModel }) {
         ))}
       </section>
     </>
+  )
+}
+
+function PhotoUploadSection({ model }: { model: GenerateCvFormModel }) {
+  const { t } = useI18n()
+
+  if (!model.selectedTemplate.supportsPhotoUpload) return null
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      model.setPhoto({ file_name: file.name, content_type: file.type, data_url: dataUrl })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <h2 className="mb-3 font-semibold text-gray-900">{t('gen.photoUpload')}</h2>
+      <div className="flex items-center gap-4">
+        {model.photo ? (
+          <>
+            <img
+              src={model.photo.data_url}
+              alt="preview"
+              className="h-20 w-20 shrink-0 rounded-full border border-gray-200 object-cover"
+            />
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">{model.photo.file_name}</p>
+              <button
+                type="button"
+                onClick={() => model.setPhoto(undefined)}
+                className="text-sm text-red-500 hover:text-red-700"
+              >
+                {t('gen.removePhoto')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <label className="flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-gray-300 px-5 py-4 transition-colors hover:border-indigo-400 hover:bg-indigo-50/30">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-8 w-8 shrink-0 text-gray-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-gray-700">{t('gen.uploadPhoto')}</p>
+              <p className="text-xs text-gray-400">{t('gen.photoHint')}</p>
+            </div>
+            <input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} />
+          </label>
+        )}
+      </div>
+    </section>
   )
 }
 

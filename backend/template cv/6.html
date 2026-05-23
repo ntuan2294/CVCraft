@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <title>{{FULL_NAME}} — CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   /* ============================================================
      CV Template — recreated 1:1 from the reference PDF.
@@ -21,8 +24,8 @@
     --line:           #1a1a1a;
     --accent-line:    #c8c8c8;
 
-    --font-display:   'Arial', sans-serif;
-    --font-body:      'Arial', sans-serif;
+    --font-display:   'Barlow', Arial, sans-serif;
+    --font-body:      'Barlow', Arial, sans-serif;
 
     --page-w: 210mm;
     --page-h: 297mm;
@@ -320,6 +323,60 @@
     letter-spacing: 0.02em;
   }
 
+  /* ---- certificate (sidebar) ---- */
+  .cert-entry { margin-bottom: 12px; }
+  .cert-entry:last-child { margin-bottom: 0; }
+  .cert-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+  .cert-meta {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ============================================================
+     EDITABLE FIELDS — hiển thị ô gõ khi field trống
+     ============================================================ */
+  .editable-field {
+    display: inline-block;
+    min-width: 80px;
+    min-height: 1.1em;
+    border-bottom: 1.5px dashed #b0b8c1;
+    border-radius: 2px;
+    outline: none;
+    cursor: text;
+    padding: 0 2px;
+    vertical-align: baseline;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .editable-field:empty::before {
+    content: attr(data-placeholder);
+    color: #b0b8c1;
+    font-style: italic;
+    pointer-events: none;
+  }
+  .editable-field:focus {
+    border-bottom-color: #4a4a4a;
+    background: rgba(0,0,0,.04);
+  }
+  .editable-field.editable-block {
+    display: block;
+    width: 100%;
+    min-height: 3em;
+    border: 1.5px dashed #b0b8c1;
+    border-radius: 4px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+  }
+
   /* ============================================================
      PRINT — A4, no UI chrome
      ============================================================ */
@@ -339,6 +396,13 @@
     .education-entry,
     .exp-entry {
       break-inside: avoid;
+    }
+    .editable-field {
+      border: none !important;
+      background: none !important;
+    }
+    .editable-field:empty::before {
+      content: "" !important;
     }
   }
 </style>
@@ -365,6 +429,11 @@
     <section class="sidebar-section">
       <h2 class="sidebar-heading">Language</h2>
       <p class="sidebar-body">{{LANGUAGES}}</p>
+    </section>
+
+    <section class="sidebar-section">
+      <h2 class="sidebar-heading">Certificate</h2>
+      <div class="sidebar-body">{{CERTIFICATES}}</div>
     </section>
 
   </aside>

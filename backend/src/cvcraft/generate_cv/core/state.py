@@ -56,6 +56,7 @@ class UserProfile(BaseModel):
     skills_raw: list[str] = Field(default_factory=list, description="Skills user tự khai")
     languages: list[str] = Field(default_factory=list)
     references: Optional[str] = None
+    certifications: list[dict] = Field(default_factory=list)
     photo: Optional[dict] = None
     projects: list[dict] = Field(default_factory=list)
     template_path: Optional[str] = Field(default=None, description="Đường dẫn đến file template .docx")

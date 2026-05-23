@@ -12,9 +12,13 @@ function getDocxEditorTargets() {
   return pages.length > 0 ? pages : [editor]
 }
 
-export async function downloadCvEditorAsPdf() {
+function getCvEditorTargets() {
   const htmlPage = getHtmlEditorPage()
-  const targets = htmlPage ? [htmlPage] : getDocxEditorTargets()
+  return htmlPage ? [htmlPage] : getDocxEditorTargets()
+}
+
+export async function downloadCvEditorAsPdf() {
+  const targets = getCvEditorTargets()
   if (targets.length === 0) return
 
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -48,24 +52,28 @@ export async function downloadCvEditorAsPdf() {
   pdf.save('cv.pdf')
 }
 
-export async function downloadCvEditorAsImage() {
-  const page = getHtmlEditorPage()
-  if (!page) return
+export async function downloadCvEditorAsImage(format: 'png' | 'jpg' = 'png') {
+  const targets = getCvEditorTargets()
+  if (targets.length === 0) return
 
   const { default: html2canvas } = await import('html2canvas')
 
-  const canvas = await html2canvas(page, {
-    backgroundColor: '#ffffff',
-    scale: 3,
-    useCORS: true,
-    windowWidth: page.scrollWidth,
-    windowHeight: page.scrollHeight,
-  })
+  for (const [index, target] of targets.entries()) {
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#ffffff',
+      scale: 3,
+      useCORS: true,
+      windowWidth: target.scrollWidth,
+      windowHeight: target.scrollHeight,
+    })
 
-  const a = document.createElement('a')
-  a.href = canvas.toDataURL('image/png')
-  a.download = 'cv.png'
-  a.click()
+    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+    const extension = format === 'jpg' ? 'jpg' : 'png'
+    const a = document.createElement('a')
+    a.href = canvas.toDataURL(mime, 0.95)
+    a.download = targets.length > 1 ? `cv-${index + 1}.${extension}` : `cv.${extension}`
+    a.click()
+  }
 }
 
 export async function downloadGeneratedDocx(result: GenerateCVResponse | null) {

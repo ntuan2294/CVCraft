@@ -15,7 +15,7 @@ export function GenerateCvHeader({
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text">
             {t('gen.title')}
           </h1>
           <p className="mt-2 text-sm text-gray-500 sm:text-base">

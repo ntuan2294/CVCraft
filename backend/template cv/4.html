@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{FULL_NAME}} - CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f3f3;
+      color: #111;
+      font-family: 'Inter', Arial, sans-serif;
+    }
+    .page {
+      width: 794px;
+      min-height: 1123px;
+      margin: 24px auto;
+      background: #fff;
+      padding: 58px 44px 72px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .10);
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: end;
+      padding-bottom: 14px;
+      border-bottom: 5px solid #e6e6e6;
+    }
+    .name {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+    .job-title {
+      font-size: 14px;
+      line-height: 1.2;
+      text-align: right;
+      white-space: nowrap;
+      padding-bottom: 3px;
+    }
+    .contact-line {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+    section {
+      margin-top: 28px;
+    }
+    .summary-section {
+      margin-top: 24px;
+    }
+    h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.42;
+    }
+    .work-section {
+      margin-top: 84px;
+    }
+    .experience {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .exp-entry { margin-bottom: 18px; }
+    .exp-entry:last-child { margin-bottom: 0; }
+    .exp-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      align-items: flex-start;
+      font-weight: 800;
+    }
+    .exp-company {
+      display: block;
+      margin-top: 3px;
+      font-weight: 400;
+    }
+    .exp-time {
+      white-space: nowrap;
+      text-align: right;
+      font-weight: 800;
+    }
+    .exp-bullets {
+      margin: 8px 0 0 18px;
+      padding-left: 12px;
+    }
+    .exp-bullets li { margin-bottom: 4px; }
+    .education-grid,
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 54px;
+      row-gap: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .education-entry {
+      break-inside: avoid;
+      margin-bottom: 2px;
+    }
+    .edu-school {
+      font-weight: 400;
+    }
+    .edu-time {
+      margin-top: 8px;
+      font-weight: 800;
+    }
+    .edu-detail {
+      margin-top: 6px;
+      color: #555;
+      font-size: 12px;
+    }
+    .skills-grid ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .skills-grid li {
+      margin-bottom: 5px;
+      break-inside: avoid;
+    }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <h1 class="name">{{FULL_NAME}}</h1>
+      <div class="job-title">{{JOB_TITLE}}</div>
+    </header>
+
+    <div class="contact-line">{{GMAIL}} | {{PHONE_NUMBER}} | {{ADDRESS}}</div>
+
+    <section class="summary-section">
+      <h2>Professional Summary</h2>
+      <p>{{SUMMARY}}</p>
+    </section>
+
+    <section class="work-section">
+      <h2>Work Experience</h2>
+      <div class="experience">
+        <div class="exp-entry">
+          <div class="exp-head">
+            <div>
+              <div>{{JOB_TITLE}}</div>
+              <span class="exp-company">{{COMPANY}}</span>
+            </div>
+            <div class="exp-time">{{TIME}}</div>
+          </div>
+          <ul class="exp-bullets">
+            <li>{{EXPERIENCE}}</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- education -->
+    </section>
+
+    <section>
+      <h2>Education</h2>
+      <div class="education-grid">
+        <div class="education-entry">
+          <div class="edu-school">{{SCHOOL}}</div>
+          <div class="edu-time">{{TIME}}</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Skills</h2>
+      <div class="skills-grid">
+        <ul>
+          <li>{{SKILLS}}</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

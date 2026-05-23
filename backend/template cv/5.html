@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Professional Resume CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f3f3;
+      color: #111;
+      font-family: 'Open Sans', "Segoe UI", Arial, sans-serif;
+    }
+    .page {
+      width: 794px;
+      min-height: 1123px;
+      margin: 24px auto;
+      padding: 86px 72px 70px 72px;
+      background: #fff;
+      box-shadow: 0 6px 24px rgba(0,0,0,.12);
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      column-gap: 24px;
+      align-items: start;
+    }
+    .photo {
+      width: 132px;
+      height: 138px;
+      object-fit: cover;
+      border-radius: 10px;
+      display: block;
+    }
+    .name {
+      font-size: 43px;
+      line-height: .95;
+      letter-spacing: .5px;
+      margin: 7px 0 0 0;
+      font-weight: 500;
+    }
+    .job-title {
+      font-size: 25px;
+      line-height: 1;
+      margin: 8px 0 23px;
+      font-weight: 700;
+    }
+    .rule {
+      border: 0;
+      border-top: 2px solid #696969;
+      margin: 0 0 14px 0;
+    }
+    .contact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 40px;
+      row-gap: 9px;
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    section { margin-top: 22px; }
+    h2 {
+      font-size: 19px;
+      margin: 0 0 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    p {
+      font-size: 17px;
+      margin: 0;
+      line-height: 1.35;
+    }
+    .section-rule {
+      border: 0;
+      border-top: 2px solid #696969;
+      margin: 19px 0 14px;
+    }
+    .experience-head,
+    .education-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+    .role, .company { font-weight: 700; }
+    .date { white-space: nowrap; }
+    ul {
+      margin: 4px 0 0 17px;
+      padding-left: 18px;
+      font-size: 17px;
+    }
+    li { margin: 0; line-height: 1.35; }
+    .spacer-large { height: 0; margin-top: 0; }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+        padding: 22mm 19mm 18mm 19mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <img class="photo" src="{{PHOTO_URL}}" alt="Profile photo" />
+      <div>
+        <h1 class="name">{{FULL_NAME}}</h1>
+        <div class="job-title">{{JOB_TITLE}}</div>
+        <hr class="rule" />
+        <div class="contact">
+          <div>{{GMAIL}}</div>
+          <div>{{ADDRESS}}</div>
+          <div>{{PHONE_NUMBER}}</div>
+          <div>{{LINKEDIN}}</div>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <h2>Professional Summary</h2>
+      <p>{{SUMMARY}}</p>
+    </section>
+
+    <hr class="section-rule" />
+
+    <section>
+      <h2>Professional Experience</h2>
+      <div class="experience-head">
+        <div>
+          <div class="role">{{JOB_TITLE}}</div>
+          <div class="company">{{COMPANY}}</div>
+        </div>
+        <div class="date">{{TIME}}</div>
+      </div>
+      <ul>
+        <li>{{EXPERIENCE}}</li>
+      </ul>
+    </section>
+
+    <hr class="section-rule" />
+
+    <section class="spacer-large"></section>
+
+    <section>
+      <h2>Education</h2>
+      <div class="education-row">
+        <div>{{SCHOOL}}</div>
+        <div class="date">{{TIME}}</div>
+      </div>
+    </section>
+
+    <hr class="section-rule" />
+
+    <section>
+      <h2>Certificate</h2>
+      <div>{{CERTIFICATES}}</div>
+    </section>
+
+    <hr class="section-rule" />
+
+    <section>
+      <h2>Skills</h2>
+      <p>{{SKILLS}}</p>
+    </section>
+
+    <hr class="section-rule" />
+
+    <section>
+      <h2>Language</h2>
+      <p>{{LANGUAGES}}</p>
+    </section>
+  </main>
+</body>
+</html>
+

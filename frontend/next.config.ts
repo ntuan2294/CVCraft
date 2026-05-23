@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  images: {
+    localPatterns: [
+      {
+        pathname: '/template-images/**',
+        search: '?v=20260524',
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

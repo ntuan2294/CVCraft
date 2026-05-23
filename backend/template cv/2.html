@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{FULL_NAME}} - CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f2f2f2;
+      color: #666;
+      font-family: 'Raleway', "Segoe UI", Arial, sans-serif;
+    }
+    .page {
+      width: 794px;
+      min-height: 1123px;
+      margin: 24px auto;
+      background: #fff;
+      display: grid;
+      grid-template-columns: 284px 1fr;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
+    }
+    .sidebar {
+      position: relative;
+      min-height: 1123px;
+      background: #f4f4f4;
+      padding: 250px 34px 54px 34px;
+    }
+    .corner {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 284px;
+      height: 292px;
+      background: #6792c7;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+      z-index: 1;
+    }
+    .avatar-frame {
+      position: absolute;
+      left: 58px;
+      top: 40px;
+      width: 178px;
+      height: 178px;
+      border-radius: 50%;
+      border: 7px solid #fff;
+      overflow: hidden;
+      background: #d9dee4;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      color: #6792c7;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .avatar-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .name {
+      color: #6792c7;
+      font-size: 39px;
+      line-height: .95;
+      font-weight: 300;
+      letter-spacing: .11em;
+      text-align: center;
+      margin: 0 0 8px;
+      word-break: break-word;
+    }
+    .job-title {
+      color: #777;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.25;
+      margin-bottom: 42px;
+    }
+    .side-section {
+      margin-bottom: 34px;
+    }
+    .side-heading,
+    .main-heading {
+      margin: 0 0 14px;
+      font-size: 21px;
+      line-height: 1.1;
+      font-weight: 700;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .side-heading::after,
+    .main-heading::after {
+      content: "";
+      display: block;
+      height: 1px;
+      background: #6792c7;
+      flex: 1;
+      margin-left: 4px;
+    }
+    .side-icon,
+    .main-icon {
+      width: 20px;
+      height: 20px;
+      color: #666;
+      flex: none;
+    }
+    .contact-list {
+      display: grid;
+      gap: 13px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .contact-item {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .contact-icon {
+      width: 18px;
+      height: 18px;
+      color: #6792c7;
+    }
+    .side-body {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .side-body p { margin: 0; }
+    .main {
+      padding: 72px 42px 64px 38px;
+      background: #fff;
+    }
+    .main-section {
+      margin-bottom: 42px;
+    }
+    .timeline-body {
+      display: grid;
+      grid-template-columns: 15px 1fr;
+      column-gap: 16px;
+      min-height: 56px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .timeline-rail {
+      position: relative;
+    }
+    .timeline-rail::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 7px;
+      bottom: -16px;
+      width: 1px;
+      background: #6792c7;
+    }
+    .main-section:last-child .timeline-rail::before {
+      bottom: 0;
+    }
+    .timeline-dot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #6792c7;
+      z-index: 2;
+    }
+    .experience {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .exp-entry { margin-bottom: 18px; }
+    .exp-entry:last-child { margin-bottom: 0; }
+    .exp-head,
+    .education-entry {
+      display: flex;
+      justify-content: space-between;
+      gap: 22px;
+      align-items: flex-start;
+    }
+    .exp-company,
+    .exp-role {
+      color: #555;
+      font-weight: 700;
+    }
+    .exp-role { margin-top: 2px; }
+    .exp-time,
+    .edu-time {
+      white-space: nowrap;
+      text-align: right;
+      color: #666;
+    }
+    .exp-bullets {
+      margin: 8px 0 0 18px;
+      padding-left: 10px;
+    }
+    .exp-bullets li { margin-bottom: 3px; }
+    .edu-school { color: #666; }
+    .edu-detail {
+      margin-top: 5px;
+      color: #777;
+    }
+    .cert-entry { margin-bottom: 8px; }
+    .cert-name {
+      color: #666;
+      font-weight: 700;
+    }
+    .cert-meta {
+      margin-top: 2px;
+      color: #777;
+      font-size: 11px;
+    }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <aside class="sidebar">
+      <div class="corner"></div>
+      <div class="avatar-frame">{{PHOTO}}</div>
+
+      <h1 class="name">{{FULL_NAME}}</h1>
+      <div class="job-title">{{JOB_TITLE}}</div>
+
+      <section class="side-section">
+        <h2 class="side-heading">
+          <svg class="side-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M6.6 10.8c1.5 3 3.9 5.4 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1.3.4 2.6.6 4 .6.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C10.7 21.4 2.6 13.3 2.6 3.4c0-.7.5-1.2 1.2-1.2h3.5c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.7.6 4 .1.4 0 .9-.3 1.2l-2.2 2.2Z"/>
+          </svg>
+          Contact
+        </h2>
+        <div class="contact-list">
+          <div class="contact-item">
+            <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M6.6 10.8c1.5 3 3.9 5.4 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1.3.4 2.6.6 4 .6.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C10.7 21.4 2.6 13.3 2.6 3.4c0-.7.5-1.2 1.2-1.2h3.5c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.7.6 4 .1.4 0 .9-.3 1.2l-2.2 2.2Z"/>
+            </svg>
+            <span>{{PHONE_NUMBER}}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 13.5 2 6.8V18c0 .6.4 1 1 1h18c.6 0 1-.4 1-1V6.8l-10 6.7ZM12 11 21 5H3l9 6Z"/>
+            </svg>
+            <span>{{EMAIL}}</span>
+          </div>
+          <div class="contact-item">
+            <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 2a7 7 0 0 1 7 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 0 1 7-7Zm0 9.5A2.5 2.5 0 1 0 12 6a2.5 2.5 0 0 0 0 5.5Z"/>
+            </svg>
+            <span>{{ADDRESS}}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <h2 class="side-heading">
+          <svg class="side-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm8 8.5c0-4.2-3.6-7-8-7s-8 2.8-8 7V21h16v-.5Z"/>
+          </svg>
+          About Me
+        </h2>
+        <div class="side-body">{{SUMMARY}}</div>
+      </section>
+
+      <section class="side-section">
+        <h2 class="side-heading">
+          <svg class="side-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M8 3h3v5H8V3Zm5 0h3v5h-3V3ZM3 10h5v3H3v-3Zm13 0h5v3h-5v-3ZM8 15h3v5H8v-5Zm5 0h3v5h-3v-5Z"/>
+          </svg>
+          Skills
+        </h2>
+        <div class="side-body">{{SKILLS}}</div>
+      </section>
+    </aside>
+
+    <section class="main">
+      <section class="main-section">
+        <h2 class="main-heading">
+          <svg class="main-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 3 1.5 8.2 12 13.4l10.5-5.2L12 3Zm-6 9.3v3.5c0 1.9 3.1 3.7 6 3.7s6-1.8 6-3.7v-3.5l-6 3-6-3Z"/>
+          </svg>
+          Education
+        </h2>
+        <div class="timeline-body">
+          <div class="timeline-rail"><span class="timeline-dot"></span></div>
+          <div class="education-entry">
+            <span class="edu-school">{{SCHOOL}}</span>
+            <span class="edu-time">{{TIME}}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-section">
+        <h2 class="main-heading">
+          <svg class="main-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M9 5V4c0-1.1.9-2 2-2h2c1.1 0 2 .9 2 2v1h5c1.1 0 2 .9 2 2v4h-8v-1h-4v1H2V7c0-1.1.9-2 2-2h5Zm2 0h2V4h-2v1ZM2 13h8v1h4v-1h8v6c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-6Z"/>
+          </svg>
+          Experience
+        </h2>
+        <div class="timeline-body">
+          <div class="timeline-rail"><span class="timeline-dot"></span></div>
+          <div class="experience">
+            <div class="exp-entry">
+              <div class="exp-head">
+                <span class="exp-company">{{COMPANY}}</span>
+                <span class="exp-time">{{TIME}}</span>
+              </div>
+              <div class="exp-role">{{JOB_TITLE}}</div>
+              <ul class="exp-bullets">
+                <li>{{EXPERIENCE}}</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- education -->
+        </div>
+      </section>
+
+      <section class="main-section">
+        <h2 class="main-heading">
+          <svg class="main-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M4 5.5c2.6 0 4.8.8 6.5 2.3V19c-1.7-1.2-3.8-1.8-6.5-1.8V5.5Zm16 0v11.7c-2.7 0-4.8.6-6.5 1.8V7.8C15.2 6.3 17.4 5.5 20 5.5ZM12 8.8V21c-1.8-1.5-4.2-2.3-7-2.3H3V4h1c3.2 0 5.9.9 8 2.7 2.1-1.8 4.8-2.7 8-2.7h1v14.7h-2c-2.8 0-5.2.8-7 2.3V8.8Z"/>
+          </svg>
+          Certificate
+        </h2>
+        <div class="timeline-body">
+          <div class="timeline-rail"><span class="timeline-dot"></span></div>
+          <div class="section-body">{{CERTIFICATE}}</div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -173,7 +173,12 @@ def main() -> int:
     processes = [
         start_process(
             "py-backend",
-            [sys.executable, "-m", "uvicorn", "gateway:app", "--reload", "--port", str(backend_port)],
+            [
+                sys.executable, "-m", "uvicorn", "gateway:app",
+                "--reload",
+                "--reload-dir", str(ROOT_DIR / "backend" / "src"),
+                "--port", str(backend_port),
+            ],
             ROOT_DIR,
             env,
         ),

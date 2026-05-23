@@ -414,6 +414,8 @@ export function useGenerateCvForm() {
     updateProj,
     addProj,
     removeProj,
+    photo,
+    setPhoto,
     handleTemplateSelect,
     handleSubmit,
     loadFromProfile,

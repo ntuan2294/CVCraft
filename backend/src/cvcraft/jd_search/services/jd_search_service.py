@@ -7,7 +7,7 @@ import re
 from threading import Lock
 import time
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from cvcraft.jd_search.core.models import JDDocument, JDRewrittenSections, JDSearchResult, JDSearchResponse, JDCardResult, JDSearchCardResponse, JDFormattedDetail
 from cvcraft.jd_search.infrastructure.llm.factory import LLMFactory, call_with_structured_output
@@ -17,17 +17,38 @@ from cvcraft.jd_search.text_preprocessing import preprocess_jd_text
 
 
 class FormattedJDSections(BaseModel):
-    job_description: list[str]
-    requirements: list[str]
-    benefits: list[str]
+    job_description: list[str] = Field(
+        description=(
+            "Danh sach cac y rieng trong truong job_description. Moi item la mot nhiem vu, "
+            "trach nhiem hoac pham vi cong viec cu the; khong chua bullet prefix, heading, "
+            "newline hay thong tin thuoc requirements/benefits."
+        ),
+    )
+    requirements: list[str] = Field(
+        description=(
+            "Danh sach cac y rieng trong truong requirements. Moi item la mot yeu cau ve "
+            "kinh nghiem, hoc van, ky nang, ngon ngu, chung chi, thai do hoac dieu kien lam viec; "
+            "giu cum cong nghe lien quan trong cung item khi chung tao thanh mot yeu cau."
+        ),
+    )
+    benefits: list[str] = Field(
+        description=(
+            "Danh sach cac y rieng trong truong benefits. Moi item la mot phuc loi, che do, "
+            "thu nhap, thuong, bao hiem, dao tao, nghi phep, moi truong hoac co hoi phat trien."
+        ),
+    )
 
 
 class FormattedJDItem(FormattedJDSections):
-    id: str
+    id: str = Field(description="ID cua JD input, phai giu nguyen y het gia tri duoc cung cap.")
 
 
 class FormattedJDBatch(BaseModel):
-    items: list[FormattedJDItem]
+    items: list[FormattedJDItem] = Field(
+        description=(
+            "Danh sach ket qua da format. Moi input JD phai co dung mot item output cung id."
+        ),
+    )
 
 
 class JDSearchService:
@@ -45,6 +66,61 @@ class JDSearchService:
     DEFAULT_SCORE_THRESHOLD = 0.5
     SHORT_QUERY_SCORE_THRESHOLD = 0.25
     SEARCH_CACHE_TTL = 30
+    _ACTION_STARTERS = (
+        "Phân tích",
+        "Theo dõi",
+        "Đánh giá",
+        "Đề xuất",
+        "Xác định",
+        "Đọc hiểu",
+        "Phát hiện",
+        "Sử dụng",
+        "Truy vấn",
+        "Xử lý",
+        "Làm sạch",
+        "Chuẩn hóa",
+        "Hạn chế",
+        "Kiểm soát",
+        "Báo cáo",
+        "Hỗ trợ",
+        "Xây dựng",
+        "Trình bày",
+        "Đưa ra",
+        "Quản lý",
+        "Tối ưu",
+        "Nghiên cứu",
+        "Tham gia",
+        "Phối hợp",
+        "Triển khai",
+        "Thiết kế",
+        "Phát triển",
+        "Vận hành",
+        "Đảm bảo",
+        "Lập",
+        "Kênh bán hàng",
+        "Chi nhánh/cơ sở",
+        "Thời gian",
+        "Phân khúc khách hàng",
+        "Hành vi mua",
+        "Tần suất",
+        "Chỉ số mới",
+        "Cách thu thập dữ liệu",
+        "Hướng phân tích",
+    )
+    _SECTION_HEADINGS = {
+        "mo ta cong viec",
+        "mota cong viec",
+        "job description",
+        "responsibilities",
+        "yeu cau",
+        "yeu cau cong viec",
+        "requirements",
+        "phuc loi",
+        "quyen loi",
+        "benefits",
+        "che do dai ngo",
+        "de xuat",
+    }
 
     def __init__(self):
         self._store = JDVectorStore()
@@ -299,87 +375,133 @@ class JDSearchService:
         pending: list[tuple[JDSearchResult, tuple[str, str, str]]],
     ) -> FormattedJDBatch:
         llm = LLMFactory.get_llm("cheap_large")
-        system_prompt = (
-            "Bạn là biên tập viên tin tuyển dụng. Nhiệm vụ duy nhất: chuẩn hóa 3 trường "
-            "`job_description`, `requirements`, `benefits` thành JSON array of strings, "
-            "mỗi string là một ý độc lập.\n\n"
+        system_prompt = """
+Bạn là bộ chuẩn hóa dữ liệu tuyển dụng cho dataset `tinixai/vietnamese-job-descriptions`.
+Dataset này có các trường nguồn dạng chuỗi dài: `job_description`, `benefits`, `requirements`.
+Nội dung có thể là tiếng Việt, tiếng Anh hoặc trộn hai ngôn ngữ; có thể null/rỗng; có thể chứa
+heading dính với nội dung như `Nội dung công việc:`, `Phúc lợi:`, `Yêu cầu:`,
+`Responsibilities:`, `Qualifications`, `Compensation & Benefits`; có thể dùng bullet `-`, `+`,
+`•`; có thể dùng dấu chấm để nối nhiều ý trong một dòng; có thể chứa danh sách công nghệ,
+ngày lễ, bảo hiểm hoặc package lương.
 
-            "## ĐỊNH NGHĨA 'MỘT Ý' (QUAN TRỌNG)\n"
-            "Một ý = MỘT nhiệm vụ / MỘT yêu cầu / MỘT phúc lợi cụ thể, độ dài thường 5-25 từ.\n"
-            "Nếu một string output dài > 30 từ hoặc chứa nhiều hơn 1 nhiệm vụ/yêu cầu/phúc lợi, "
-            "BẮT BUỘC phải tách nhỏ hơn.\n\n"
+Nhiệm vụ duy nhất: chuyển từng JD input thành đúng 3 mảng string:
+`job_description`, `requirements`, `benefits`.
 
-            "Quy tắc tách (áp dụng theo thứ tự ưu tiên):\n"
-            "1. Mỗi dòng (\\n) trong input → tối thiểu một string riêng.\n"
-            "2. Trong cùng một dòng, tách tiếp tại các ranh giới sau:\n"
-            "   - Dấu '.' giữa hai mệnh đề (vd: 'Quản lý server. Nghiên cứu công nghệ mới' → tách).\n"
-            "   - Dấu ';'.\n"
-            "   - Dấu ',' KHI vế sau là một ý/phúc lợi/yêu cầu độc lập "
-            "(vd: 'Lương tháng 13, thưởng dự án, BHXH' → tách 3. "
-            "Nhưng 'Python, FastAPI, Docker' trong cùng yêu cầu kỹ năng → KHÔNG tách).\n"
-            "3. KHÔNG gộp nhiều bullet/dòng input vào một string output.\n"
-            "4. Ngoại lệ KHÔNG tách: liệt kê tên công nghệ/ngôn ngữ trong cùng yêu cầu kỹ năng, "
-            "danh sách trong ngoặc đơn, ngày lễ liệt kê (vd: '1/1, 30/4, 2/9').\n\n"
+## Phân loại trường
+- `job_description`: nhiệm vụ, trách nhiệm, phạm vi công việc, hoạt động hằng ngày, sản phẩm/dự án,
+  báo cáo, phối hợp, vận hành, thiết kế, phát triển, kiểm thử, phân tích, tối ưu, hỗ trợ.
+- `requirements`: kinh nghiệm, học vấn, kỹ năng cứng/mềm, công nghệ, ngôn ngữ, chứng chỉ,
+  độ tuổi, giới tính nếu input có, khả năng đi lại/làm thêm giờ, điều kiện ứng tuyển.
+- `benefits`: lương, thưởng, bảo hiểm, nghỉ phép, khám sức khỏe, đào tạo, thiết bị làm việc,
+  remote/hybrid, teambuilding, du lịch, môi trường, cơ hội thăng tiến, phụ cấp, event công ty.
 
-            "## QUY TẮC NỘI DUNG\n"
-            "- KHÔNG thêm thông tin không có trong input.\n"
-            "- KHÔNG dịch ngôn ngữ.\n"
-            "- KHÔNG suy diễn số liệu, năm kinh nghiệm, công nghệ.\n"
-            "- Được phép: sửa chính tả rõ ràng, chuẩn hóa khoảng trắng, viết hoa đầu câu, "
-            "bỏ tiêu đề section ('MÔ TẢ CÔNG VIỆC', 'YÊU CẦU', 'PHÚC LỢI', 'QUYỀN LỢI', "
-            "'CHẾ ĐỘ ĐÃI NGỘ', 'JOB DESCRIPTION', 'REQUIREMENTS', 'BENEFITS').\n\n"
+Không chuyển ý sang mảng khác nếu trường nguồn đã đúng ngữ cảnh. Chỉ di chuyển khi nội dung rõ ràng
+bị đặt nhầm trường, ví dụ `requirements` chứa đoạn bắt đầu bằng `Phúc lợi:` hoặc `benefits` chứa
+`Yêu cầu:`.
 
-            "## QUY TẮC ĐỊNH DẠNG\n"
-            "- KHÔNG bullet prefix: '-', '*', '+', '●', '•', '▪', '►', '★', '✓'.\n"
-            "- KHÔNG số thứ tự đầu dòng: '1.', '1)', '1:'.\n"
-            "- KHÔNG ký tự '\\n', '\\r', '\\t' trong string.\n"
-            "- KHÔNG string rỗng/whitespace-only.\n"
-            "- KHÔNG kết thúc bằng ':' hoặc ','.\n"
-            "- KHÔNG trùng lặp string trong cùng array.\n"
-            "- Trim whitespace, gộp space liên tiếp.\n\n"
+## Quy tắc tách ý
+Một item output phải là một ý độc lập, thường 5-25 từ. Bắt buộc tách nếu một string chứa nhiều
+nhiệm vụ/yêu cầu/phúc lợi.
 
-            "## OUTPUT SCHEMA\n"
-            "Chỉ trả về JSON object, không markdown fence, không giải thích:\n"
-            "{\n"
-            '  "<id>": {\n'
-            '    "job_description": [...],\n'
-            '    "requirements": [...],\n'
-            '    "benefits": [...]\n'
-            "  }\n"
-            "}\n"
-            "Field rỗng/null → trả về [].\n\n"
+Tách tại các ranh giới sau:
+1. Bullet hoặc số thứ tự: `-`, `+`, `*`, `•`, `1.`, `1)`, `1:`.
+2. Xuống dòng.
+3. Dấu chấm, chấm phẩy hoặc dấu hai chấm khi phía sau là một ý mới.
+4. Các heading/label: `Mô tả công việc`, `Nội dung công việc`, `Yêu cầu`, `Yêu cầu công việc`,
+   `Phúc lợi`, `Quyền lợi`, `Chế độ đãi ngộ`, `Responsibilities`, `Key Responsibilities`,
+   `Qualifications`, `Requirements`, `Benefits`, `Compensation & Benefits`.
+5. Các cụm bắt đầu bằng động từ hoặc danh từ hành động độc lập, ví dụ: `Tham gia`, `Phối hợp`,
+   `Phát triển`, `Thiết kế`, `Xây dựng`, `Bảo trì`, `Tối ưu`, `Quản lý`, `Theo dõi`,
+   `Đảm bảo`, `Hỗ trợ`, `Nghiên cứu`, `Báo cáo`, `Đọc hiểu`, `Kiểm soát`.
+6. Dấu phẩy chỉ khi vế sau là một phúc lợi/yêu cầu độc lập, ví dụ `Lương tháng 13, thưởng dự án,
+   BHXH, BHYT` có thể tách thành các phúc lợi riêng.
 
-            "## VÍ DỤ\n"
-            "Input:\n"
-            "{\n"
-            '  "job_001": {\n'
-            '    "job_description": "Quản lý hệ thống web/app server, Storage. Tối ưu chi phí, performance, scaling ứng dụng. Nghiên cứu công nghệ mới",\n'
-            '    "requirements": "Từ 2 năm kinh nghiệm DevOps. Có kinh nghiệm Kubernetes, docker. Hiểu CI/CD",\n'
-            '    "benefits": "Lương tháng 13, BHXH, BHYT, BHTN. 12 ngày phép/năm. Du lịch 1 lần/năm"\n'
-            "  }\n"
-            "}\n\n"
-            "Output:\n"
-            "{\n"
-            '  "job_001": {\n'
-            '    "job_description": [\n'
-            '      "Quản lý hệ thống web/app server, Storage",\n'
-            '      "Tối ưu chi phí, performance, scaling ứng dụng",\n'
-            '      "Nghiên cứu công nghệ mới"\n'
-            '    ],\n'
-            '    "requirements": [\n'
-            '      "Từ 2 năm kinh nghiệm DevOps",\n'
-            '      "Có kinh nghiệm Kubernetes, docker",\n'
-            '      "Hiểu CI/CD"\n'
-            '    ],\n'
-            '    "benefits": [\n'
-            '      "Lương tháng 13",\n'
-            '      "BHXH, BHYT, BHTN",\n'
-            '      "12 ngày phép/năm",\n'
-            '      "Du lịch 1 lần/năm"\n'
-            '    ]\n'
-            "  }\n"
-            "}\n"
-        )
+Không tách trong các trường hợp sau:
+- Thuật ngữ hoặc chức danh có gạch nối: `DevOps`, `Dev-Ops`, `Dev - Ops`, `Full-stack`,
+  `Front-end`, `Back-end`, `Wi-Fi`, `CI/CD`, `CI - CD`.
+- Danh sách công nghệ thuộc cùng một yêu cầu: `Python / Java / NodeJS / PHP`,
+  `ReactJS, Angular, VueJS`, `Docker, Gitlab CI/CD, AWS`.
+- Danh sách bảo hiểm đi cùng nhau: `BHXH, BHYT, BHTN`.
+- Danh sách trong ngoặc hoặc ví dụ: `(automation, recommendation, data tracking, v.v.)`.
+- Mốc ngày/ngày lễ: `1/1, 30/4, 2/9`.
+- Cụm lương/thưởng là một package liền mạch: `15 - 35 triệu`, `1,000 ~ 1,400 USD`.
+
+## Quy tắc làm sạch
+- Không thêm thông tin không có trong input.
+- Không dịch ngôn ngữ; input tiếng Anh thì giữ tiếng Anh, tiếng Việt thì giữ tiếng Việt.
+- Không suy diễn số năm kinh nghiệm, công nghệ, mức lương, địa điểm.
+- Được phép sửa lỗi chính tả, lỗi viết hoa/viết thường và lỗi spacing rõ ràng do dữ liệu bị tách sai.
+- Ghép lại thuật ngữ công nghệ/chức danh bị tách sai, ví dụ `Dev` + `Ops` -> `DevOps`,
+  `Dev - Ops` -> `DevOps`, `Front - end` -> `front-end`, `Back - end` -> `back-end`,
+  `Full - stack` -> `full-stack`, `Wi - Fi` -> `Wi-Fi`, `CI - CD` -> `CI/CD`,
+  `Postgre` + `SQL` -> `PostgreSQL`, `My` + `SQL` -> `MySQL`,
+  `No` + `SQL` -> `NoSQL`, `Java` + `Script` -> `JavaScript`.
+- Sửa các lỗi gõ phổ biến nhưng không đổi nghĩa, ví dụ `hạ tầng Dev Ops` -> `hạ tầng DevOps`,
+  `kĩ thuật` -> `kỹ thuật`, `chuẩn hoá` -> `chuẩn hóa` khi cùng ngôn ngữ.
+- Bỏ heading/label section khỏi item output.
+- Bỏ bullet prefix và số thứ tự đầu dòng.
+- Chuẩn hóa khoảng trắng; không để `\\n`, `\\r`, `\\t` trong string.
+- Không để item rỗng, không kết thúc item bằng `:`, `;`, `,`.
+- Loại item trùng lặp trong cùng một mảng, giữ thứ tự xuất hiện đầu tiên.
+
+## JSON schema bắt buộc
+Trả về đúng schema Pydantic `FormattedJDBatch`:
+{
+  "items": [
+    {
+      "id": "giữ nguyên ID input",
+      "job_description": ["mỗi item là một nhiệm vụ/trách nhiệm"],
+      "requirements": ["mỗi item là một yêu cầu"],
+      "benefits": ["mỗi item là một phúc lợi"]
+    }
+  ]
+}
+
+Mỗi input JD phải có đúng một object trong `items`. Trường rỗng/null thì trả về mảng rỗng.
+Chỉ trả về JSON hợp lệ theo schema, không markdown, không giải thích.
+
+## Ví dụ
+Input:
+ID: jd_hf_1
+job_description:
+Công ty vốn Nhật chuyên cung cấp dịch vụ điện toán đám mây (SaaS) Nội dung công việc:Phát triển hệ thống quản lý chi phí và công tác phí dành cho các doanh nghiệp đang được sử dụng tại Nhật Bản - Nâng cao và cải thiện chất lượng sản phẩm - Nâng cao kỹ năng chuyên môn để có cơ hội thử thách trở thành Team Leader trong tương lai
+
+requirements:
+Yêu cầu: - Từ 25 ~ 39 tuổi - Trên 3 năm kinh nghiệm về kiến thức và đam mê lập trình ứng dụng web với: + JavaScript, jQuery. + Các Frameworks như Spring hay Struts, Seasar2, Hibernate,.. + Ngôn ngữ: Java + PostgreSQL, MySQL... - Có khả năng research để giải quyết các vấn đề về kĩ thuật.
+
+benefits:
+Lương: 1,000 ~ 1,400 USD (Gross) Phúc lợi: - Bảo Hiểm xã hội đóng trên Full lương Hợp đồng - Du lịch Công ty hàng năm, tài trợ 50% chi phí tour cho gia đình nhân viên - Lương tháng 13+14
+
+Output:
+{
+  "items": [
+    {
+      "id": "jd_hf_1",
+      "job_description": [
+        "Công ty vốn Nhật chuyên cung cấp dịch vụ điện toán đám mây (SaaS)",
+        "Phát triển hệ thống quản lý chi phí và công tác phí dành cho các doanh nghiệp đang được sử dụng tại Nhật Bản",
+        "Nâng cao và cải thiện chất lượng sản phẩm",
+        "Nâng cao kỹ năng chuyên môn để có cơ hội thử thách trở thành Team Leader trong tương lai"
+      ],
+      "requirements": [
+        "Từ 25 ~ 39 tuổi",
+        "Trên 3 năm kinh nghiệm lập trình ứng dụng web",
+        "Có kinh nghiệm JavaScript, jQuery",
+        "Có kinh nghiệm Spring, Struts, Seasar2, Hibernate",
+        "Có kinh nghiệm Java",
+        "Có kinh nghiệm PostgreSQL, MySQL",
+        "Có khả năng research để giải quyết các vấn đề kỹ thuật"
+      ],
+      "benefits": [
+        "Lương 1,000 ~ 1,400 USD (Gross)",
+        "Bảo hiểm xã hội đóng trên full lương hợp đồng",
+        "Du lịch công ty hàng năm, tài trợ 50% chi phí tour cho gia đình nhân viên",
+        "Lương tháng 13+14"
+      ]
+    }
+  ]
+}
+"""
         blocks = []
         for result, cache_key in pending:
             job_description, requirements, benefits = cache_key
@@ -389,7 +511,11 @@ class JDSearchService:
                 f"requirements:\n{requirements}\n\n"
                 f"benefits:\n{benefits}"
             )
-        user_message = "Viết lại từng item sau thành JSON arrays theo đúng schema.\n\n" + "\n\n---\n\n".join(blocks)
+        user_message = (
+            "Format các JD sau thành `FormattedJDBatch`. Giữ nguyên ID, trả về đủ 3 mảng cho "
+            "từng JD theo đúng schema.\n\n"
+            + "\n\n---\n\n".join(blocks)
+        )
         return call_with_structured_output(
             llm=llm,
             output_schema=FormattedJDBatch,
@@ -406,50 +532,181 @@ class JDSearchService:
             benefits=cls._text_to_bullets(benefits),
         )
 
-    @staticmethod
-    def _split_sentences(text: str) -> list[str]:
+    @classmethod
+    def _split_sentences(cls, text: str) -> list[str]:
         if len(text) < 60:
             return [text]
-        parts = re.split(r'(?<=[.!?])\s+(?=[A-Z])', text)
-        return [p.strip() for p in parts if p.strip()]
+        parts = re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-Ỹ0-9])", text)
+        if len(parts) == 1:
+            return cls._split_compound_item(text)
+        split_parts: list[str] = []
+        for part in parts:
+            split_parts.extend(cls._split_compound_item(part))
+        return [p.strip() for p in split_parts if p.strip()]
+
+    @classmethod
+    def _split_compound_item(cls, text: str) -> list[str]:
+        text = cls._normalize_tech_hyphen_terms(text)
+        text = re.sub(r"\s+", " ", text).strip(" \t\r\n:;,")
+        if not text:
+            return []
+
+        starters = "|".join(re.escape(starter) for starter in cls._ACTION_STARTERS)
+        text = re.sub(r"\bđể:\s+", "để ", text, flags=re.IGNORECASE)
+        text = re.sub(rf"(?<!^)\s+(?=(?:{starters})\b)", "\n", text)
+        text = re.sub(r"[:;]\s+(?=[A-ZÀ-Ỹ0-9])", "\n", text)
+        text = re.sub(r",\s+(?=(?:thưởng|BHXH|BHYT|BHTN|bảo hiểm|du lịch|nghỉ phép)\b)", "\n", text, flags=re.IGNORECASE)
+
+        items: list[str] = []
+        for part in text.split("\n"):
+            part = cls._normalize_bullet_item(part)
+            if part:
+                items.append(part)
+        return items or [text]
 
     @staticmethod
-    def _text_to_bullets(text: str) -> list[str]:
+    def _normalize_tech_hyphen_terms(text: str) -> str:
+        replacements = (
+            (r"\bdev\s*-\s*ops\b", "DevOps"),
+            (r"\bdev\s+ops\b", "DevOps"),
+            (r"\bdev\s*-\s*sec\s*-\s*ops\b", "DevSecOps"),
+            (r"\bdev\s+sec\s+ops\b", "DevSecOps"),
+            (r"\bfull\s*-\s*stack\b", "full-stack"),
+            (r"\bfull\s+stack\b", "full-stack"),
+            (r"\bfront\s*-\s*end\b", "front-end"),
+            (r"\bfront\s+end\b", "front-end"),
+            (r"\bback\s*-\s*end\b", "back-end"),
+            (r"\bback\s+end\b", "back-end"),
+            (r"\bwi\s*-\s*fi\b", "Wi-Fi"),
+            (r"\bwi\s+fi\b", "Wi-Fi"),
+            (r"\bci\s*-\s*cd\b", "CI/CD"),
+            (r"\bci\s+cd\b", "CI/CD"),
+            (r"\bpostgre\s+sql\b", "PostgreSQL"),
+            (r"\bmy\s+sql\b", "MySQL"),
+            (r"\bno\s+sql\b", "NoSQL"),
+            (r"\bjava\s+script\b", "JavaScript"),
+            (r"\btype\s+script\b", "TypeScript"),
+        )
+        for pattern, replacement in replacements:
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        return text
+
+    @classmethod
+    def _normalize_bullet_item(cls, item: str) -> str:
+        item = cls._normalize_tech_hyphen_terms(item)
+        line = re.sub(r"\s+", " ", item).strip()
+        line = re.sub(r"^[-+*•·●▪►★✓✔]+\s*", "", line).strip()
+        line = re.sub(r"^\d+[.)]\s*", "", line).strip()
+        line = line.strip(" \t\r\n:;,")
+        if not line:
+            return ""
+
+        heading_key = cls._strip_vietnamese_accents(line.casefold())
+        heading_key = re.sub(r"[^a-z0-9 ]+", " ", heading_key)
+        heading_key = re.sub(r"\s+", " ", heading_key).strip()
+        if heading_key in cls._SECTION_HEADINGS:
+            return ""
+        return line
+
+    @staticmethod
+    def _strip_vietnamese_accents(value: str) -> str:
+        chars = {
+            "à": "a", "á": "a", "ạ": "a", "ả": "a", "ã": "a",
+            "â": "a", "ầ": "a", "ấ": "a", "ậ": "a", "ẩ": "a", "ẫ": "a",
+            "ă": "a", "ằ": "a", "ắ": "a", "ặ": "a", "ẳ": "a", "ẵ": "a",
+            "è": "e", "é": "e", "ẹ": "e", "ẻ": "e", "ẽ": "e",
+            "ê": "e", "ề": "e", "ế": "e", "ệ": "e", "ể": "e", "ễ": "e",
+            "ì": "i", "í": "i", "ị": "i", "ỉ": "i", "ĩ": "i",
+            "ò": "o", "ó": "o", "ọ": "o", "ỏ": "o", "õ": "o",
+            "ô": "o", "ồ": "o", "ố": "o", "ộ": "o", "ổ": "o", "ỗ": "o",
+            "ơ": "o", "ờ": "o", "ớ": "o", "ợ": "o", "ở": "o", "ỡ": "o",
+            "ù": "u", "ú": "u", "ụ": "u", "ủ": "u", "ũ": "u",
+            "ư": "u", "ừ": "u", "ứ": "u", "ự": "u", "ử": "u", "ữ": "u",
+            "ỳ": "y", "ý": "y", "ỵ": "y", "ỷ": "y", "ỹ": "y",
+            "đ": "d",
+        }
+        return "".join(chars.get(char, char) for char in value)
+
+    @classmethod
+    def _text_to_bullets(cls, text: str) -> list[str]:
         if not text or not text.strip():
             return []
         normalized = preprocess_jd_text(text)
+        normalized = cls._normalize_tech_hyphen_terms(normalized)
         normalized = re.sub(r"\s*[•·●]\s*", "\n", normalized)
         normalized = re.sub(r"(?<!\S)[+*]\s+", "\n", normalized)
         normalized = re.sub(r"\s+-\s+", "\n", normalized)
         lines = []
         for raw_line in normalized.splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            line = re.sub(r"^[+*•·●\-]\s*", "", line).strip()
-            line = re.sub(r"^\d+[.)]\s*", "", line).strip()
+            line = cls._normalize_bullet_item(raw_line)
             if not line:
                 continue
             if len(line) > 120:
-                lines.extend(JDSearchService._split_sentences(line))
+                lines.extend(cls._split_sentences(line))
             else:
-                lines.append(line)
+                lines.extend(cls._split_compound_item(line))
         return lines
 
     @classmethod
     def _clean_bullet_items(cls, items: list[str]) -> list[str]:
         cleaned: list[str] = []
         for item in items:
-            line = re.sub(r"\s+", " ", item).strip()
-            line = re.sub(r"^[-+*•·●]+\s*", "", line).strip()
-            line = re.sub(r"^\d+[.)]\s*", "", line).strip()
+            line = cls._normalize_bullet_item(item)
             if not line:
                 continue
             if len(line) > 120:
                 cleaned.extend(cls._split_sentences(line))
             else:
-                cleaned.append(line)
-        return cleaned
+                cleaned.extend(cls._split_compound_item(line))
+        return cls._merge_split_tech_terms(cleaned)
+
+    @staticmethod
+    def _merge_split_tech_terms(items: list[str]) -> list[str]:
+        merged: list[str] = []
+        index = 0
+        while index < len(items):
+            current = items[index].strip()
+            next_item = items[index + 1].strip() if index + 1 < len(items) else ""
+            if current.endswith(" Dev") and next_item.rstrip(".").casefold() == "ops":
+                merged.append(f"{current[:-4]} DevOps".strip())
+                index += 2
+                continue
+            if current.casefold() == "dev" and next_item.rstrip(".").casefold() == "ops":
+                merged.append("DevOps")
+                index += 2
+                continue
+            if next_item and JDSearchService._should_join_split_tech_fragment(current, next_item):
+                current = f"{current}{next_item}"
+                index += 2
+                while index < len(items) and JDSearchService._should_join_split_tech_fragment(current, items[index].strip()):
+                    current = f"{current}{items[index].strip()}"
+                    index += 1
+                merged.append(JDSearchService._normalize_tech_hyphen_terms(current))
+                continue
+            merged.append(current)
+            index += 1
+        return merged
+
+    @staticmethod
+    def _should_join_split_tech_fragment(current: str, next_item: str) -> bool:
+        current_tail = current.rstrip(" .,:;").casefold()
+        next_head = next_item.lstrip(" .,:;").casefold()
+        split_pairs = (
+            ("postgre", "sql"),
+            ("my", "sql"),
+            ("no", "sql"),
+            ("java", "script"),
+            ("type", "script"),
+        )
+        if any(current_tail.endswith(left) and next_head.startswith(right) for left, right in split_pairs):
+            return True
+        if current_tail.endswith(("/my", "/no", "/postgre")) and next_head.startswith("sql"):
+            return True
+        if current_tail.endswith("/java") and next_head.startswith("script"):
+            return True
+        if current_tail.endswith("/type") and next_head.startswith("script"):
+            return True
+        return False
 
     @staticmethod
     def _normalize_text(value: str) -> str:

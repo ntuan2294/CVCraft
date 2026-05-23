@@ -38,7 +38,7 @@ export default function TemplatePickerModal({ templates, selected, onSelect, onC
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl">
+      <div className="relative flex max-h-[95vh] w-full max-w-7xl flex-col rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
           <div>
@@ -59,34 +59,33 @@ export default function TemplatePickerModal({ templates, selected, onSelect, onC
 
         {/* Template grid */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-7 lg:grid-cols-2 2xl:grid-cols-3">
             {templates.map((tpl) => {
               const isSelected = selected === tpl.id
-              const localizedName = t(`tpl.${tpl.id}.name` as any) || tpl.name
-              const localizedDesc = t(`tpl.${tpl.id}.desc` as any) || tpl.description
+              const localizedName = t(`tpl.${tpl.id}.name` as Parameters<typeof t>[0]) || tpl.name
               return (
                 <button
                   key={tpl.id}
                   type="button"
                   onClick={() => { onSelect(tpl.id); onClose() }}
-                  className={`group flex flex-col overflow-hidden rounded-xl border-2 text-left transition-all ${
+                  className={`group flex flex-col overflow-hidden rounded-xl border-2 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
                     isSelected
                       ? 'border-indigo-500 shadow-md shadow-indigo-100'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-sm'
+                      : 'border-gray-200 hover:border-indigo-300'
                   }`}
                 >
                   {/* Thumbnail area */}
-                  <div className={`relative flex h-52 items-center justify-center ${isSelected ? 'bg-indigo-50' : 'bg-gray-50 group-hover:bg-indigo-50/50'}`}>
+                  <div className={`relative flex h-[560px] items-center justify-center ${isSelected ? 'bg-indigo-50' : 'bg-gray-50 group-hover:bg-indigo-50/50'}`}>
                     {tpl.thumbnail ? (
                       <Image
                         src={tpl.thumbnail}
                         alt={localizedName}
-                        width={140}
-                        height={190}
-                        className="h-44 w-30 rounded-md border border-slate-200 bg-white object-cover object-top shadow-sm"
+                        width={340}
+                        height={480}
+                        className="h-[510px] w-[360px] rounded-md border border-slate-200 bg-white object-cover object-top shadow-sm transition-transform duration-200 group-hover:scale-[1.03]"
                       />
                     ) : (
-                      <div className="h-40 w-28 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                      <div className="h-[510px] w-[360px] overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
                         <div className="h-full w-full bg-slate-100" />
                       </div>
                     )}
@@ -100,27 +99,15 @@ export default function TemplatePickerModal({ templates, selected, onSelect, onC
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1 px-3 py-2.5">
-                    <p className={`text-sm font-semibold ${isSelected ? 'text-indigo-700' : 'text-gray-800'}`}>
+                  <div className="flex-1 px-3 py-3 text-center">
+                    <p className={`text-base font-semibold ${isSelected ? 'text-indigo-700' : 'text-gray-800'}`}>
                       {localizedName}
                     </p>
-                    <p className="mt-0.5 text-xs leading-4 text-gray-500">{localizedDesc}</p>
                   </div>
                 </button>
               )
             })}
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex shrink-0 justify-end border-t border-gray-100 px-6 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-          >
-            {t('gen.confirm')}
-          </button>
         </div>
       </div>
     </div>

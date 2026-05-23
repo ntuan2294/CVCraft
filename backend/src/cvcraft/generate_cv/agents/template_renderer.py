@@ -1395,7 +1395,8 @@ def template_renderer_node(state: CVAgentState) -> dict:
 
             outputs_dir = Path(settings.outputs_dir)
             outputs_dir.mkdir(parents=True, exist_ok=True)
-            output_path = str(outputs_dir / "cv_output_template_6.html")
+            template_id = str(state.user_input.get("template_id") or Path(abs_template_path).stem)
+            output_path = str(outputs_dir / f"cv_output_template_{template_id}.html")
             fields = fields_from_state(state)
             result = render_html_template(abs_template_path, output_path, fields)
             file_size = os.path.getsize(output_path)

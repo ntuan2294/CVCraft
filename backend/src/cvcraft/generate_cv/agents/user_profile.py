@@ -46,6 +46,7 @@ def user_profile_node(state: CVAgentState) -> dict:
         skills_raw=data.get("skills", []),
         languages=data.get("languages", []),
         references=data.get("references"),
+        certifications=data.get("certifications", []),
         photo=data.get("photo"),
         projects=data.get("projects", []),
         template_path=data.get("template_path"),

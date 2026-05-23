@@ -9,18 +9,14 @@ const HtmlOutputEditor = dynamic(() => import('@/components/HtmlOutputEditor'), 
 
 export function GenerateCvResult({
   result,
-  onDownloadDocx,
-  onDownloadImage,
-  onExportPdf,
+  onDownload,
   jobTitle,
   jdText,
   templateId,
   initialSaved = false,
 }: {
   result: GenerateCVResponse | null
-  onDownloadDocx: () => void | Promise<void>
-  onDownloadImage: () => void | Promise<void>
-  onExportPdf: () => void
+  onDownload: (format: 'png' | 'jpg' | 'pdf') => void | Promise<void>
   jobTitle?: string
   jdText?: string
   templateId?: string
@@ -30,7 +26,13 @@ export function GenerateCvResult({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(initialSaved)
   const [saveError, setSaveError] = useState('')
+  const [downloadOpen, setDownloadOpen] = useState(false)
   const isHtml = Boolean(result?.output_path?.toLowerCase().endsWith('.html'))
+
+  const handleDownload = async (format: 'png' | 'jpg' | 'pdf') => {
+    setDownloadOpen(false)
+    await onDownload(format)
+  }
 
   const handleSave = async () => {
     if (!result) return
@@ -80,32 +82,46 @@ export function GenerateCvResult({
               <p className="text-xs text-gray-500">{t('gen.cvEditorDesc')}</p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              {isHtml ? (
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={onDownloadImage}
+                  onClick={() => setDownloadOpen((open) => !open)}
                   className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
                   disabled={!result.output_path}
+                  aria-haspopup="menu"
+                  aria-expanded={downloadOpen}
                 >
-                  {t('gen.downloadImage')}
+                  {t('gen.download')}
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onDownloadDocx}
-                  className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
-                  disabled={!result.output_path}
-                >
-                  {t('gen.downloadDocx')}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={onExportPdf}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-indigo-300 hover:text-indigo-700"
-              >
-                {t('gen.exportPdf')}
-              </button>
+                {downloadOpen && (
+                  <div className="absolute right-0 top-full z-20 mt-2 w-36 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg" role="menu">
+                    <button
+                      type="button"
+                      onClick={() => handleDownload('png')}
+                      className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                      role="menuitem"
+                    >
+                      {t('gen.downloadPng')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload('jpg')}
+                      className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                      role="menuitem"
+                    >
+                      {t('gen.downloadJpg')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload('pdf')}
+                      className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                      role="menuitem"
+                    >
+                      {t('gen.downloadPdf')}
+                    </button>
+                  </div>
+                )}
+              </div>
               {/* Save to library button */}
               {saved ? (
                 <span className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-700 flex items-center gap-1">

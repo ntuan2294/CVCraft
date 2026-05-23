@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{FULL_NAME}} - CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f3f3;
+      color: #303948;
+      font-family: 'Lato', "Segoe UI", Arial, sans-serif;
+    }
+    .page {
+      width: 794px;
+      min-height: 1123px;
+      margin: 24px auto;
+      background: #fff;
+      padding: 92px 30px 72px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
+    }
+    .header {
+      padding-bottom: 18px;
+      border-bottom: 3px solid #183653;
+      margin-bottom: 52px;
+    }
+    .name {
+      margin: 0 0 10px;
+      font-size: 36px;
+      line-height: 1;
+      font-weight: 300;
+      letter-spacing: .01em;
+    }
+    .job-title {
+      font-size: 18px;
+      line-height: 1.2;
+      color: #303948;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      gap: 42px;
+      align-items: start;
+    }
+    .sidebar-section {
+      margin-bottom: 34px;
+    }
+    .side-heading,
+    .section-heading {
+      margin: 0 0 12px;
+      color: #303948;
+      font-size: 20px;
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .side-heading::after,
+    .section-heading::after {
+      content: "";
+      display: block;
+      height: 2px;
+      margin-top: 8px;
+      background: #111;
+    }
+    .section-heading::after {
+      background: #183653;
+    }
+    .contact-list {
+      display: grid;
+      gap: 16px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .contact-item {
+      display: grid;
+      grid-template-columns: 17px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .contact-icon {
+      width: 15px;
+      height: 15px;
+      color: #000;
+      margin-top: 1px;
+    }
+    .plain-list {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .plain-list p { margin: 0; }
+    .main {
+      display: grid;
+      gap: 26px;
+    }
+    .timeline-section {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      column-gap: 18px;
+      min-height: 96px;
+    }
+    .timeline-rail {
+      position: relative;
+    }
+    .timeline-rail::before {
+      content: "";
+      position: absolute;
+      left: 17px;
+      top: 28px;
+      bottom: -18px;
+      width: 1px;
+      background: #111;
+    }
+    .timeline-section:last-child .timeline-rail::before {
+      bottom: 0;
+    }
+    .circle-icon {
+      position: relative;
+      z-index: 2;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #000;
+      color: #fff;
+      display: grid;
+      place-items: center;
+    }
+    .circle-icon svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+    .section-body {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .experience {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .exp-entry { margin-bottom: 18px; }
+    .exp-entry:last-child { margin-bottom: 0; }
+    .exp-head,
+    .education-entry {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .exp-company,
+    .edu-school {
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .exp-role {
+      margin-top: 3px;
+      font-weight: 400;
+    }
+    .exp-time,
+    .edu-time {
+      white-space: nowrap;
+      text-align: right;
+    }
+    .exp-bullets {
+      margin: 10px 0 0 18px;
+      padding-left: 12px;
+    }
+    .exp-bullets li { margin-bottom: 4px; }
+    .edu-detail {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #4b5563;
+    }
+    @media print {
+      body { background: #fff; }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <h1 class="name">{{FULL_NAME}}</h1>
+      <div class="job-title">{{JOB_TITLE}}</div>
+    </header>
+
+    <div class="content">
+      <aside class="sidebar">
+        <section class="sidebar-section">
+          <h2 class="side-heading">Contact</h2>
+          <div class="contact-list">
+            <div class="contact-item">
+              <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M6.6 10.8c1.5 3 3.9 5.4 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.3 1.3.4 2.6.6 4 .6.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2C10.7 21.4 2.6 13.3 2.6 3.4c0-.7.5-1.2 1.2-1.2h3.5c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.7.6 4 .1.4 0 .9-.3 1.2l-2.2 2.2Z"/>
+              </svg>
+              <span>{{PHONE_NUMBER}}</span>
+            </div>
+            <div class="contact-item">
+              <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 13.5 2 6.8V18c0 .6.4 1 1 1h18c.6 0 1-.4 1-1V6.8l-10 6.7ZM12 11 21 5H3l9 6Z"/>
+              </svg>
+              <span>{{GMAIL}}</span>
+            </div>
+            <div class="contact-item">
+              <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 2a7 7 0 0 1 7 7c0 5.2-7 13-7 13S5 14.2 5 9a7 7 0 0 1 7-7Zm0 9.5A2.5 2.5 0 1 0 12 6a2.5 2.5 0 0 0 0 5.5Z"/>
+              </svg>
+              <span>{{ADDRESS}}</span>
+            </div>
+            <div class="contact-item">
+              <svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm6.9 6h-3a15 15 0 0 0-1.2-3 8.1 8.1 0 0 1 4.2 3ZM12 4.1A12.9 12.9 0 0 1 13.8 8h-3.6A12.9 12.9 0 0 1 12 4.1ZM4.3 14a8 8 0 0 1 0-4h3.4a16.8 16.8 0 0 0 0 4H4.3Zm.8 2h3a15 15 0 0 0 1.2 3 8.1 8.1 0 0 1-4.2-3Zm3-8h-3a8.1 8.1 0 0 1 4.2-3 15 15 0 0 0-1.2 3Zm4 11.9A12.9 12.9 0 0 1 10.2 16h3.6A12.9 12.9 0 0 1 12 19.9ZM14.3 14H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4Zm.4 5a15 15 0 0 0 1.2-3h3a8.1 8.1 0 0 1-4.2 3Zm1.6-5a16.8 16.8 0 0 0 0-4h3.4a8 8 0 0 1 0 4h-3.4Z"/>
+              </svg>
+              <span>{{LINKEDIN}}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="sidebar-section">
+          <h2 class="side-heading">Skills</h2>
+          <div class="plain-list">{{SKILLS}}</div>
+        </section>
+
+        <section class="sidebar-section">
+          <h2 class="side-heading">Languages</h2>
+          <div class="plain-list">{{LANGUAGES}}</div>
+        </section>
+      </aside>
+
+      <section class="main">
+        <section class="timeline-section">
+          <div class="timeline-rail">
+            <span class="circle-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm8 8.5c0-4.2-3.6-7-8-7s-8 2.8-8 7V21h16v-.5Z"/>
+              </svg>
+            </span>
+          </div>
+          <div>
+            <h2 class="section-heading">Profile</h2>
+            <div class="section-body">{{SUMMARY}}</div>
+          </div>
+        </section>
+
+        <section class="timeline-section">
+          <div class="timeline-rail">
+            <span class="circle-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M9 5V4c0-1.1.9-2 2-2h2c1.1 0 2 .9 2 2v1h5c1.1 0 2 .9 2 2v4h-8v-1h-4v1H2V7c0-1.1.9-2 2-2h5Zm2 0h2V4h-2v1ZM2 13h8v1h4v-1h8v6c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-6Z"/>
+              </svg>
+            </span>
+          </div>
+          <div>
+            <h2 class="section-heading">Work Experience</h2>
+            <div class="experience">
+              <div class="exp-entry">
+                <div class="exp-head">
+                  <span class="exp-company">{{COMPANY}}</span>
+                  <span class="exp-time">{{TIME}}</span>
+                </div>
+                <div class="exp-role">{{JOB_TITLE}}</div>
+                <ul class="exp-bullets">
+                  <li>{{EXPERIENCE}}</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- education -->
+          </div>
+        </section>
+
+        <section class="timeline-section">
+          <div class="timeline-rail">
+            <span class="circle-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 3 1.5 8.2 12 13.4l10.5-5.2L12 3Zm-6 9.3v3.5c0 1.9 3.1 3.7 6 3.7s6-1.8 6-3.7v-3.5l-6 3-6-3Z"/>
+              </svg>
+            </span>
+          </div>
+          <div>
+            <h2 class="section-heading"></h2>
+            <div class="education-entry">
+              <span class="edu-school">{{SCHOOL}}</span>
+              <span class="edu-time">{{TIME}}</span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
