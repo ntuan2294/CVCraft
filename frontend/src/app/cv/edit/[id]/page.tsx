@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { cvDocumentApi } from '@/lib/backendApi'
 import type { CvDocument, GenerateCVResponse } from '@/lib/types'
 import { GenerateCvResult } from '@/features/generate-cv/components/GenerateCvResult'
-import { downloadCvEditorAsImage, downloadCvEditorAsPdf, downloadGeneratedDocx } from '@/features/generate-cv/utils/export'
+import { downloadCvEditorAsImage, downloadCvEditorAsPdf } from '@/features/generate-cv/utils/export'
 import { useI18n } from '@/lib/i18n'
 import Link from 'next/link'
 
@@ -107,9 +107,10 @@ export default function EditCvPage() {
 
       <GenerateCvResult
         result={mockResult}
-        onDownloadDocx={() => downloadGeneratedDocx(mockResult)}
-        onDownloadImage={downloadCvEditorAsImage}
-        onExportPdf={downloadCvEditorAsPdf}
+        onDownload={async (format) => {
+          if (format === 'pdf') await downloadCvEditorAsPdf()
+          else await downloadCvEditorAsImage(format)
+        }}
         jobTitle={cv.jdTitle}
         templateId={cv.templateId}
         initialSaved={true}

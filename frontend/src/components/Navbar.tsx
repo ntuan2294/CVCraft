@@ -20,6 +20,7 @@ export default function Navbar() {
 
   const navLinks: [string, string][] = [
     [t('nav.aiCvBuilder'), '/cv/generate'],
+    ['Chỉnh sửa CV', '/edit-cv'],
     [t('nav.jdSearch'), '/jd/search'],
     [t('nav.myCvs'), user?.role === 'ADMIN' ? '/dashboard/candidate' : '/dashboard'],
     ...(user?.role === 'ADMIN' ? [[t('nav.adminPanel'), '/dashboard/admin'] as [string, string]] : []),
@@ -95,6 +96,13 @@ export default function Navbar() {
                       onClick={() => setDropOpen(false)}
                     >
                       {t('nav.buildCv')}
+                    </Link>
+                    <Link
+                      href="/edit-cv"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropOpen(false)}
+                    >
+                      Chỉnh sửa CV
                     </Link>
                     <Link
                       href="/profile"

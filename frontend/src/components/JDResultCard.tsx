@@ -23,6 +23,7 @@ interface Props {
   card: JDCardResult
   prefetched?: JDFormattedDetail
   onGenerate: (detail: JDFormattedDetail, card: JDCardResult) => void
+  onEdit: (detail: JDFormattedDetail, card: JDCardResult) => void
 }
 
 function BulletSection({ title, items }: { title: string; items: string[] }) {
@@ -39,7 +40,7 @@ function BulletSection({ title, items }: { title: string; items: string[] }) {
   )
 }
 
-export default function JDResultCard({ card, prefetched, onGenerate }: Props) {
+export default function JDResultCard({ card, prefetched, onGenerate, onEdit }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [detail, setDetail] = useState<JDFormattedDetail | null>(prefetched ?? null)
   const [loading, setLoading] = useState(false)
@@ -141,13 +142,25 @@ export default function JDResultCard({ card, prefetched, onGenerate }: Props) {
                 <BulletSection title="Phúc lợi" items={detail.benefits_bullets} />
               </div>
 
-              <button
-                type="button"
-                onClick={() => onGenerate(detail, card)}
-                className="mt-5 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-              >
-                Tạo CV theo JD này
-              </button>
+              <div className="mt-5 space-y-2">
+                <p className="text-xs font-medium text-gray-500">Bạn đã có CV chưa?</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(detail, card)}
+                    className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+                  >
+                    Đã có CV → Cải thiện CV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onGenerate(detail, card)}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+                  >
+                    Chưa có CV → Tạo mới
+                  </button>
+                </div>
+              </div>
             </>
           )}
         </div>

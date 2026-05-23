@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import TemplatePickerModal from '@/components/TemplatePickerModal'
+import JdUploadButton from '@/components/JdUploadButton'
 import { CV_TEMPLATES } from '../constants'
 import type { useGenerateCvForm } from '../hooks/useGenerateCvForm'
 import { FormField, inputClass } from './FormField'
@@ -76,7 +77,10 @@ function JobDescriptionSection({ model }: { model: GenerateCvFormModel }) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-semibold text-gray-900">{t('gen.jdTitle')}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-gray-900">{t('gen.jdTitle')}</h2>
+        <JdUploadButton onExtracted={model.setJdText} />
+      </div>
       <FormField label={t('gen.jdLabel')} required>
         <textarea
           value={model.jdText}
