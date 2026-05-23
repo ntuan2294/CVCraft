@@ -47,12 +47,21 @@ public class CvDocumentService {
     @Transactional
     public CvDocumentResponse setPrimary(String email, Long docId) {
         var user = userRepository.findByEmail(email).orElseThrow();
-        // clear any existing primary
-        cvDocumentRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, 100))
-            .forEach(d -> { d.setIsPrimary(false); cvDocumentRepository.save(d); });
         var doc = cvDocumentRepository.findByIdAndUserId(docId, user.getId())
             .orElseThrow(() -> new ResourceNotFoundException("CvDocument", docId));
-        doc.setIsPrimary(true);
+        
+        boolean wasPrimary = Boolean.TRUE.equals(doc.getIsPrimary());
+        
+        // clear any existing primary (excluding docId to handle it separately)
+        cvDocumentRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, 100))
+            .forEach(d -> {
+                if (!d.getId().equals(docId) && Boolean.TRUE.equals(d.getIsPrimary())) {
+                    d.setIsPrimary(false);
+                    cvDocumentRepository.save(d);
+                }
+            });
+            
+        doc.setIsPrimary(!wasPrimary);
         return CvDocumentResponse.from(cvDocumentRepository.save(doc));
     }
 

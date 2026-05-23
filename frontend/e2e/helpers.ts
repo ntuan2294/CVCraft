@@ -418,9 +418,11 @@ export async function mockCandidateApis(page: Page, options?: {
     const setPrimaryMatch = pathname.match(/\/api\/cv-docs\/(\d+)\/primary$/)
     if (method === 'PATCH' && setPrimaryMatch) {
       const selectedId = Number(setPrimaryMatch[1])
+      const docToToggle = docs.find((item) => item.id === selectedId)
+      const wasPrimary = docToToggle?.isPrimary ?? false
       docs = docs.map((item) => ({
         ...item,
-        isPrimary: item.id === selectedId,
+        isPrimary: item.id === selectedId ? !wasPrimary : false,
         updatedAt: item.id === selectedId ? NOW : item.updatedAt,
       }))
       const updated = docs.find((item) => item.id === selectedId)

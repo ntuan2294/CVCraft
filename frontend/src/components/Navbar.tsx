@@ -80,6 +80,15 @@ export default function Navbar() {
                     >
                       {t('nav.dashboard')}
                     </Link>
+                    {user.role === 'ADMIN' && (
+                      <Link
+                        href="/dashboard/admin"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        onClick={() => setDropOpen(false)}
+                      >
+                        {t('nav.adminPanel')}
+                      </Link>
+                    )}
                     <Link
                       href="/cv/generate"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
