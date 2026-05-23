@@ -1,10 +1,11 @@
 package com.cvcraft.controller;
 
-import com.cvcraft.dto.request.LoginRequest;
-import com.cvcraft.dto.request.RegisterRequest;
+import com.cvcraft.dto.request.*;
 import com.cvcraft.dto.response.AuthResponse;
+import com.cvcraft.dto.response.MessageResponse;
 import com.cvcraft.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +37,23 @@ public class AuthController {
     @Operation(summary = "Refresh access token using refresh token")
     public AuthResponse refresh(@RequestParam String refreshToken) {
         return authService.refresh(refreshToken);
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request a password reset email")
+    public MessageResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        return authService.forgotPassword(req);
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password using token from email")
+    public MessageResponse resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        return authService.resetPassword(req);
+    }
+
+    @PutMapping("/change-password")
+    @Operation(summary = "Change password for authenticated user", security = @SecurityRequirement(name = "bearerAuth"))
+    public MessageResponse changePassword(@Valid @RequestBody ChangePasswordRequest req) {
+        return authService.changePassword(req);
     }
 }

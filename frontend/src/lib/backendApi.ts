@@ -32,6 +32,12 @@ export const authApi = {
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   refresh: (refreshToken: string) =>
     request<AuthResponse>(`/auth/refresh?refreshToken=${refreshToken}`, { method: 'POST' }),
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ message: string }>('/auth/change-password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) }),
 }
 
 // CV Profile (personal info used for CV generation)

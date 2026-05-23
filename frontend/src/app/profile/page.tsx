@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
-import { profileApi, type UpdateProfileRequest } from '@/lib/backendApi'
+import { profileApi, authApi, type UpdateProfileRequest } from '@/lib/backendApi'
 import type { UserProfile, WorkExperience, Education } from '@/lib/types'
 import { useI18n } from '@/lib/i18n'
 
@@ -53,6 +53,14 @@ export default function ProfilePage() {
   const [languageInput, setLanguageInput] = useState('')
 
   const [referencesInfo, setReferencesInfo] = useState('')
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState(false)
 
   const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([])
   const [educations, setEducations] = useState<Education[]>([])
@@ -140,6 +148,33 @@ export default function ProfilePage() {
   }
   const addEdu = () => setEducations(prev => [...prev, { ...EMPTY_EDU }])
   const removeEdu = (index: number) => setEducations(prev => prev.filter((_, idx) => idx !== index))
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwError('')
+    setPwSuccess(false)
+    if (newPassword.length < 8) {
+      setPwError(t('auth.passwordMin'))
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError(t('auth.passwordMismatch'))
+      return
+    }
+    setPwLoading(true)
+    try {
+      await authApi.changePassword(currentPassword, newPassword)
+      setPwSuccess(true)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => setPwSuccess(false), 4000)
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : t('auth.changePasswordError'))
+    } finally {
+      setPwLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -387,6 +422,47 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      {/* Change Password */}
+      <div className="mt-8">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="border-b border-gray-100 pb-3 mb-4">
+            <h2 className="font-semibold text-gray-950 text-base">{t('auth.changePasswordTitle')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('auth.changePasswordSubtitle')}</p>
+          </div>
+
+          {pwError && (
+            <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{pwError}</div>
+          )}
+          {pwSuccess && (
+            <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2 font-semibold">
+              <span>✓</span> {t('auth.passwordChangedSuccess')}
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.currentPassword')}</label>
+              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required
+                className={inputClass} placeholder="••••••••" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.newPassword')}</label>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8}
+                className={inputClass} placeholder="••••••••" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.confirmNewPassword')}</label>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8}
+                className={inputClass} placeholder="••••••••" />
+            </div>
+            <button type="submit" disabled={pwLoading}
+              className="py-2.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-70 text-sm">
+              {pwLoading ? t('auth.changingPassword') : t('auth.changePasswordBtn')}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }

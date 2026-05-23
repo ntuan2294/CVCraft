@@ -1,16 +1,9 @@
 import type { Metadata } from 'next'
-import { Be_Vietnam_Pro } from 'next/font/google'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { AuthProvider } from '@/lib/authContext'
 import { LanguageProvider } from '@/lib/i18n'
 import './globals.css'
-
-const beVietnam = Be_Vietnam_Pro({
-  subsets: ['latin', 'vietnamese'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-be-vietnam',
-})
 
 export const metadata: Metadata = {
   title: 'CVCraft — AI-Powered CV Builder',
@@ -19,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className={`${beVietnam.variable} font-sans`} suppressHydrationWarning>
+    <html lang="vi" className="font-sans" suppressHydrationWarning>
       <body className="min-h-screen bg-gray-50 text-gray-900 flex flex-col" suppressHydrationWarning>
         <LanguageProvider>
           <AuthProvider>

@@ -117,6 +117,40 @@ const translations = {
     'auth.alreadyHaveAccount': 'Already have an account?',
     'auth.registrationFailed': 'Registration failed',
 
+    // Auth - Forgot Password
+    'auth.forgotPasswordTitle': 'Forgot your password?',
+    'auth.forgotPasswordSubtitle': 'Enter your email and we\'ll send you a reset link',
+    'auth.sendResetLink': 'Send reset link',
+    'auth.sendingResetLink': 'Sending...',
+    'auth.forgotPasswordError': 'Failed to send reset email. Please try again.',
+    'auth.checkYourEmail': 'Check your email',
+    'auth.resetEmailSent': 'We\'ve sent a password reset link to {email}',
+    'auth.resetEmailExpiry': 'The link will expire in 60 minutes.',
+    'auth.backToSignIn': '← Back to sign in',
+    'auth.requestNewResetLink': 'Request a new reset link',
+
+    // Auth - Reset Password
+    'auth.resetPasswordTitle': 'Set new password',
+    'auth.resetPasswordSubtitle': 'Enter your new password below',
+    'auth.newPassword': 'New password',
+    'auth.confirmNewPassword': 'Confirm new password',
+    'auth.passwordMismatch': 'Passwords do not match',
+    'auth.resetTokenMissing': 'Invalid or missing reset token. Please request a new one.',
+    'auth.resetPasswordBtn': 'Reset password',
+    'auth.resettingPassword': 'Resetting...',
+    'auth.resetPasswordError': 'Failed to reset password. The link may have expired.',
+    'auth.passwordResetSuccess': 'Password reset successfully!',
+    'auth.redirectingToLogin': 'Redirecting to sign in...',
+
+    // Auth - Change Password
+    'auth.changePasswordTitle': 'Change Password',
+    'auth.changePasswordSubtitle': 'Update your account password',
+    'auth.currentPassword': 'Current password',
+    'auth.changePasswordBtn': 'Change password',
+    'auth.changingPassword': 'Changing...',
+    'auth.changePasswordError': 'Failed to change password. Please check your current password.',
+    'auth.passwordChangedSuccess': 'Password changed successfully!',
+
     // Language toggle
     'lang.toggle': 'VI',
 
@@ -369,6 +403,40 @@ const translations = {
     'auth.register': 'Tạo tài khoản',
     'auth.alreadyHaveAccount': 'Đã có tài khoản?',
     'auth.registrationFailed': 'Đăng ký thất bại',
+
+    // Auth - Forgot Password
+    'auth.forgotPasswordTitle': 'Quên mật khẩu?',
+    'auth.forgotPasswordSubtitle': 'Nhập email của bạn để nhận link đặt lại mật khẩu',
+    'auth.sendResetLink': 'Gửi link đặt lại',
+    'auth.sendingResetLink': 'Đang gửi...',
+    'auth.forgotPasswordError': 'Gửi email thất bại. Vui lòng thử lại.',
+    'auth.checkYourEmail': 'Kiểm tra email của bạn',
+    'auth.resetEmailSent': 'Chúng tôi đã gửi link đặt lại mật khẩu tới {email}',
+    'auth.resetEmailExpiry': 'Link sẽ hết hạn sau 60 phút.',
+    'auth.backToSignIn': '← Quay lại đăng nhập',
+    'auth.requestNewResetLink': 'Yêu cầu link đặt lại mới',
+
+    // Auth - Reset Password
+    'auth.resetPasswordTitle': 'Đặt mật khẩu mới',
+    'auth.resetPasswordSubtitle': 'Nhập mật khẩu mới của bạn bên dưới',
+    'auth.newPassword': 'Mật khẩu mới',
+    'auth.confirmNewPassword': 'Xác nhận mật khẩu mới',
+    'auth.passwordMismatch': 'Mật khẩu xác nhận không khớp',
+    'auth.resetTokenMissing': 'Link đặt lại không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu link mới.',
+    'auth.resetPasswordBtn': 'Đặt lại mật khẩu',
+    'auth.resettingPassword': 'Đang xử lý...',
+    'auth.resetPasswordError': 'Đặt lại mật khẩu thất bại. Link có thể đã hết hạn.',
+    'auth.passwordResetSuccess': 'Đặt lại mật khẩu thành công!',
+    'auth.redirectingToLogin': 'Đang chuyển về trang đăng nhập...',
+
+    // Auth - Change Password
+    'auth.changePasswordTitle': 'Đổi mật khẩu',
+    'auth.changePasswordSubtitle': 'Cập nhật mật khẩu tài khoản của bạn',
+    'auth.currentPassword': 'Mật khẩu hiện tại',
+    'auth.changePasswordBtn': 'Đổi mật khẩu',
+    'auth.changingPassword': 'Đang xử lý...',
+    'auth.changePasswordError': 'Đổi mật khẩu thất bại. Kiểm tra lại mật khẩu hiện tại.',
+    'auth.passwordChangedSuccess': 'Đổi mật khẩu thành công!',
 
     // Language toggle
     'lang.toggle': 'EN',
