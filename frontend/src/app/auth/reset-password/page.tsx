@@ -88,7 +88,7 @@ function ResetPasswordForm() {
               required
               minLength={8}
               className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder')}
             />
           </div>
           <div>
@@ -100,7 +100,7 @@ function ResetPasswordForm() {
               required
               minLength={8}
               className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder')}
             />
           </div>
 

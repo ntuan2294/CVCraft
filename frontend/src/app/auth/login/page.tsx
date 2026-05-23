@@ -42,7 +42,7 @@ function LoginForm() {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.emailAddress')}</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
             className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="you@example.com" />
+            placeholder={t('auth.emailPlaceholder')} />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
@@ -53,7 +53,7 @@ function LoginForm() {
           </div>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
             className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="••••••••" />
+            placeholder={t('auth.passwordPlaceholder')} />
         </div>
 
         {error && (

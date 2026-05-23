@@ -61,25 +61,25 @@ function RegisterForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.fullName')}</label>
           <input type="text" value={form.fullName} onChange={e => update('fullName', e.target.value)} required
-            className={inputClass('fullName')} placeholder="Nguyễn Văn A" />
+            className={inputClass('fullName')} placeholder={t('auth.fullNamePlaceholder')} />
           <FieldError msg={fieldErrors['fullName']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.emailAddress')}</label>
           <input type="email" value={form.email} onChange={e => update('email', e.target.value)} required
-            className={inputClass('email')} placeholder="you@example.com" />
+            className={inputClass('email')} placeholder={t('auth.emailPlaceholder')} />
           <FieldError msg={fieldErrors['email']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.phone')}</label>
           <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)}
-            className={inputClass('phone')} placeholder="0912 345 678" />
+            className={inputClass('phone')} placeholder={t('auth.phonePlaceholder')} />
           <FieldError msg={fieldErrors['phone']} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.password')}</label>
           <input type="password" value={form.password} onChange={e => update('password', e.target.value)} required
-            className={inputClass('password')} placeholder="••••••••" />
+            className={inputClass('password')} placeholder={t('auth.passwordPlaceholder')} />
           <FieldError msg={fieldErrors['password']} />
         </div>
 
