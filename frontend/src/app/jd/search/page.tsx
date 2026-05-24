@@ -43,7 +43,7 @@ export default function JDSearchPage() {
 
   const handleEdit = (detail: JDFormattedDetail, card: JDCardResult) => {
     sessionStorage.setItem(
-      'edit_cv_jd',
+      'review_cv_jd',
       JSON.stringify({
         title: card.title,
         company: card.company,
@@ -65,7 +65,7 @@ export default function JDSearchPage() {
         benefits_bullets: detail.benefits_bullets,
       }),
     )
-    router.push('/edit-cv')
+    router.push('/review-cv')
   }
 
   const handleGenerate = (detail: JDFormattedDetail, card: JDCardResult) => {

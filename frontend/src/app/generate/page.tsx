@@ -41,6 +41,7 @@ export default function GenerateCVPage() {
             jobTitle={model.form.job_title}
             jdText={model.jdText}
             templateId={model.templateId}
+            outputLanguage={model.outputLanguage}
           />
         </div>
       ) : (

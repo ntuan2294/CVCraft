@@ -23,7 +23,7 @@ const DEFAULT_FORMAT: FormatState = {
   unordered: false,
 }
 
-const CV_COMPONENTS = [
+const CV_COMPONENTS_VI = [
   { kind: 'awards' as const, label: 'Giải thưởng', icon: '★' },
   { kind: 'projects' as const, label: 'Dự án', icon: '▣' },
   { kind: 'activities' as const, label: 'Hoạt động', icon: '◉' },
@@ -32,30 +32,66 @@ const CV_COMPONENTS = [
   { kind: 'hobbies' as const, label: 'Sở thích', icon: '♦' },
 ]
 
-const SECTION_COPY: Record<CvComponentKind, { title: string; body: string }> = {
+const CV_COMPONENTS_EN = [
+  { kind: 'awards' as const, label: 'Awards', icon: '★' },
+  { kind: 'projects' as const, label: 'Projects', icon: '▣' },
+  { kind: 'activities' as const, label: 'Activities', icon: '◉' },
+  { kind: 'volunteer' as const, label: 'Volunteer', icon: '♥' },
+  { kind: 'publications' as const, label: 'Publications', icon: '◈' },
+  { kind: 'hobbies' as const, label: 'Hobbies', icon: '♦' },
+]
+
+const SECTION_COPY_VI: Record<CvComponentKind, { title: string; body: string }> = {
   awards: {
-    title: 'Awards',
+    title: 'Giải Thưởng',
     body: '<div class="exp-entry"><div class="exp-company">Tên giải thưởng</div><div class="exp-time">YYYY</div><div class="exp-role">Đơn vị trao giải</div><ul class="exp-bullets"><li>Mô tả ngắn về thành tích hoặc phạm vi giải thưởng.</li></ul></div>',
   },
   projects: {
-    title: 'Projects',
+    title: 'Dự Án',
     body: '<div class="exp-entry"><div class="exp-company">Tên dự án</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Link: https://example.com</div><ul class="exp-bullets"><li>Mô tả mục tiêu, vai trò, công nghệ sử dụng và kết quả dự án.</li></ul></div>',
   },
   activities: {
-    title: 'Activities',
+    title: 'Hoạt Động',
     body: '<div class="exp-entry"><div class="exp-company">Tên hoạt động</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Vai trò / Tổ chức</div><ul class="exp-bullets"><li>Mô tả đóng góp chính hoặc kết quả đạt được.</li></ul></div>',
   },
   volunteer: {
-    title: 'Volunteer',
+    title: 'Tình Nguyện',
     body: '<div class="exp-entry"><div class="exp-company">Tên tổ chức</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Vai trò tình nguyện viên</div><ul class="exp-bullets"><li>Mô tả hoạt động và đóng góp của bạn.</li></ul></div>',
   },
   publications: {
-    title: 'Publications',
+    title: 'Nghiên Cứu',
     body: '<div class="exp-entry"><div class="exp-company">Tên nghiên cứu / ấn phẩm</div><div class="exp-time">YYYY</div><div class="exp-role">Tạp chí / Hội nghị / Nơi xuất bản</div><ul class="exp-bullets"><li>Mô tả nội dung và đóng góp của nghiên cứu.</li></ul></div>',
   },
   hobbies: {
-    title: 'Hobbies & Interests',
+    title: 'Sở Thích',
     body: '<div class="exp-entry"><div class="exp-company">Sở thích &amp; Hoạt động cá nhân</div><ul class="exp-bullets"><li>Liệt kê sở thích và hoạt động ngoại khoá của bạn.</li></ul></div>',
+  },
+}
+
+const SECTION_COPY_EN: Record<CvComponentKind, { title: string; body: string }> = {
+  awards: {
+    title: 'Awards',
+    body: '<div class="exp-entry"><div class="exp-company">Award Name</div><div class="exp-time">YYYY</div><div class="exp-role">Awarding Organization</div><ul class="exp-bullets"><li>Brief description of the achievement or scope of the award.</li></ul></div>',
+  },
+  projects: {
+    title: 'Projects',
+    body: '<div class="exp-entry"><div class="exp-company">Project Name</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Link: https://example.com</div><ul class="exp-bullets"><li>Describe the goal, your role, technologies used, and outcomes.</li></ul></div>',
+  },
+  activities: {
+    title: 'Activities',
+    body: '<div class="exp-entry"><div class="exp-company">Activity Name</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Role / Organization</div><ul class="exp-bullets"><li>Describe your key contributions or results achieved.</li></ul></div>',
+  },
+  volunteer: {
+    title: 'Volunteer',
+    body: '<div class="exp-entry"><div class="exp-company">Organization Name</div><div class="exp-time">MM/YYYY - MM/YYYY</div><div class="exp-role">Volunteer Role</div><ul class="exp-bullets"><li>Describe the activity and your contributions.</li></ul></div>',
+  },
+  publications: {
+    title: 'Publications',
+    body: '<div class="exp-entry"><div class="exp-company">Research / Publication Title</div><div class="exp-time">YYYY</div><div class="exp-role">Journal / Conference / Publisher</div><ul class="exp-bullets"><li>Describe the content and your contribution to the research.</li></ul></div>',
+  },
+  hobbies: {
+    title: 'Hobbies & Interests',
+    body: '<div class="exp-entry"><div class="exp-company">Hobbies &amp; Personal Interests</div><ul class="exp-bullets"><li>List your hobbies and extracurricular activities.</li></ul></div>',
   },
 }
 
@@ -90,8 +126,8 @@ function normalizeListNearSelection(doc: Document) {
   if (list.tagName === 'UL') list.style.listStyleType = 'disc'
 }
 
-function buildSectionHtml(doc: Document, kind: CvComponentKind) {
-  const copy = SECTION_COPY[kind]
+function buildSectionHtml(doc: Document, kind: CvComponentKind, lang: 'en' | 'vi') {
+  const copy = (lang === 'en' ? SECTION_COPY_EN : SECTION_COPY_VI)[kind]
   const icon = sectionIcon(kind)
   const mainIcon = icon.replace('<svg ', '<svg class="main-icon" ')
 
@@ -168,7 +204,7 @@ function Divider() {
   return <div className="mx-1 h-7 w-px bg-slate-300" />
 }
 
-export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }) {
+export default function HtmlOutputEditor({ outputPath, lang = 'vi' }: { outputPath?: string; lang?: 'en' | 'vi' }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const savedRangeRef = useRef<Range | null>(null)
   const sectionUndoRef = useRef<Element[]>([])
@@ -237,7 +273,7 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     const frame = iframeRef.current
     if (!doc || !frame) return
 
-    const sectionHtml = buildSectionHtml(doc, kind)
+    const sectionHtml = buildSectionHtml(doc, kind, lang)
     // Prefer .main (right column in 2-col templates), fall back to .page
     const mainContainer = doc.querySelector('.main') ?? doc.querySelector('.page')
     if (!mainContainer) return
@@ -263,7 +299,7 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
     savedRangeRef.current = range
 
     updateFormatState()
-  }, [getEditorDocument, updateFormatState])
+  }, [getEditorDocument, updateFormatState, lang])
 
   useEffect(() => {
     if (!url) return
@@ -403,9 +439,9 @@ export default function HtmlOutputEditor({ outputPath }: { outputPath?: string }
 
       <div className="grid min-h-215 grid-cols-[220px_1fr] bg-slate-100">
         <aside className="border-r border-slate-200 bg-white p-3">
-          <h3 className="mb-3 text-sm font-bold text-slate-900">Thành phần</h3>
+          <h3 className="mb-3 text-sm font-bold text-slate-900">{lang === 'en' ? 'Sections' : 'Thành phần'}</h3>
           <div className="grid gap-2">
-            {CV_COMPONENTS.map((item) => (
+            {(lang === 'en' ? CV_COMPONENTS_EN : CV_COMPONENTS_VI).map((item) => (
               <button
                 key={item.label}
                 type="button"

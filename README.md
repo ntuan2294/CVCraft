@@ -1,168 +1,124 @@
 # CVCraft
 
-CVCraft là công cụ **tạo và quản lý CV bằng AI** — không phải nền tảng tìm kiếm việc làm.
+Ứng dụng AI hỗ trợ **tạo CV** và **đánh giá CV theo JD**, sử dụng LangGraph multi-agent, ChromaDB RAG, và OpenAI.
 
-Người dùng nhập thông tin cá nhân + mô tả công việc (JD), hệ thống Multi-Agent AI phân tích JD và tạo ra CV được cá nhân hóa, tối ưu ATS, xuất ra file `.docx`.
+## Yêu cầu
 
-## Cấu trúc dự án
+| Công cụ | Phiên bản |
+|---------|-----------|
+| Python  | 3.11+     |
+| Node.js | 18+       |
+| Java    | 17+ *(tùy chọn — chỉ cần cho tính năng đăng nhập/lưu CV)* |
 
-```
-CVCraft/
-├── backend/                   # Python AI services (FastAPI)
-│   ├── src/cvcraft/
-│   │   ├── config/            # Settings (API key, paths, Redis)
-│   │   ├── infrastructure/    # LLM factory, Redis cache, rate limit
-│   │   ├── generate_cv/       # Pipeline tạo CV (LangGraph 6-agent)
-│   │   │   ├── agents/        # jd_analyzer, summary, experience, skills, qc, template_renderer
-│   │   │   ├── pipeline/      # LangGraph orchestration
-│   │   │   ├── rag/           # Vector store + CV examples (ChromaDB)
-│   │   │   ├── services/      # CVService, RAGService, CVTaskService
-│   │   │   └── api/v1/cv.py   # REST endpoints /v1/cv/*
-│   │   └── jd_search/         # Tìm kiếm JD semantic
-│   │       ├── rag/           # ChromaDB + HuggingFace loader
-│   │       ├── services/      # Semantic search + AI formatting
-│   │       └── api/v1/jd.py   # REST endpoints /v1/jd/*
-│   ├── data/vectordb/         # ChromaDB local storage (tự tạo, không commit)
-│   ├── outputs/               # CV đã tạo (.docx) (không commit)
-│   └── templates/             # 5 mẫu CV (.docx)
-├── cvcraft-backend/           # Java Spring Boot (Auth + Profile + CV Library)
-│   └── src/main/java/com/cvcraft/
-│       ├── controller/        # AuthController, CandidateController (/profile), CvDocumentController
-│       ├── entity/            # User, CandidateProfile, CvDocument
-│       └── ...
-├── frontend/                  # Next.js 16 UI
-│   └── src/
-│       ├── app/               # Pages: cv/generate, jd/search, dashboard, auth
-│       ├── components/        # Navbar, Footer, DocxOutputEditor, ...
-│       ├── features/          # generate-cv feature module
-│       └── lib/               # API clients, types, i18n (VI/EN)
-├── docs/                      # Tài liệu dự án
-├── gateway.py                 # FastAPI entry point (mount 2 router vào 1 port)
-├── scripts/dev.py             # Khởi động Python backend + frontend cùng lúc
-├── pyproject.toml             # Python dependencies
-└── .env                       # API keys (không commit)
-```
+## Cài đặt
 
-## Stack công nghệ
-
-| Layer | Công nghệ |
-|-------|-----------|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| Java Backend | Spring Boot 3.2, Spring Security/JWT, JPA/PostgreSQL, Flyway |
-| Python AI | FastAPI, LangGraph (multi-agent), ChromaDB, Redis |
-| LLM | OpenAI GPT-4o (hoặc Anthropic Claude) |
-| Document | python-docx, OnlyOffice (tuỳ chọn) |
-
-## Cài đặt nhanh (đầy đủ)
+### 1. Clone repo
 
 ```bash
-# 1. Python virtual environment
+git clone <repo-url>
+cd CVCraft
+```
+
+### 2. Tạo môi trường Python
+
+```bash
+# Windows
 python -m venv .venv
-.venv\Scripts\Activate.ps1       # Windows
-# source .venv/bin/activate      # macOS/Linux
+.venv\Scripts\activate
 
-pip install -e ".[api,dev]"
+# macOS / Linux
+python -m venv .venv
+source .venv/bin/activate
+```
 
-# 2. Frontend
-cd frontend && npm install && cd ..
+### 3. Cài Python dependencies
 
-# 3. Biến môi trường
+```bash
+pip install -e ".[api]"
+```
+
+### 4. Cấu hình biến môi trường
+
+```bash
+# Windows
 copy .env.example .env
-# Điền OPENAI_API_KEY vào .env
 
-# 4. Tải dữ liệu ban đầu (JD + CV từ HuggingFace)
-python scripts/download_data.py
+# macOS / Linux
+cp .env.example .env
 ```
 
-## Chạy dự án
+Mở `.env`, thay `sk-proj-your_openai_api_key_here` bằng API key thực của bạn (lấy tại https://platform.openai.com/api-keys).
+
+### 5. Cài frontend dependencies
 
 ```bash
-# Python AI + Frontend (port 8000 + 3000)
+cd frontend
+npm install
+cd ..
+```
+
+### 6. Chạy ứng dụng
+
+```bash
 python scripts/dev.py
-
-# Java Backend riêng (port 8080) — cần PostgreSQL
-cd cvcraft-backend && mvn spring-boot:run
 ```
 
-Hoặc chạy riêng từng service:
+Script tự động khởi động Python backend (port 8000) và Next.js frontend (port 3000).
+
+> **Lần đầu chạy:** backend tự động tải và index dữ liệu JD + CV mẫu từ HuggingFace — mất khoảng 2-5 phút.
+
+| Service  | URL                        |
+|----------|----------------------------|
+| Frontend | http://localhost:3000      |
+| API docs | http://localhost:8000/docs |
+
+---
+
+## Chạy không cần Java backend
+
+Bỏ tính năng đăng nhập / lưu CV:
 
 ```bash
-# Python AI backend (port 8000)
+python scripts/dev.py --no-java
+```
+
+## Chạy riêng từng service
+
+```bash
+# Python backend
 uvicorn gateway:app --reload --port 8000
 
-# Frontend (port 3000)
+# Frontend (terminal khác)
 cd frontend && npm run dev
 ```
 
-## Các URL quan trọng
+---
 
-| URL | Mô tả |
-|-----|-------|
-| http://localhost:3000 | Giao diện chính |
-| http://localhost:3000/cv/generate | **Tạo CV bằng AI** (tính năng chính) |
-| http://localhost:3000/jd/search | Tìm kiếm JD semantic |
-| http://localhost:3000/dashboard | Thư viện CV của tôi |
-| http://localhost:8000/docs | Swagger UI — Python AI API |
-| http://localhost:8080/api/swagger-ui.html | Swagger UI — Java API |
-| http://localhost:8000/health | Health check |
+## Tính năng
 
-## API tóm tắt
+- **Tìm kiếm JD** — Vector search theo mô tả công việc
+- **Sinh CV** — Tạo CV HTML từ thông tin người dùng + JD qua LangGraph 7-node pipeline
+- **Đánh giá CV** — Tải CV (PDF/DOCX/ảnh) + JD → nhận điểm số, nhận xét, gợi ý cải thiện
 
-### Python AI (port 8000)
-
-| Method | Endpoint | Mô tả |
-|--------|----------|-------|
-| `POST` | `/v1/cv/generate` | Tạo CV đồng bộ (~30-60s) |
-| `POST` | `/v1/cv/generate/async` | Tạo CV bất đồng bộ — trả `task_id` |
-| `GET`  | `/v1/cv/tasks/{task_id}` | Poll trạng thái task |
-| `GET`  | `/v1/cv/download` | Tải file `.docx` |
-| `POST` | `/v1/jd/search` | Tìm JD theo semantic search |
-| `GET`  | `/v1/cv/rag/stats` | Thống kê RAG vector store |
-
-### Java (port 8080/api)
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| `POST` | `/auth/register` | Public | Đăng ký tài khoản |
-| `POST` | `/auth/login` | Public | Đăng nhập, lấy JWT |
-| `GET`  | `/profile` | JWT | Xem profile CV của mình |
-| `PUT`  | `/profile` | JWT | Cập nhật profile |
-| `GET`  | `/cv-docs` | JWT | Danh sách CV đã lưu |
-| `POST` | `/cv-docs` | JWT | Lưu CV vào thư viện |
-| `PATCH`| `/cv-docs/{id}/primary` | JWT | Đặt làm CV chính |
-| `DELETE`| `/cv-docs/{id}` | JWT | Xóa CV khỏi thư viện |
-
-## Luồng xử lý AI
+## Cấu trúc
 
 ```
-Người dùng nhập: thông tin cá nhân + JD
-         │
-         ▼
-   POST /api/cv/generate (Next.js proxy)
-         │
-         ▼
-   Python FastAPI → LangGraph Pipeline
-         │
-   ┌─────┴──────────────────────────────┐
-   │  jd_analyzer → phân tích JD        │
-   │  user_profile → chuẩn hóa input    │
-   │  summary_agent → viết summary      │ ← RAG (ví dụ CV tốt)
-   │  experience_agent → viết bullets   │
-   │  skills_agent → phân nhóm kỹ năng  │
-   │  qc_agent → chấm điểm ATS          │
-   │  template_renderer → xuất .docx    │
-   └────────────────────────────────────┘
-         │
-         ▼
-   CV file (.docx) + Quality Score
-         │
-         ▼
-   Người dùng download / lưu vào thư viện
+CVCraft/
+├── backend/src/cvcraft/
+│   ├── generate_cv/       # Pipeline sinh CV (LangGraph)
+│   ├── review_cv/         # Pipeline đánh giá CV
+│   ├── jd_search/         # Tìm kiếm JD (ChromaDB RAG)
+│   └── config/            # Settings, biến môi trường
+├── frontend/              # Next.js frontend
+├── cvcraft-backend/       # Java Spring Boot (Auth + Profile)
+├── gateway.py             # FastAPI entry point
+└── scripts/dev.py         # Script khởi động tất cả services
 ```
 
-## Tài liệu chi tiết
+## Stack
 
-- [Hướng dẫn cài đặt & chạy dự án](docs/GUIDE_VI.md)
-- [Luồng AI](docs/ai-flow.md)
-- [Hướng dẫn test](docs/TESTING.md)
-- [Java Backend API](cvcraft-backend/README.md)
+| Layer       | Công nghệ                                    |
+|-------------|----------------------------------------------|
+| Frontend    | Next.js 16, React 19, TypeScript, Tailwind   |
+| Python AI   | FastAPI, LangGraph, ChromaDB, OpenAI         |
+| Java        | Spring Boot 3, Spring Security/JWT, PostgreSQL |

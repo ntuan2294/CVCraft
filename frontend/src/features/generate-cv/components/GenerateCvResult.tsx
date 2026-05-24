@@ -14,6 +14,7 @@ export function GenerateCvResult({
   jdText,
   templateId,
   initialSaved = false,
+  outputLanguage = 'vi',
 }: {
   result: GenerateCVResponse | null
   onDownload: (format: 'png' | 'jpg' | 'pdf') => void | Promise<void>
@@ -21,6 +22,7 @@ export function GenerateCvResult({
   jdText?: string
   templateId?: string
   initialSaved?: boolean
+  outputLanguage?: 'en' | 'vi'
 }) {
   const { t } = useI18n()
   const [saving, setSaving] = useState(false)
@@ -151,7 +153,7 @@ export function GenerateCvResult({
           )}
 
           {isHtml ? (
-            <HtmlOutputEditor outputPath={result.output_path} />
+            <HtmlOutputEditor outputPath={result.output_path} lang={outputLanguage} />
           ) : (
             <DocxOutputEditor outputPath={result.output_path} />
           )}

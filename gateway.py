@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from cvcraft.generate_cv.api.v1 import cv as cv_router
 from cvcraft.generate_cv.api.v1 import extract as extract_router
-from cvcraft.edit_cv.api.v1 import edit_cv as edit_cv_router
+from cvcraft.review_cv.api.v1 import review_cv as review_cv_router
 from cvcraft.jd_search.api.v1 import jd as jd_router
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ def create_app() -> FastAPI:
 
     app.include_router(cv_router.router, prefix="/v1/cv", tags=["cv"])
     app.include_router(extract_router.router, prefix="/v1/cv", tags=["extract"])
-    app.include_router(edit_cv_router.router, prefix="/v1/edit-cv", tags=["edit-cv"])
+    app.include_router(review_cv_router.router, prefix="/v1/review-cv", tags=["review-cv"])
     app.include_router(jd_router.router, prefix="/v1/jd", tags=["jd-search"])
 
     @app.get("/health")
