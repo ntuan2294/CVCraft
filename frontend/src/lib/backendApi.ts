@@ -146,22 +146,6 @@ export const adminApi = {
     request<void>(`/admin/cv-docs/${id}`, { method: 'DELETE' }),
   getCvTemplates: (query = '', page = 0, size = 20) =>
     request<PageResponse<CvTemplate>>(`/admin/cv-templates?query=${encodeURIComponent(query)}&page=${page}&size=${size}`),
-  createCvTemplate: (data: {
-    name: string
-    description?: string
-    fields: string
-    supportsPhotoUpload?: boolean
-    summaryLabel?: string
-    thumbnail?: string
-  }) => request<CvTemplate>('/admin/cv-templates', { method: 'POST', body: JSON.stringify(data) }),
-  updateCvTemplate: (id: number, data: {
-    name: string
-    description?: string
-    fields: string
-    supportsPhotoUpload?: boolean
-    summaryLabel?: string
-    thumbnail?: string
-  }) => request<CvTemplate>(`/admin/cv-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCvTemplate: (id: number) =>
     request<void>(`/admin/cv-templates/${id}`, { method: 'DELETE' }),
 }

@@ -18,13 +18,13 @@ export default function Navbar() {
     router.push('/')
   }
 
-  const navLinks: [string, string][] = [
+  const navLinks: [string, string][] = user ? [
     [t('nav.aiCvBuilder'), '/cv/generate'],
     [t('nav.editCv'), '/edit-cv'],
     [t('nav.jdSearch'), '/jd/search'],
     [t('nav.myCvs'), user?.role === 'ADMIN' ? '/dashboard/candidate' : '/dashboard'],
     ...(user?.role === 'ADMIN' ? [[t('nav.adminPanel'), '/dashboard/admin'] as [string, string]] : []),
-  ]
+  ] : []
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">

@@ -37,8 +37,7 @@ const translations = {
     'home.heroTitle2': 'in Minutes with AI',
     'home.heroDesc': 'Start with the AI CV Builder, explore job descriptions, or open your saved CV library to keep building faster.',
     'home.heroInputPlaceholder': 'e.g. Senior React Developer, Data Scientist...',
-    'home.heroCta': 'Build My CV →',
-    'home.heroNoLogin': 'No account needed · Free to try',
+    'home.heroCta': 'Build My CV',
 
     // Home - Stats
     'home.stat1Label': 'Professional Templates',
@@ -78,7 +77,7 @@ const translations = {
     // Home - CTA
     'home.ctaTitle': 'Ready to Land Your Next Role?',
     'home.ctaDesc': 'Generate a professional, ATS-optimized CV in under 2 minutes. Free to try.',
-    'home.ctaBuildCv': 'Build My CV Free →',
+    'home.ctaBuildCv': 'Build My CV',
     'home.ctaJdSearch': 'Search Job Descriptions',
 
     // JD Search
@@ -363,7 +362,7 @@ const translations = {
   vi: {
     // Navbar
     'nav.aiCvBuilder': 'Tạo CV bằng AI',
-    'nav.editCv': 'Chỉnh sửa CV',
+    'nav.editCv': 'Đánh giá CV',
     'nav.jdSearch': 'Tìm JD',
     'nav.myCvs': 'CV của tôi',
     'nav.dashboard': 'Bảng điều khiển',
@@ -393,8 +392,7 @@ const translations = {
     'home.heroTitle2': 'Chỉ Trong Vài Phút',
     'home.heroDesc': 'Bắt đầu với trình tạo CV bằng AI, khám phá JD phù hợp, hoặc mở thư viện CV của bạn để tiếp tục nhanh hơn.',
     'home.heroInputPlaceholder': 'VD: Senior React Developer, Data Scientist...',
-    'home.heroCta': 'Tạo CV ngay →',
-    'home.heroNoLogin': 'Không cần tài khoản · Miễn phí để thử',
+    'home.heroCta': 'Tạo CV ngay',
 
     // Home - Stats
     'home.stat1Label': 'Mẫu CV chuyên nghiệp',
@@ -414,7 +412,7 @@ const translations = {
     'home.feat3Title': 'Chấm Điểm Chất Lượng',
     'home.feat3Desc': 'Phản hồi tức thì về điểm ATS, độ khớp JD và chất lượng văn phong.',
     'home.feat4Title': 'Nhiều Mẫu CV',
-    'home.feat4Desc': '5 mẫu CV chuyên nghiệp, xuất DOCX hoặc PDF.',
+    'home.feat4Desc': '5+ mẫu CV chuyên nghiệp, xuất DOCX hoặc PDF.',
     'home.feat5Title': 'Nội Dung Theo JD',
     'home.feat5Desc': 'Dán JD vào, AI tự tùy chỉnh CV theo đúng vị trí.',
     'home.feat6Title': 'Thư Viện CV',
@@ -434,7 +432,7 @@ const translations = {
     // Home - CTA
     'home.ctaTitle': 'Sẵn Sàng Chinh Phục Công Việc Tiếp Theo?',
     'home.ctaDesc': 'Tạo CV chuyên nghiệp, tối ưu ATS trong dưới 2 phút. Miễn phí để thử.',
-    'home.ctaBuildCv': 'Tạo CV miễn phí →',
+    'home.ctaBuildCv': 'Tạo CV',
     'home.ctaJdSearch': 'Tìm kiếm JD',
 
     // JD Search

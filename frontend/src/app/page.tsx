@@ -49,7 +49,6 @@ export default function LandingPage() {
                 {t('home.ctaJdSearch')}
               </Link>
             </div>
-            <p className="text-sm text-blue-300/80 mt-5">{t('home.heroNoLogin')}</p>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0">

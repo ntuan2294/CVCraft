@@ -19,6 +19,7 @@ public interface CvDocumentRepository extends JpaRepository<CvDocument, Long> {
     Page<CvDocument> findAllByOrderByCreatedAtDesc(Pageable pageable);
     long countByUserId(Long userId);
     long countByCreatedAtAfter(LocalDateTime createdAt);
+    boolean existsByTemplateId(String templateId);
 
     @Query("""
         SELECT c FROM CvDocument c

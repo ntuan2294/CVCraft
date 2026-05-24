@@ -11,6 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CvTemplateRepository extends JpaRepository<CvTemplate, Long> {
 
-    @Query("SELECT t FROM CvTemplate t WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(t.description) LIKE LOWER(CONCAT('%', :query, '%'))")
+    @Query("SELECT t FROM CvTemplate t WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(COALESCE(t.description, '')) LIKE LOWER(CONCAT('%', :query, '%'))")
     Page<CvTemplate> search(@Param("query") String query, Pageable pageable);
 }

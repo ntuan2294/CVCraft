@@ -603,40 +603,12 @@ export async function mockAdminApi(page: Page, options?: {
     }
 
     if (method === 'POST' && pathname.endsWith('/api/admin/cv-templates')) {
-      const body = parseJson(route.request().postData())
-      const created: CvTemplate = {
-        id: nextId(templates.map((item) => item.id)),
-        name: body.name,
-        description: body.description,
-        fields: String(body.fields ?? '').split(',').map((f: string) => f.trim()).filter(Boolean),
-        supportsPhotoUpload: body.supportsPhotoUpload ?? false,
-        summaryLabel: body.summaryLabel,
-        thumbnail: body.thumbnail,
-        createdAt: NOW,
-        updatedAt: NOW,
-      }
-      templates = [created, ...templates]
-      return fulfillJson(route, created)
+      return route.fulfill({ status: 405, body: 'Method Not Allowed' })
     }
 
     const updateTemplateMatch = pathname.match(/\/api\/admin\/cv-templates\/(\d+)$/)
     if (method === 'PUT' && updateTemplateMatch) {
-      const selectedId = Number(updateTemplateMatch[1])
-      const body = parseJson(route.request().postData())
-      templates = templates.map((item) => item.id === selectedId ? {
-        ...item,
-        name: body.name ?? item.name,
-        description: body.description ?? item.description,
-        fields: body.fields
-          ? String(body.fields).split(',').map((f: string) => f.trim()).filter(Boolean)
-          : item.fields,
-        supportsPhotoUpload: body.supportsPhotoUpload ?? item.supportsPhotoUpload,
-        summaryLabel: body.summaryLabel ?? item.summaryLabel,
-        thumbnail: body.thumbnail ?? item.thumbnail,
-        updatedAt: NOW,
-      } : item)
-      const updated = templates.find((item) => item.id === selectedId)
-      return fulfillJson(route, updated)
+      return route.fulfill({ status: 405, body: 'Method Not Allowed' })
     }
 
     if (method === 'DELETE' && updateTemplateMatch) {

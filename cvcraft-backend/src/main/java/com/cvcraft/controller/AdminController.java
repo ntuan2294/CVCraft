@@ -3,7 +3,6 @@ package com.cvcraft.controller;
 import com.cvcraft.dto.request.AdminCreateUserRequest;
 import com.cvcraft.dto.request.AdminUpdateCvRequest;
 import com.cvcraft.dto.request.AdminUpdateUserRequest;
-import com.cvcraft.dto.request.CvTemplateRequest;
 import com.cvcraft.dto.response.AdminCvDocumentResponse;
 import com.cvcraft.dto.response.AdminDashboardResponse;
 import com.cvcraft.dto.response.AdminUserResponse;
@@ -110,22 +109,6 @@ public class AdminController {
         @RequestParam(defaultValue = "20") int size
     ) {
         return cvTemplateService.searchTemplates(query, page, size);
-    }
-
-    @PostMapping("/cv-templates")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create CV template as admin")
-    public CvTemplateResponse createCvTemplate(@Valid @RequestBody CvTemplateRequest req) {
-        return cvTemplateService.createTemplate(req);
-    }
-
-    @PutMapping("/cv-templates/{id}")
-    @Operation(summary = "Update CV template as admin")
-    public CvTemplateResponse updateCvTemplate(
-        @PathVariable Long id,
-        @Valid @RequestBody CvTemplateRequest req
-    ) {
-        return cvTemplateService.updateTemplate(id, req);
     }
 
     @DeleteMapping("/cv-templates/{id}")

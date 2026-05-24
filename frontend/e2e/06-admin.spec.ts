@@ -20,44 +20,35 @@ test.describe('Admin Dashboard Flow', () => {
     await expect(page.getByText('Test Candidate')).toBeVisible()
   })
 
-  // ── UC-20b: Create user ────────────────────────────────────────────────────
-
-  test('creates a new user from the admin user form', async ({ page }) => {
-    await page.goto('/dashboard/admin')
-
-    const userForm = page.locator('form').first()
-    await userForm.getByLabel('Full Name').fill('Ops Manager')
-    await userForm.getByLabel('Email').fill('ops-manager@example.com')
-    await userForm.getByLabel('Password').fill('password123')
-    await userForm.getByLabel('Phone').fill('0900123456')
-    await userForm.locator('select').selectOption('ADMIN')
-    await userForm.getByRole('button', { name: 'Create User' }).click()
-
-    await expect(page.getByText('ops-manager@example.com')).toBeVisible()
-    await expect(page.getByText('Ops Manager')).toBeVisible()
-  })
-
   // ── UC-20c: Update user ────────────────────────────────────────────────────
-
+ 
   test('updates user information from the admin panel', async ({ page }) => {
     await page.goto('/dashboard/admin')
-
+ 
     // The user list is shown in the Users tab (default view).
     // Click "Edit" on the first user row (CVCraft Admin).
     await page.getByRole('button', { name: 'Edit' }).first().click()
-
-    // The User Form section pre-fills with the selected user's data.
-    const userForm = page.locator('form').first()
-    await expect(userForm.getByLabel('Full Name')).toHaveValue(adminUsers[0].fullName)
-
-    // Change the full name
-    await userForm.getByLabel('Full Name').fill('CVCraft Super Admin')
-
-    // Submit — the button switches to "Update User" when a user is being edited
-    await userForm.getByRole('button', { name: 'Update User' }).click()
-
-    // Updated name must appear in the user list
-    await expect(page.getByText('CVCraft Super Admin')).toBeVisible()
+ 
+    // The Edit User Modal should be visible
+    const modal = page.locator('.fixed.inset-0.z-50')
+    await expect(modal).toBeVisible()
+    await expect(modal.getByText('admin@cvcraft.com')).toBeVisible()
+ 
+    // Change the role to CANDIDATE
+    await modal.locator('select').selectOption('CANDIDATE')
+ 
+    // Toggle active status (deactivate the user)
+    await modal.locator('label', { hasText: 'Active' }).click()
+ 
+    // Submit - the button has the text "Update User" in English
+    await modal.getByRole('button', { name: 'Update User' }).click()
+ 
+    // The modal should close
+    await expect(modal).not.toBeVisible()
+ 
+    // Updated role and inactive status must appear in the user list
+    await expect(page.getByText('CANDIDATE').first()).toBeVisible()
+    await expect(page.getByText('Inactive', { exact: true })).toBeVisible()
   })
 
   // ── UC-20d: Delete user ────────────────────────────────────────────────────

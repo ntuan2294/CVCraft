@@ -8,42 +8,15 @@ import { useI18n } from '@/lib/i18n'
 import type { CvTemplate, AdminDashboardStats, AdminUser, PageResponse, UserRole } from '@/lib/types'
 
 type UserFormState = {
-  email: string
-  password: string
-  fullName: string
-  phone: string
   role: UserRole
   isActive: boolean
-  isEmailVerified: boolean
-}
-
-type TemplateFormState = {
-  name: string
-  description: string
-  fields: string
-  supportsPhotoUpload: boolean
-  summaryLabel: string
-  thumbnail: string
 }
 
 const EMPTY_USER_FORM: UserFormState = {
-  email: '',
-  password: '',
-  fullName: '',
-  phone: '',
   role: 'CANDIDATE',
   isActive: true,
-  isEmailVerified: false,
 }
 
-const EMPTY_TEMPLATE_FORM: TemplateFormState = {
-  name: '',
-  description: '',
-  fields: '',
-  supportsPhotoUpload: false,
-  summaryLabel: '',
-  thumbnail: '',
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -61,9 +34,7 @@ export default function AdminDashboardPage() {
   const [templatePage, setTemplatePage] = useState(0)
   const pageSize = 10
   const [userForm, setUserForm] = useState<UserFormState>(EMPTY_USER_FORM)
-  const [templateForm, setTemplateForm] = useState<TemplateFormState>(EMPTY_TEMPLATE_FORM)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
-  const [editingTemplate, setEditingTemplate] = useState<CvTemplate | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -90,10 +61,7 @@ export default function AdminDashboardPage() {
         templates: 'Biểu mẫu CV',
         refresh: 'Tải lại',
         createUser: 'Thêm người dùng',
-        updateUser: 'Cập nhật người dùng',
-        createTemplate: 'Tạo biểu mẫu mới',
-        saveTemplate: 'Lưu biểu mẫu',
-        reset: 'Làm mới form',
+        updateUser: 'Cập nhật',
         searchUsers: 'Tìm theo email hoặc tên',
         searchTemplates: 'Tìm theo tên hoặc mô tả biểu mẫu',
         noUsers: 'Chưa có người dùng nào.',
@@ -110,29 +78,21 @@ export default function AdminDashboardPage() {
         notVerified: 'Chưa xác minh',
         edit: 'Sửa',
         delete: 'Xóa',
-        cancelEdit: 'Bỏ chọn',
+        cancelEdit: 'Hủy',
         role: 'Vai trò',
         email: 'Email',
         password: 'Mật khẩu',
         fullName: 'Họ tên',
         phone: 'Số điện thoại',
-        templateName: 'Tên biểu mẫu',
-        templateDescription: 'Mô tả',
-        templateFields: 'Các trường (phân cách bằng dấu phẩy)',
-        supportsPhotoUpload: 'Hỗ trợ tải ảnh',
-        summaryLabel: 'Nhãn phần tóm tắt',
-        thumbnail: 'Ảnh thumbnail',
         createdAt: 'Tạo lúc',
         totalCv: 'Số CV',
         confirmDeleteUser: 'Xóa người dùng này?',
         confirmDeleteTemplate: 'Xóa biểu mẫu này?',
         listUsers: 'Danh sách người dùng',
         listTemplates: 'Danh sách biểu mẫu CV',
-        userEditor: 'Biểu mẫu người dùng',
-        templateEditor: 'Cấu hình biểu mẫu',
-        createHint: 'Tạo candidate hoặc admin mới trực tiếp từ khu quản trị.',
-        editTemplateHint: 'Thêm mới, chỉnh sửa cấu hình hoặc xóa biểu mẫu khỏi hệ thống.',
-        chooseTemplate: 'Chọn một biểu mẫu để chỉnh sửa hoặc điền form để tạo mới.',
+        userEditor: 'Sửa tài khoản',
+        createHint: 'Quản lý thông tin và phân quyền người dùng trong hệ thống.',
+        editTemplateHint: 'Tìm kiếm hoặc xóa biểu mẫu khỏi hệ thống.',
       }
       : {
         title: 'System Administration',
@@ -141,10 +101,7 @@ export default function AdminDashboardPage() {
         templates: 'CV Templates',
         refresh: 'Refresh',
         createUser: 'Create User',
-        updateUser: 'Update User',
-        createTemplate: 'Create Template',
-        saveTemplate: 'Save Template',
-        reset: 'Reset Form',
+        updateUser: 'Update',
         searchUsers: 'Search by email or name',
         searchTemplates: 'Search by template name or description',
         noUsers: 'No users found.',
@@ -161,29 +118,21 @@ export default function AdminDashboardPage() {
         notVerified: 'Not Verified',
         edit: 'Edit',
         delete: 'Delete',
-        cancelEdit: 'Clear Selection',
+        cancelEdit: 'Cancel',
         role: 'Role',
         email: 'Email',
         password: 'Password',
         fullName: 'Full Name',
         phone: 'Phone',
-        templateName: 'Template Name',
-        templateDescription: 'Description',
-        templateFields: 'Fields (comma-separated)',
-        supportsPhotoUpload: 'Supports Photo Upload',
-        summaryLabel: 'Summary Label',
-        thumbnail: 'Thumbnail URL',
         createdAt: 'Created At',
         totalCv: 'CV Count',
         confirmDeleteUser: 'Delete this user?',
         confirmDeleteTemplate: 'Delete this template?',
         listUsers: 'User List',
         listTemplates: 'CV Templates List',
-        userEditor: 'User Form',
-        templateEditor: 'Template Form',
-        createHint: 'Create candidate or admin accounts directly from the admin area.',
-        editTemplateHint: 'Create, edit configuration, or remove templates from the system.',
-        chooseTemplate: 'Select a CV template to edit, or fill the form to create a new one.',
+        userEditor: 'Edit Account',
+        createHint: 'Manage user accounts and permissions in the system.',
+        editTemplateHint: 'Search or remove templates from the system.',
       }
   ), [locale])
 
@@ -274,25 +223,8 @@ export default function AdminDashboardPage() {
   const handleEditUser = (item: AdminUser) => {
     setEditingUser(item)
     setUserForm({
-      email: item.email,
-      password: '',
-      fullName: item.fullName,
-      phone: item.phone ?? '',
       role: item.role,
       isActive: item.isActive,
-      isEmailVerified: item.isEmailVerified,
-    })
-  }
-
-  const handleEditTemplate = (item: CvTemplate) => {
-    setEditingTemplate(item)
-    setTemplateForm({
-      name: item.name,
-      description: item.description ?? '',
-      fields: item.fields.join(','),
-      supportsPhotoUpload: item.supportsPhotoUpload,
-      summaryLabel: item.summaryLabel ?? '',
-      thumbnail: item.thumbnail ?? '',
     })
   }
 
@@ -301,28 +233,21 @@ export default function AdminDashboardPage() {
     setUserForm(EMPTY_USER_FORM)
   }
 
-  const resetTemplateForm = () => {
-    setEditingTemplate(null)
-    setTemplateForm(EMPTY_TEMPLATE_FORM)
-  }
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!editingUser) return
     setSubmitting(true)
     setError('')
     try {
-      if (editingUser) {
-        await adminApi.updateUser(editingUser.id, {
-          ...userForm,
-          phone: userForm.phone || undefined,
-          password: userForm.password || undefined,
-        })
-      } else {
-        await adminApi.createUser({
-          ...userForm,
-          phone: userForm.phone || undefined,
-        })
-      }
+      await adminApi.updateUser(editingUser.id, {
+        email: editingUser.email,
+        fullName: editingUser.fullName,
+        phone: editingUser.phone ?? undefined,
+        role: userForm.role,
+        isActive: userForm.isActive,
+        isEmailVerified: editingUser.isEmailVerified,
+      })
       resetUserForm()
       await Promise.all([reloadUsers(userQuery, userPage), refreshStats()])
     } catch (err) {
@@ -332,38 +257,7 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleTemplateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError('')
-    try {
-      if (editingTemplate) {
-        await adminApi.updateCvTemplate(editingTemplate.id, {
-          name: templateForm.name,
-          description: templateForm.description || undefined,
-          fields: templateForm.fields,
-          supportsPhotoUpload: templateForm.supportsPhotoUpload,
-          summaryLabel: templateForm.summaryLabel || undefined,
-          thumbnail: templateForm.thumbnail || undefined,
-        })
-      } else {
-        await adminApi.createCvTemplate({
-          name: templateForm.name,
-          description: templateForm.description || undefined,
-          fields: templateForm.fields,
-          supportsPhotoUpload: templateForm.supportsPhotoUpload,
-          summaryLabel: templateForm.summaryLabel || undefined,
-          thumbnail: templateForm.thumbnail || undefined,
-        })
-      }
-      resetTemplateForm()
-      await Promise.all([reloadTemplates(templateQuery, templatePage), refreshStats()])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save template')
-    } finally {
-      setSubmitting(false)
-    }
-  }
+
 
   const handleDeleteUser = async (id: number) => {
     try {
@@ -378,7 +272,6 @@ export default function AdminDashboardPage() {
   const handleDeleteTemplate = async (id: number) => {
     try {
       await adminApi.deleteCvTemplate(id)
-      if (editingTemplate?.id === id) resetTemplateForm()
       await Promise.all([reloadTemplates(templateQuery, templatePage), refreshStats()])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete template')
@@ -546,7 +439,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {tab === 'users' ? (
-        <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+        <div className="w-full">
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -588,9 +481,6 @@ export default function AdminDashboardPage() {
                             <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.role}</span>
                             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                               {item.isActive ? text.active : text.inactive}
-                            </span>
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.isEmailVerified ? 'bg-violet-100 text-violet-700' : 'bg-gray-200 text-gray-700'}`}>
-                              {item.isEmailVerified ? text.verified : text.notVerified}
                             </span>
                           </div>
                           <p className="mt-2 text-sm text-gray-600">{item.email}</p>
@@ -634,76 +524,9 @@ export default function AdminDashboardPage() {
               )}
             </div>
           </section>
-
-          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{text.userEditor}</h2>
-                <p className="mt-1 text-sm text-gray-500">{editingUser ? editingUser.email : text.createHint}</p>
-              </div>
-              <button
-                type="button"
-                onClick={resetUserForm}
-                className="rounded-2xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600"
-              >
-                {text.reset}
-              </button>
-            </div>
-
-            <form className="space-y-4" onSubmit={handleUserSubmit}>
-              <FormInput label={text.fullName} value={userForm.fullName} onChange={(value) => setUserForm(prev => ({ ...prev, fullName: value }))} required />
-              <FormInput label={text.email} type="email" value={userForm.email} onChange={(value) => setUserForm(prev => ({ ...prev, email: value }))} required />
-              <FormInput label={text.password} type="password" value={userForm.password} onChange={(value) => setUserForm(prev => ({ ...prev, password: value }))} placeholder={editingUser ? 'Leave blank to keep current password' : ''} required={!editingUser} />
-              <FormInput label={text.phone} value={userForm.phone} onChange={(value) => setUserForm(prev => ({ ...prev, phone: value }))} />
-
-              <label className="block text-sm font-medium text-gray-700">
-                {text.role}
-                <select
-                  value={userForm.role}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-400"
-                >
-                  <option value="CANDIDATE">CANDIDATE</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </label>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ToggleField
-                  label={text.active}
-                  checked={userForm.isActive}
-                  onChange={(checked) => setUserForm(prev => ({ ...prev, isActive: checked }))}
-                />
-                <ToggleField
-                  label={text.verified}
-                  checked={userForm.isEmailVerified}
-                  onChange={(checked) => setUserForm(prev => ({ ...prev, isEmailVerified: checked }))}
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {editingUser ? text.updateUser : text.createUser}
-                </button>
-                {editingUser && (
-                  <button
-                    type="button"
-                    onClick={resetUserForm}
-                    className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-600"
-                  >
-                    {text.cancelEdit}
-                  </button>
-                )}
-              </div>
-            </form>
-          </section>
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+        <div className="w-full">
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -771,13 +594,6 @@ export default function AdminDashboardPage() {
                         <div className="flex gap-2 shrink-0">
                           <button
                             type="button"
-                            onClick={() => handleEditTemplate(item)}
-                            className="rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-blue-300 hover:text-blue-700"
-                          >
-                            {text.edit}
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => handleDeleteTemplateClick(item.id)}
                             className="rounded-2xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
                           >
@@ -802,57 +618,21 @@ export default function AdminDashboardPage() {
               )}
             </div>
           </section>
-
-          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{text.templateEditor}</h2>
-                <p className="mt-1 text-sm text-gray-500">{editingTemplate ? `${editingTemplate.name}` : text.chooseTemplate}</p>
-              </div>
-              <button
-                type="button"
-                onClick={resetTemplateForm}
-                className="rounded-2xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600"
-              >
-                {text.reset}
-              </button>
-            </div>
-
-            <form className="space-y-4" onSubmit={handleTemplateSubmit}>
-              <FormInput label={text.templateName} value={templateForm.name} onChange={(value) => setTemplateForm(prev => ({ ...prev, name: value }))} required />
-              <FormInput label={text.templateDescription} value={templateForm.description} onChange={(value) => setTemplateForm(prev => ({ ...prev, description: value }))} />
-              <FormInput label={text.templateFields} value={templateForm.fields} onChange={(value) => setTemplateForm(prev => ({ ...prev, fields: value }))} placeholder="photo,name,job_title,skills..." required />
-              <FormInput label={text.summaryLabel} value={templateForm.summaryLabel} onChange={(value) => setTemplateForm(prev => ({ ...prev, summaryLabel: value }))} placeholder="e.g. Profile, About me" />
-              <FormInput label={text.thumbnail} value={templateForm.thumbnail} onChange={(value) => setTemplateForm(prev => ({ ...prev, thumbnail: value }))} placeholder="e.g. /template-images/temp1.jpg" />
-              
-              <ToggleField
-                label={text.supportsPhotoUpload}
-                checked={templateForm.supportsPhotoUpload}
-                onChange={(checked) => setTemplateForm(prev => ({ ...prev, supportsPhotoUpload: checked }))}
-              />
-
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {editingTemplate ? text.saveTemplate : text.createTemplate}
-                </button>
-                {editingTemplate && (
-                  <button
-                    type="button"
-                    onClick={resetTemplateForm}
-                    className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-600"
-                  >
-                    {text.cancelEdit}
-                  </button>
-                )}
-              </div>
-            </form>
-          </section>
         </div>
       )}
+
+      <EditUserModal
+        isOpen={editingUser !== null}
+        user={editingUser}
+        role={userForm.role}
+        isActive={userForm.isActive}
+        onRoleChange={(role) => setUserForm(prev => ({ ...prev, role }))}
+        onIsActiveChange={(active) => setUserForm(prev => ({ ...prev, isActive: active }))}
+        onSubmit={handleUserSubmit}
+        onClose={resetUserForm}
+        submitting={submitting}
+        text={text}
+      />
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -861,6 +641,89 @@ export default function AdminDashboardPage() {
         onConfirm={confirmModal.onConfirm}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
+    </div>
+  )
+}
+
+function EditUserModal({
+  isOpen,
+  user,
+  role,
+  isActive,
+  onRoleChange,
+  onIsActiveChange,
+  onSubmit,
+  onClose,
+  submitting,
+  text,
+}: {
+  isOpen: boolean
+  user: AdminUser | null
+  role: UserRole
+  isActive: boolean
+  onRoleChange: (role: UserRole) => void
+  onIsActiveChange: (active: boolean) => void
+  onSubmit: (e: React.FormEvent) => void
+  onClose: () => void
+  submitting: boolean
+  text: any
+}) {
+  if (!isOpen || !user) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" 
+        onClick={onClose}
+      />
+      {/* Modal Content */}
+      <form 
+        onSubmit={onSubmit}
+        className="relative w-full max-w-md scale-100 transform rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl transition-all duration-200 space-y-4"
+      >
+        <h3 className="text-lg font-bold text-gray-900">
+          {text.userEditor}
+        </h3>
+        <p className="text-sm text-gray-500">
+          {text.email}: <span className="font-medium text-gray-700">{user.email}</span>
+        </p>
+
+        <label className="block text-sm font-medium text-gray-700">
+          {text.role}
+          <select
+            value={role}
+            onChange={(e) => onRoleChange(e.target.value as UserRole)}
+            className="mt-1 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition-colors focus:border-blue-400"
+          >
+            <option value="CANDIDATE">CANDIDATE</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+        </label>
+
+        <ToggleField
+          label={text.active}
+          checked={isActive}
+          onChange={onIsActiveChange}
+        />
+
+        <div className="mt-6 flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            {text.cancelEdit}
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 shadow-sm disabled:opacity-60"
+          >
+            {text.updateUser}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

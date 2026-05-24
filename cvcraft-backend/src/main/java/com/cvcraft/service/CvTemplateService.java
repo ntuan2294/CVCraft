@@ -6,6 +6,8 @@ import com.cvcraft.dto.response.PageResponse;
 import com.cvcraft.entity.CvTemplate;
 import com.cvcraft.exception.ResourceNotFoundException;
 import com.cvcraft.repository.CvTemplateRepository;
+import com.cvcraft.repository.CvDocumentRepository;
+import com.cvcraft.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.List;
 public class CvTemplateService {
 
     private final CvTemplateRepository cvTemplateRepository;
+    private final CvDocumentRepository cvDocumentRepository;
 
     @Transactional(readOnly = true)
     public List<CvTemplateResponse> getAllTemplates() {
@@ -37,39 +40,14 @@ public class CvTemplateService {
     }
 
     @Transactional
-    public CvTemplateResponse createTemplate(CvTemplateRequest req) {
-        var template = CvTemplate.builder()
-            .name(req.name().trim())
-            .description(req.description())
-            .fields(req.fields().trim())
-            .supportsPhotoUpload(req.supportsPhotoUpload() != null ? req.supportsPhotoUpload() : false)
-            .summaryLabel(req.summaryLabel())
-            .thumbnail(req.thumbnail())
-            .build();
-        template = cvTemplateRepository.save(template);
-        return CvTemplateResponse.from(template);
-    }
-
-    @Transactional
-    public CvTemplateResponse updateTemplate(Long id, CvTemplateRequest req) {
-        var template = cvTemplateRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("CvTemplate", id));
-        
-        template.setName(req.name().trim());
-        template.setDescription(req.description());
-        template.setFields(req.fields().trim());
-        template.setSupportsPhotoUpload(req.supportsPhotoUpload() != null ? req.supportsPhotoUpload() : false);
-        template.setSummaryLabel(req.summaryLabel());
-        template.setThumbnail(req.thumbnail());
-
-        template = cvTemplateRepository.save(template);
-        return CvTemplateResponse.from(template);
-    }
-
-    @Transactional
     public void deleteTemplate(Long id) {
         var template = cvTemplateRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("CvTemplate", id));
+        
+        if (cvDocumentRepository.existsByTemplateId(String.valueOf(id))) {
+            throw new BadRequestException("Cannot delete template because it is currently in use by CV documents");
+        }
+        
         cvTemplateRepository.delete(template);
     }
 }
