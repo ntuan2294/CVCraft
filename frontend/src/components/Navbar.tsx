@@ -75,36 +75,6 @@ export default function Navbar() {
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                     <Link
-                      href="/dashboard/candidate"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setDropOpen(false)}
-                    >
-                      {t('nav.dashboard')}
-                    </Link>
-                    {user.role === 'ADMIN' && (
-                      <Link
-                        href="/dashboard/admin"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setDropOpen(false)}
-                      >
-                        {t('nav.adminPanel')}
-                      </Link>
-                    )}
-                    <Link
-                      href="/cv/generate"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setDropOpen(false)}
-                    >
-                      {t('nav.buildCv')}
-                    </Link>
-                    <Link
-                      href="/edit-cv"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setDropOpen(false)}
-                    >
-                      Chỉnh sửa CV
-                    </Link>
-                    <Link
                       href="/profile"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setDropOpen(false)}

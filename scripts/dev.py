@@ -97,6 +97,8 @@ def start_process(name: str, command: list[str], cwd: Path, env: dict[str, str])
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
     )
     threading.Thread(target=stream_output, args=(name, process.stdout), daemon=True).start()

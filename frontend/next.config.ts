@@ -8,7 +8,6 @@ const nextConfig: NextConfig = {
     localPatterns: [
       {
         pathname: '/template-images/**',
-        search: '?v=20260524',
       },
     ],
   },
