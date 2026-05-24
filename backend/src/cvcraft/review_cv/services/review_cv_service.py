@@ -1,9 +1,17 @@
-"""Edit CV Service — analyze uploaded CV content and return score/feedback only."""
-from cvcraft.edit_cv.agents.cv_parser import parse_cv
-from cvcraft.edit_cv.agents.cv_analyzer import analyze_cv
+"""
+Review CV Service — orchestrates the 3-step pipeline:
+
+  1. cv_parser         : Trích xuất văn bản thô từ file CV tải lên
+  2. jd_analyzer + cv_info_extractor (song song):
+                         JobRequirement + CVProfile
+  3. cv_analyzer       : RAG(job_title + industry + seniority) + LLM
+                         → đánh giá / gợi ý / điểm số
+"""
+from cvcraft.review_cv.agents.cv_parser import parse_cv
+from cvcraft.review_cv.agents.cv_analyzer import analyze_cv
 
 
-class EditCVService:
+class ReviewCVService:
     def run(
         self,
         cv_data: bytes,
@@ -11,10 +19,12 @@ class EditCVService:
         cv_filename: str,
         jd_text: str,
     ) -> dict:
+        # Bước 1: Trích xuất văn bản thô từ file CV
         cv_text = parse_cv(cv_data, cv_mime, cv_filename)
         if not cv_text.strip():
             raise ValueError("Không trích xuất được nội dung CV")
 
+        # Bước 2 + 3: Phân tích JD & CV song song → RAG + LLM đánh giá
         analysis, jd_req, cv_profile = analyze_cv(cv_text, jd_text)
 
         return {

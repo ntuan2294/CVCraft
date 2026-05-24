@@ -1,28 +1,24 @@
 """
-CV Analyzer Agent — mirrors the summary_agent + experience_agent + qc_agent pipeline of gen-cv.
+CV Analyzer Agent — đánh giá CV theo JD, gồm 4 bước:
 
-Pipeline:
-  1. parse_jd()          → JobRequirement  (job_title, industry, seniority_level, keywords…)
-  2. extract_cv_info()   → CVProfile       (candidate background, skills, experiences…)
-  3. RAG retrieval       → similar CVs from same industry + seniority (identical filter logic as gen-cv)
-  4. LLM analysis        → EditCVAnalysis  (evaluation, suggestions, score)
-
-The RAG retrieval now uses the full 3-field filter (job_title + industry + seniority_level)
-exactly as experience_agent_node and summary_agent_node do in gen-cv.
+  1. parse_jd()        → JobRequirement  (job_title, industry, seniority_level, keywords…)
+  2. extract_cv_info() → CVProfile       (thông tin ứng viên, kỹ năng, kinh nghiệm…)
+  3. RAG retrieval     → CV mẫu cùng ngành + cấp độ (bộ lọc 3 chiều giống gen-cv)
+  4. LLM analysis      → ReviewCVAnalysis (đánh giá, gợi ý, điểm số)
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pydantic import BaseModel, Field
 
 from cvcraft.generate_cv.core.state import JobRequirement
-from cvcraft.generate_cv.agents.jd_analyzer import parse_jd       # reuse gen-cv agent directly
+from cvcraft.generate_cv.agents.jd_analyzer import parse_jd
 from cvcraft.generate_cv.rag.retriever import RAGRetriever
 from cvcraft.infrastructure.llm.factory import LLMFactory, call_with_structured_output
-from cvcraft.edit_cv.agents.cv_info_extractor import CVProfile, extract_cv_info
+from cvcraft.review_cv.agents.cv_info_extractor import CVProfile, extract_cv_info
 
 
-class EditCVAnalysis(BaseModel):
+class ReviewCVAnalysis(BaseModel):
     evaluation: str = Field(description="Nhận xét tổng thể về CV (2-4 đoạn tiếng Việt)")
-    suggestions: list[str] = Field(description="5-8 gợi ý cụ thể, actionable để cải thiện CV")
+    suggestions: list[str] = Field(description="5-8 gợi ý cụ thể để cải thiện CV")
     score: int = Field(description="Điểm tổng thể 0-100", ge=0, le=100)
 
 
@@ -46,39 +42,31 @@ Quy tắc trả lời:
 6. Ưu tiên gợi ý chỉnh sửa nội dung thực có trong CV, không yêu cầu thêm danh sách từ khóa riêng"""
 
 
-def analyze_cv(cv_text: str, jd_text: str) -> tuple[EditCVAnalysis, JobRequirement, CVProfile]:
-    """
-    Full analysis pipeline mirroring gen-cv agent flow.
-
-    Returns (analysis, jd_req, cv_profile) so the service can keep useful
-    metadata while rewriting CV text with the original format preserved.
-    """
-    # Step 1: Parse JD and CV in parallel (mirrors jd_analyzer + user_profile running in parallel)
+def analyze_cv(cv_text: str, jd_text: str) -> tuple[ReviewCVAnalysis, JobRequirement, CVProfile]:
+    """Chạy toàn bộ pipeline đánh giá CV. Trả về (analysis, jd_req, cv_profile)."""
     jd_req: JobRequirement
     cv_profile: CVProfile
 
+    # Bước 1: Phân tích JD và CV song song
     with ThreadPoolExecutor(max_workers=2) as pool:
         f_jd = pool.submit(parse_jd, jd_text)
         f_cv = pool.submit(extract_cv_info, cv_text)
         jd_req = f_jd.result()
         cv_profile = f_cv.result()
 
-    # Step 2: RAG retrieval — same 3-field filter as gen-cv's summary_agent + experience_agent
+    # Bước 2: RAG retrieval — bộ lọc 3 chiều giống gen-cv
     rag_context = _retrieve_rag_context(jd_req)
 
-    # Step 3: LLM analysis
+    # Bước 3: LLM đánh giá CV
     user_message = _build_prompt(jd_req, cv_profile, cv_text, rag_context)
     llm = LLMFactory.get_llm("strong")
-    analysis = call_with_structured_output(llm, EditCVAnalysis, _SYSTEM_PROMPT, user_message)
+    analysis = call_with_structured_output(llm, ReviewCVAnalysis, _SYSTEM_PROMPT, user_message)
 
     return analysis, jd_req, cv_profile
 
 
 def _retrieve_rag_context(jd_req: JobRequirement) -> str:
-    """
-    RAG retrieval using full 3-field filter: job_title + industry + seniority_level.
-    Identical to how summary_agent_node and experience_agent_node work in gen-cv.
-    """
+    """RAG retrieval với bộ lọc 3 chiều: job_title + industry + seniority_level."""
     try:
         retriever = RAGRetriever()
 

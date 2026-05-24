@@ -1,15 +1,15 @@
 """
-POST /v1/edit-cv/analyze  — Analyze a CV against a JD.
+POST /v1/review-cv/analyze  — Đánh giá CV theo JD.
 
-Accepts multipart form:
+Nhận multipart form:
   - cv_file : UploadFile  (PDF, DOCX, PNG, JPG)
-  - jd_text : str         (structured JD text from the JD panel)
+  - jd_text : str         (nội dung JD từ form hoặc trang tìm kiếm JD)
 
-Returns:
+Trả về:
   { evaluation, suggestions, score }
 """
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from cvcraft.edit_cv.services.edit_cv_service import EditCVService
+from cvcraft.review_cv.services.review_cv_service import ReviewCVService
 
 router = APIRouter()
 
@@ -34,14 +34,14 @@ async def analyze_cv_endpoint(
         )
 
     if not jd_text.strip():
-        raise HTTPException(status_code=400, detail="Vui lòng nhập hoặc tải JD trước khi phân tích")
+        raise HTTPException(status_code=400, detail="Vui lòng nhập hoặc tải JD trước khi đánh giá")
 
     data = await cv_file.read()
     if not data:
         raise HTTPException(status_code=400, detail="File CV trống")
 
     try:
-        service = EditCVService()
+        service = ReviewCVService()
         result = service.run(
             cv_data=data,
             cv_mime=mime,
@@ -51,6 +51,6 @@ async def analyze_cv_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Lỗi phân tích CV: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Lỗi đánh giá CV: {exc}") from exc
 
     return result
