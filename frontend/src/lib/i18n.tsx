@@ -7,6 +7,7 @@ const translations = {
   en: {
     // Navbar
     'nav.aiCvBuilder': 'AI CV Builder',
+    'nav.editCv': 'CV Analysis',
     'nav.jdSearch': 'JD Search',
     'nav.myCvs': 'My CVs',
     'nav.dashboard': 'Dashboard',
@@ -334,11 +335,35 @@ const translations = {
     'gen.uploadPhoto': 'Upload photo',
     'gen.photoHint': 'JPG, PNG — recommended 300×300 px',
     'gen.removePhoto': 'Remove photo',
+
+    // Edit CV (CV Analysis)
+    'editcv.title': 'CV Analysis',
+    'editcv.subtitle': 'Upload your CV and JD to get a match score, feedback, and improvement suggestions.',
+    'editcv.jdSection': 'Job Description',
+    'editcv.jdPlaceholder': 'Paste job description here or use the Upload JD button...',
+    'editcv.cvSection': 'CV to Analyze',
+    'editcv.chooseFile': 'Choose CV File',
+    'editcv.changeFile': 'Click to change file',
+    'editcv.fileFormats': 'PDF, DOCX, PNG, JPG',
+    'editcv.analyze': 'Analyze CV',
+    'editcv.analyzing': 'Analyzing CV...',
+    'editcv.analyzeAnother': 'Analyze Another CV',
+    'editcv.errorNoFile': 'Please upload a CV file',
+    'editcv.errorNoJd': 'Please enter or upload a JD before analyzing',
+    'editcv.errorFailed': 'Analysis failed',
+    'editcv.scoreLabel': 'Match Score',
+    'editcv.scoreExcellent': 'Excellent',
+    'editcv.scoreGood': 'Good',
+    'editcv.scoreAverage': 'Average',
+    'editcv.scoreNeedsWork': 'Needs Improvement',
+    'editcv.reviewTitle': 'Evaluation',
+    'editcv.suggestionsTitle': 'Improvement Suggestions ({n})',
   },
 
   vi: {
     // Navbar
     'nav.aiCvBuilder': 'Tạo CV bằng AI',
+    'nav.editCv': 'Chỉnh sửa CV',
     'nav.jdSearch': 'Tìm JD',
     'nav.myCvs': 'CV của tôi',
     'nav.dashboard': 'Bảng điều khiển',
@@ -666,6 +691,29 @@ const translations = {
     'gen.uploadPhoto': 'Tải ảnh lên',
     'gen.photoHint': 'JPG, PNG — khuyến nghị 300×300 px',
     'gen.removePhoto': 'Xóa ảnh',
+
+    // Edit CV (Phân tích CV)
+    'editcv.title': 'Phân tích CV',
+    'editcv.subtitle': 'Tải CV và JD để nhận điểm phù hợp, nhận xét và gợi ý cải thiện.',
+    'editcv.jdSection': 'Mô tả công việc',
+    'editcv.jdPlaceholder': 'Dán mô tả công việc vào đây hoặc dùng nút Tải JD...',
+    'editcv.cvSection': 'CV cần phân tích',
+    'editcv.chooseFile': 'Chọn file CV',
+    'editcv.changeFile': 'Nhấn để đổi file',
+    'editcv.fileFormats': 'PDF, DOCX, PNG, JPG',
+    'editcv.analyze': 'Phân tích CV',
+    'editcv.analyzing': 'Đang phân tích CV...',
+    'editcv.analyzeAnother': 'Phân tích CV khác',
+    'editcv.errorNoFile': 'Vui lòng tải lên file CV',
+    'editcv.errorNoJd': 'Vui lòng nhập hoặc tải JD trước khi phân tích',
+    'editcv.errorFailed': 'Phân tích thất bại',
+    'editcv.scoreLabel': 'Điểm phù hợp',
+    'editcv.scoreExcellent': 'Xuất sắc',
+    'editcv.scoreGood': 'Khá tốt',
+    'editcv.scoreAverage': 'Trung bình',
+    'editcv.scoreNeedsWork': 'Cần cải thiện',
+    'editcv.reviewTitle': 'Nhận xét',
+    'editcv.suggestionsTitle': 'Gợi ý cải thiện ({n})',
   }
 } as const
 

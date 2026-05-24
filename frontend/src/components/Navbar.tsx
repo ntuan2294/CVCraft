@@ -20,7 +20,7 @@ export default function Navbar() {
 
   const navLinks: [string, string][] = [
     [t('nav.aiCvBuilder'), '/cv/generate'],
-    ['Chỉnh sửa CV', '/edit-cv'],
+    [t('nav.editCv'), '/edit-cv'],
     [t('nav.jdSearch'), '/jd/search'],
     [t('nav.myCvs'), user?.role === 'ADMIN' ? '/dashboard/candidate' : '/dashboard'],
     ...(user?.role === 'ADMIN' ? [[t('nav.adminPanel'), '/dashboard/admin'] as [string, string]] : []),

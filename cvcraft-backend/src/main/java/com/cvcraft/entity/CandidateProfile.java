@@ -31,7 +31,7 @@ public class CandidateProfile {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
-    @Column(length = 100)
+    @Column(length = 200)
     private String location;
 
     @Column(name = "experience_years")
@@ -43,7 +43,7 @@ public class CandidateProfile {
 
     @ElementCollection
     @CollectionTable(name = "candidate_skills", joinColumns = @JoinColumn(name = "profile_id"))
-    @Column(name = "skill")
+    @Column(name = "skill", length = 255)
     private List<String> skills;
 
     @Column(name = "cv_url")

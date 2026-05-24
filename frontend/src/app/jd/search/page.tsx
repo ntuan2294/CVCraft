@@ -5,9 +5,11 @@ import { api } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import type { JDCardResult, JDFormattedDetail } from '@/lib/types'
 import JDResultCard from '@/components/JDResultCard'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 export default function JDSearchPage() {
   const { t } = useI18n()
+  const { user, loading: authLoading } = useRequireAuth()
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<JDCardResult[]>([])
@@ -98,6 +100,15 @@ export default function JDSearchPage() {
     )
     router.push('/cv/generate')
   }
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600/20 border-t-indigo-600" />
+      </div>
+    )
+  }
+  if (!user) return null
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

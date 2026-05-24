@@ -8,18 +8,21 @@ import { GenerateCvResult } from '@/features/generate-cv/components/GenerateCvRe
 import { downloadCvEditorAsImage, downloadCvEditorAsPdf } from '@/features/generate-cv/utils/export'
 import { useI18n } from '@/lib/i18n'
 import Link from 'next/link'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 export default function EditCvPage() {
   const params = useParams()
   const router = useRouter()
   const { t, locale } = useI18n()
+  const { user, loading: authLoading } = useRequireAuth()
   const id = Number(params.id)
-  
+
   const [cv, setCv] = useState<CvDocument | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (authLoading || !user) return
     if (isNaN(id)) {
       setError(locale === 'vi' ? 'ID không hợp lệ' : 'Invalid ID')
       setLoading(false)
@@ -32,7 +35,16 @@ export default function EditCvPage() {
         setError(err instanceof Error ? err.message : (locale === 'vi' ? 'Không tải được CV' : 'Failed to load CV'))
       })
       .finally(() => setLoading(false))
-  }, [id, locale])
+  }, [id, locale, authLoading, user])
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600/20 border-t-indigo-600" />
+      </div>
+    )
+  }
+  if (!user) return null
 
   if (loading) {
     return (

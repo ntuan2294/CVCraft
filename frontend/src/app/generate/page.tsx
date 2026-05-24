@@ -6,8 +6,10 @@ import { GenerateCvHeader } from '@/features/generate-cv/components/GenerateCvHe
 import { GenerateCvResult } from '@/features/generate-cv/components/GenerateCvResult'
 import { useGenerateCvForm } from '@/features/generate-cv/hooks/useGenerateCvForm'
 import { downloadCvEditorAsImage, downloadCvEditorAsPdf } from '@/features/generate-cv/utils/export'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 export default function GenerateCVPage() {
+  const { user, loading: authLoading } = useRequireAuth()
   const model = useGenerateCvForm()
 
   // Always start from the form view when the page mounts (e.g. duplicated tabs)
@@ -15,6 +17,15 @@ export default function GenerateCVPage() {
     model.setResult(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600/20 border-t-indigo-600" />
+      </div>
+    )
+  }
+  if (!user) return null
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -67,6 +67,18 @@ type AdminCvDocument = {
   updatedAt: string
 }
 
+type CvTemplate = {
+  id: number
+  name: string
+  description?: string
+  fields: string[]
+  supportsPhotoUpload: boolean
+  summaryLabel?: string
+  thumbnail?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 type AdminDashboardStats = {
   totalUsers: number
   totalCandidates: number
@@ -199,6 +211,29 @@ export const adminUsers: AdminUser[] = [
     role: 'CANDIDATE',
     isActive: true,
     isEmailVerified: true,
+    createdAt: THREE_DAYS_AGO,
+    updatedAt: NOW,
+  },
+]
+
+export const adminCvTemplates: CvTemplate[] = [
+  {
+    id: 1,
+    name: 'Classic Template',
+    description: 'Clean and professional single-column layout',
+    fields: ['name', 'email', 'phone', 'skills', 'experience'],
+    supportsPhotoUpload: false,
+    summaryLabel: 'Summary',
+    createdAt: TEN_DAYS_AGO,
+    updatedAt: NOW,
+  },
+  {
+    id: 2,
+    name: 'Modern Template',
+    description: 'Contemporary two-column design with photo support',
+    fields: ['name', 'email', 'phone', 'photo', 'skills', 'experience'],
+    supportsPhotoUpload: true,
+    summaryLabel: 'Profile',
     createdAt: THREE_DAYS_AGO,
     updatedAt: NOW,
   },
@@ -356,17 +391,10 @@ export async function mockAuthApi(page: Page, options?: {
     }
 
     if (method === 'POST' && url.pathname.endsWith('/api/auth/register')) {
-      const body = parseJson(route.request().postData())
+      // Registration returns a MessageResponse, not tokens — the page always
+      // redirects to /auth/verify-email for OTP confirmation afterwards.
       return fulfillJson(route, {
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        user: {
-          ...registerUser,
-          email: body.email ?? registerUser.email,
-          fullName: body.fullName ?? registerUser.fullName,
-        },
+        message: 'Registration successful. Please check your email for the OTP verification code.',
       })
     }
 
@@ -440,12 +468,35 @@ export async function mockCandidateApis(page: Page, options?: {
   })
 }
 
+// ── UC-03 / UC-04: OTP verification & resend ───────────────────────────────
+export async function mockOtpApi(page: Page, options?: {
+  verifyUser?: AuthUser
+}) {
+  const verifyUser = options?.verifyUser ?? candidateUser
+
+  await page.route('**/api/auth/verify-email', async (route) => {
+    return fulfillJson(route, {
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      user: verifyUser,
+    })
+  })
+
+  await page.route('**/api/auth/resend-verification', async (route) => {
+    return fulfillJson(route, { message: 'OTP resent successfully. Please check your email.' })
+  })
+}
+
 export async function mockAdminApi(page: Page, options?: {
   users?: AdminUser[]
   cvs?: AdminCvDocument[]
+  templates?: CvTemplate[]
 }) {
   let users = clone(options?.users ?? adminUsers)
   let cvs = clone(options?.cvs ?? adminCvDocs)
+  let templates = clone(options?.templates ?? adminCvTemplates)
 
   await page.route('**/api/admin/**', async (route) => {
     const url = new URL(route.request().url())
@@ -539,6 +590,58 @@ export async function mockAdminApi(page: Page, options?: {
     if (method === 'DELETE' && updateCvMatch) {
       const selectedId = Number(updateCvMatch[1])
       cvs = cvs.filter((item) => item.id !== selectedId)
+      return route.fulfill({ status: 204, body: '' })
+    }
+
+    // ── CV Template CRUD (UC-21a – 21d) ──────────────────────────────────
+    if (method === 'GET' && pathname.endsWith('/api/admin/cv-templates')) {
+      const query = (url.searchParams.get('query') ?? '').toLowerCase()
+      const filtered = templates.filter((item) =>
+        matchesQuery(query, item.name, item.description ?? ''),
+      )
+      return fulfillJson(route, pageOf(filtered))
+    }
+
+    if (method === 'POST' && pathname.endsWith('/api/admin/cv-templates')) {
+      const body = parseJson(route.request().postData())
+      const created: CvTemplate = {
+        id: nextId(templates.map((item) => item.id)),
+        name: body.name,
+        description: body.description,
+        fields: String(body.fields ?? '').split(',').map((f: string) => f.trim()).filter(Boolean),
+        supportsPhotoUpload: body.supportsPhotoUpload ?? false,
+        summaryLabel: body.summaryLabel,
+        thumbnail: body.thumbnail,
+        createdAt: NOW,
+        updatedAt: NOW,
+      }
+      templates = [created, ...templates]
+      return fulfillJson(route, created)
+    }
+
+    const updateTemplateMatch = pathname.match(/\/api\/admin\/cv-templates\/(\d+)$/)
+    if (method === 'PUT' && updateTemplateMatch) {
+      const selectedId = Number(updateTemplateMatch[1])
+      const body = parseJson(route.request().postData())
+      templates = templates.map((item) => item.id === selectedId ? {
+        ...item,
+        name: body.name ?? item.name,
+        description: body.description ?? item.description,
+        fields: body.fields
+          ? String(body.fields).split(',').map((f: string) => f.trim()).filter(Boolean)
+          : item.fields,
+        supportsPhotoUpload: body.supportsPhotoUpload ?? item.supportsPhotoUpload,
+        summaryLabel: body.summaryLabel ?? item.summaryLabel,
+        thumbnail: body.thumbnail ?? item.thumbnail,
+        updatedAt: NOW,
+      } : item)
+      const updated = templates.find((item) => item.id === selectedId)
+      return fulfillJson(route, updated)
+    }
+
+    if (method === 'DELETE' && updateTemplateMatch) {
+      const selectedId = Number(updateTemplateMatch[1])
+      templates = templates.filter((item) => item.id !== selectedId)
       return route.fulfill({ status: 204, body: '' })
     }
 

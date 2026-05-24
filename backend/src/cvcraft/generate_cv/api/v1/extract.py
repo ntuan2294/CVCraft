@@ -82,10 +82,11 @@ def _get_openai():
 
 
 def _extract_pdf(data: bytes) -> str:
-    from pypdf import PdfReader
-    reader = PdfReader(io.BytesIO(data))
-    parts = [page.extract_text() for page in reader.pages if page.extract_text()]
-    return "\n".join(parts)
+    import fitz  # pymupdf — already in project dependencies
+    doc = fitz.open(stream=data, filetype="pdf")
+    parts = [page.get_text() for page in doc]
+    doc.close()
+    return "\n".join(p for p in parts if p.strip())
 
 
 def _extract_docx(data: bytes) -> str:
